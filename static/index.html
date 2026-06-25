@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>undertale-vera · The Save Remembers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/determination.css" />
+</head>
+<body>
+  <header style="text-align:center; padding:32px 16px 8px;">
+    <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
+      <span class="soul-sigil" aria-hidden="true"></span>
+      <h1 style="margin:0;">Determination Chronicle</h1>
+    </div>
+    <p class="display" style="color:var(--ink-dim); font-size:0.9rem; letter-spacing:0.18em;">
+      UNDERTALE&nbsp;·&nbsp;VERA&nbsp;—&nbsp;THE&nbsp;SAVE&nbsp;REMEMBERS
+    </p>
+  </header>
+
+  <main style="max-width:820px; margin:0 auto; padding:0 16px 48px;">
+    <!-- The restyled dialogue vessel: engraved plate + relic portrait + ink reveal -->
+    <section class="dialogue-vessel" aria-label="dialogue sample">
+      <div class="relic-portrait empty" role="img" aria-label="default soul-sigil crest"></div>
+      <div class="dialogue-body">
+        <div class="dialogue-name">Sans</div>
+        <div class="dialogue-text ink-reveal">
+          your save knows what you did. i'm just the one who reads it back to you.
+        </div>
+        <div style="margin-top:12px;">
+          <span class="route-badge undetermined" id="route-badge">
+            <span class="soul-sigil" style="width:14px;height:14px;"></span>
+            route: undetermined
+          </span>
+        </div>
+      </div>
+    </section>
+
+    <p style="color:var(--ink-dim); text-align:center; font-size:0.9rem; margin-top:28px;">
+      Spine&nbsp;0 scaffold. Facts are sacred, feelings are free.
+    </p>
+  </main>
+
+  <script src="/js/music.js"></script>
+  <script>
+    // Wire the global music layer (route-aware seed). Stays silent until a real
+    // save sets a route and the user enables audio (autoplay-safe).
+    (function () {
+      if (window.MusicLayer) { window.MusicLayer.init(); }
+    })();
+  </script>
+</body>
+</html>

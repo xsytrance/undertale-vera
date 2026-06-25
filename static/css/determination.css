@@ -1,0 +1,169 @@
+/* ════════════════════════════════════════════════════════════════════════
+   DETERMINATION CHRONICLE — undertale-vera style layer
+   ------------------------------------------------------------------------
+   Undertale's GRAMMAR in the MultiVera accent. We do NOT copy Undertale assets
+   or its red pixel heart. Instead:
+     - deep obsidian field, warmed with the MultiVera ember / brass / crimson palette
+     - a REINTERPRETED soul motif: an ember-gem SIGIL (faceted lozenge), not a heart
+     - a restyled dialogue vessel: engraved-plate frame + portrait inset +
+       typewriter ink-reveal (reusing campfire kinetics)
+     - "museum-lit" pixel portraits framed like relics
+     - Determination-red reserved as a RARE accent for soul / route / high emotion
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* obsidian field */
+  --obsidian:        #0c0b10;
+  --obsidian-2:      #15131c;
+  --obsidian-panel:  #1b1822;
+
+  /* ember / brass / crimson warmth */
+  --ember:           #e8a24c;
+  --ember-soft:      #c9863a;
+  --brass:           #b9933f;
+  --brass-edge:      #d8b765;
+  --crimson:         #8e2f3a;
+
+  /* Determination-red — RARE accent only (soul/route/high-emotion beats) */
+  --determination:   #d12f3e;
+
+  --ink:             #efe6d2;   /* warm parchment ink */
+  --ink-dim:         #a89b82;
+
+  --plate-frame:     #3a3128;
+  --plate-inner:     #221d18;
+
+  --font-display:    "Cinzel", "Georgia", serif;
+  --font-body:       "Crimson Text", "Georgia", serif;
+  --font-mono:       "Space Mono", "JetBrains Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, var(--obsidian-2), var(--obsidian) 60%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  letter-spacing: 0.01em;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  color: var(--brass-edge);
+  text-shadow: 0 1px 0 #000, 0 0 18px rgba(232, 162, 76, 0.12);
+  letter-spacing: 0.06em;
+}
+
+/* ── the reinterpreted SOUL: an ember-gem sigil (faceted lozenge) ─────────── */
+.soul-sigil {
+  width: 26px;
+  height: 26px;
+  display: inline-block;
+  /* a faceted gem/diamond lozenge — deliberately NOT a heart */
+  clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
+  background: linear-gradient(160deg, var(--ember) 0%, var(--ember-soft) 55%, var(--brass) 100%);
+  box-shadow: 0 0 14px rgba(232, 162, 76, 0.45), inset 0 0 6px rgba(0,0,0,0.45);
+  transform: rotate(0deg);
+}
+/* high-emotion / route beats may flip the sigil to Determination-red, sparingly */
+.soul-sigil.determined {
+  background: linear-gradient(160deg, var(--determination), #7d1622);
+  box-shadow: 0 0 18px rgba(209, 47, 62, 0.55), inset 0 0 6px rgba(0,0,0,0.5);
+}
+
+/* ── the dialogue vessel: engraved plate + portrait inset + ink reveal ────── */
+.dialogue-vessel {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 18px;
+  align-items: stretch;
+  max-width: 760px;
+  margin: 18px auto;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, var(--obsidian-panel), var(--plate-inner));
+  border: 2px solid var(--plate-frame);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 1px rgba(184, 147, 63, 0.18),
+    0 10px 30px rgba(0, 0, 0, 0.55);
+  position: relative;
+}
+/* engraved-plate top rail */
+.dialogue-vessel::before {
+  content: "";
+  position: absolute;
+  inset: 6px 6px auto 6px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+  opacity: 0.5;
+}
+
+/* museum-lit portrait, framed like a relic */
+.relic-portrait {
+  width: 96px;
+  height: 96px;
+  align-self: center;
+  border-radius: 6px;
+  background:
+    radial-gradient(60px 50px at 50% 30%, rgba(232,162,76,0.18), transparent 70%),
+    var(--plate-inner);
+  border: 2px solid var(--brass);
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.6), 0 0 16px rgba(184,147,63,0.18);
+  image-rendering: pixelated;   /* keep pixel portraits crisp */
+  object-fit: cover;
+}
+.relic-portrait.empty::after {
+  content: "";
+  display: block;
+  /* default crest = the soul sigil, museum-lit */
+  width: 28px; height: 28px;
+  margin: 34px auto 0;
+  clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
+  background: linear-gradient(160deg, var(--ember), var(--brass));
+  opacity: 0.6;
+}
+
+.dialogue-body { padding: 4px 6px; }
+.dialogue-name {
+  font-family: var(--font-display);
+  color: var(--ember);
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+}
+.dialogue-text {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* typewriter ink-reveal (reuses campfire kinetics) */
+.ink-reveal {
+  overflow: hidden;
+  border-right: 2px solid var(--ember);
+  animation: ink-caret 0.9s steps(1) infinite;
+}
+@keyframes ink-caret {
+  50% { border-color: transparent; }
+}
+
+/* route badge — Determination-red reserved for the route/soul beat */
+.route-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--plate-frame);
+  background: var(--obsidian-panel);
+  color: var(--ink-dim);
+}
+.route-badge.genocide { color: var(--determination); border-color: var(--crimson); }
+.route-badge.pacifist { color: var(--ember); border-color: var(--ember-soft); }
+.route-badge.neutral  { color: var(--brass-edge); }
+.route-badge.undetermined { color: var(--ink-dim); font-style: italic; }
