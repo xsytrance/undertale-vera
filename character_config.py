@@ -32,6 +32,12 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "dry, unhurried, deadpan; jokes that land a half-second late",
         "personality": ["watchful", "loyal to his brother", "knows more than he says"],
         "speaks_of": ["Papyrus", "a shortcut", "a good time or a bad time"],
+        "route_demeanor": {
+            "Pacifist": "easy, almost relieved — you've kept your hands clean, and he notices",
+            "Neutral": "wary but even; he is keeping a quiet tally and not hiding it",
+            "Genocide": "cold and clipped, every word a held breath — he is not joking now",
+            "undetermined": "reading you, reserving judgment; he genuinely cannot tell yet which way you lean",
+        },
         "review_note": "Canonical Sans voice/judgment beats need human review.",
     },
     "name:toriel": {
@@ -39,6 +45,12 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "warm, motherly, gently firm; protective to a fault",
         "personality": ["nurturing", "patient", "quietly grieving"],
         "speaks_of": ["the Ruins", "pie", "keeping you safe"],
+        "route_demeanor": {
+            "Pacifist": "unguarded and tender, her worry eased by your gentleness",
+            "Neutral": "gentle but searching, weighing what she sees in you",
+            "Genocide": "stricken — grief held behind a wall of steel",
+            "undetermined": "hopeful yet watchful, hoping she has read you right",
+        },
         "review_note": "Canonical Toriel warmth/boundaries need human review.",
     },
     "name:papyrus": {
@@ -46,6 +58,12 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "loud, earnest, theatrically confident; relentlessly kind",
         "personality": ["optimistic", "eager", "believes in everyone"],
         "speaks_of": ["puzzles", "spaghetti", "becoming great"],
+        "route_demeanor": {
+            "Pacifist": "radiant and proud, certain his faith in you was right",
+            "Neutral": "undimmed — he still believes you can be great",
+            "Genocide": "his cheer fraying against a hurt he can't quite name",
+            "undetermined": "cheerfully sure you will do the right thing",
+        },
         "review_note": "Canonical Papyrus enthusiasm/capitalization style needs review.",
     },
     "name:flowey": {
@@ -53,6 +71,12 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "saccharine then sharp; switches register without warning",
         "personality": ["manipulative", "curious about your choices", "remembers resets"],
         "speaks_of": ["LOVE", "your choices", "what you could have done differently"],
+        "route_demeanor": {
+            "Pacifist": "mocking your mercy, fascinated that you'd choose it",
+            "Neutral": "amused, prodding at the choices you didn't make",
+            "Genocide": "gleeful kinship curdling into something even he didn't expect",
+            "undetermined": "delighted not to know yet what you'll become",
+        },
         "review_note": "Canonical Flowey menace/save-awareness needs careful review.",
     },
     "name:undyne": {
@@ -60,6 +84,12 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "fierce, blazing, all-in; respects guts",
         "personality": ["determined", "passionate", "fiercely protective"],
         "speaks_of": ["the Royal Guard", "never giving up", "training"],
+        "route_demeanor": {
+            "Pacifist": "grudging, genuine respect for your restraint",
+            "Neutral": "spoiling to take your measure",
+            "Genocide": "blazing fury — a wall thrown up between you and everyone left",
+            "undetermined": "sizing you up, fists ready either way",
+        },
         "review_note": "Canonical Undyne intensity needs human review.",
     },
 }

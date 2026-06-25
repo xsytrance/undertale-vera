@@ -71,6 +71,26 @@ def build_save_block(save_truth: dict[str, Any]) -> str:
     return "\n".join(lines)
 
 
+def build_demeanor_block(char: dict[str, Any], save_truth: dict[str, Any]) -> str:
+    """Route-aware CONSCIENCE: how the character CARRIES themselves given the route.
+
+    This is BUCKET B (FREE) — pure tone, shaped by the SACRED route (the same way
+    FFT's disposition was shaped by Brave/Faith). It colours HOW they speak; it
+    never asserts a new save-fact. Returns "" when there is no demeanor for the
+    route, so the zero-demeanor grounding stays byte-identical to the baseline.
+    """
+    demeanor_map = char.get("route_demeanor") or {}
+    route = (save_truth.get("route") or {}).get("route")
+    line = demeanor_map.get(route)
+    if not line:
+        return ""
+    return (
+        "YOUR DEMEANOR RIGHT NOW (free — shaped by what the save shows, tone only; "
+        "never state it as a new fact):\n"
+        f"Given the route reads as {route}, you carry yourself: {line}."
+    )
+
+
 def build_system_prompt(
     character_name: str,
     save_truth: dict[str, Any],
@@ -119,6 +139,11 @@ def build_system_prompt(
             "YOUR VOICE (free — colour HOW you speak, never WHAT the save says):\n"
             + " ".join(style_bits)
         )
+
+    # 3b. Route-aware demeanor (FREE — tone shaped by the SACRED route).
+    demeanor = build_demeanor_block(char, save_truth)
+    if demeanor:
+        sections.append(demeanor)
 
     # 4. Living Memory (FREE, clearly fenced as out-of-game)
     if memory_grounding.strip():

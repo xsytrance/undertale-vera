@@ -64,3 +64,18 @@ Reported the plan + repo structure before writing code → `docs/PORT_PLAN.md`.
 Committed: scaffold + parser + chat + style layer + Inspector + sample asset
 references + docs. Generated art is gitignored (never batch-committed).
 fft-psx-vera left untouched (read-only reference).
+
+## Beat 1 — Route-aware CONSCIENCE
+Companion demeanor now shifts by route (the first roadmap next-beat).
+- `character_config.py`: added a `route_demeanor` map per character (ADD-only) —
+  how each carries themselves under Pacifist / Neutral / Genocide / undetermined.
+- `prompt_builder.py`: `build_demeanor_block` injects demeanor into the FREE
+  bucket, shaped by the SACRED route (the same way FFT disposition was shaped by
+  Brave/Faith). Tone only — it never asserts a new save-fact, and an absent/
+  unknown route yields "" so the zero-demeanor grounding stays byte-identical.
+- `tests/conscience_test.py`: demeanor shifts by route, undetermined stays honest,
+  the block is framed tone-only, and no-demeanor preserves the baseline.
+- Verified: `pytest -q` → **23 passing**. The two-bucket wall still holds.
+
+Route-aware music is already functional at the layer level (`MusicLayer.setRoute`
++ per-route bed); binding it to a live save is a frontend task for a later UI beat.

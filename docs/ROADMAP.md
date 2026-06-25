@@ -6,11 +6,10 @@ Living Memory reused) · Determination Chronicle style layer + 2–3 sample reli
 portraits · Inspector inherited & sweeping. **Scaffold + chat only** — no scope creep.
 
 ## NEXT beats
-1. **Route-aware CONSCIENCE.** Companion demeanor shifts by route. The seam is
-   already in place: `character_config.py` is the ADD-only registry to extend with
-   per-route demeanor, and `prompt_builder` already receives the SaveTruth route.
-   Wire demeanor into the FREE bucket while keeping the wall intact (route is
-   SACRED; demeanor is free).
+1. ~~**Route-aware CONSCIENCE.**~~ ✅ **Shipped (Beat 1).** Per-route demeanor lives
+   in `character_config.py` (`route_demeanor`, ADD-only) and is injected by
+   `prompt_builder.build_demeanor_block` into the FREE bucket, shaped by the SACRED
+   route. Wall intact; covered by `tests/conscience_test.py`.
 2. **The "it remembers" save-aware angle.** Lean into the morally-loaded save: a
    character that references the player's *actual* recorded choices across sessions
    (Living Memory already persists per-character; extend the save-snapshot ledger).
