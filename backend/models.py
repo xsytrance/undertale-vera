@@ -45,6 +45,30 @@ class Project(Base):
     updated_at = Column(DateTime, nullable=False, default=_now, onupdate=_now)
 
 
+class SaveSnapshot(Base):
+    """The remembrance ledger — Bucket A, SACRED, ADD-only ("the save remembers").
+
+    One immutable row per save reading (upload / refresh). Never overwritten,
+    never wiped. `counter` is the per-project visit sequence; load order
+    (created_at / id) is the chronology. Mirrors the FFT spine's SaveSnapshot.
+    """
+
+    __tablename__ = "save_snapshots"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    counter = Column(Integer, nullable=False, default=1)  # per-project visit number
+    name = Column(String(255))
+    love = Column(Integer)
+    route = Column(String(32))
+    route_confidence = Column(String(16))
+    total_kills = Column(Integer)
+    save_fingerprint = Column(String(64))  # sha256 of the source file(s), when known
+    created_at = Column(DateTime, nullable=False, default=_now)  # load order = chronology
+
+
 class CharacterMemory(Base):
     """Per-(project, character) Living Memory. Bucket B — FREE.
 

@@ -96,6 +96,7 @@ def build_system_prompt(
     save_truth: dict[str, Any],
     *,
     memory_grounding: str = "",
+    remembrance: str = "",
     character_override: Optional[dict[str, Any]] = None,
 ) -> str:
     """Assemble the full grounded system prompt for one character.
@@ -125,6 +126,10 @@ def build_system_prompt(
 
     # 2. SaveTruth (SACRED) — anchored high so it governs the rest.
     sections.append(build_save_block(save_truth))
+
+    # 2b. Remembrance ledger (SACRED — parser-confirmed history across visits).
+    if remembrance.strip():
+        sections.append(remembrance.strip())
 
     # 3. Speaking style / personality (FREE)
     style_bits = []

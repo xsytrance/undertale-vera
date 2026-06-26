@@ -10,9 +10,12 @@ portraits · Inspector inherited & sweeping. **Scaffold + chat only** — no sco
    in `character_config.py` (`route_demeanor`, ADD-only) and is injected by
    `prompt_builder.build_demeanor_block` into the FREE bucket, shaped by the SACRED
    route. Wall intact; covered by `tests/conscience_test.py`.
-2. **The "it remembers" save-aware angle.** Lean into the morally-loaded save: a
-   character that references the player's *actual* recorded choices across sessions
-   (Living Memory already persists per-character; extend the save-snapshot ledger).
+2. ~~**The "it remembers" save-aware angle.**~~ ✅ **Shipped (Beat 2).** An additive,
+   parser-truth `SaveSnapshot` ledger (`ledger.py` + `backend/models.py`) records
+   the player's state per visit; `refresh-save` appends a snapshot, `save-memory`
+   returns the chronology, and chat injects a SACRED remembrance block so
+   characters speak to the player's *actual* recorded changes. Covered by
+   `tests/ledger_test.py`.
 3. **Route-aware music.** `MusicLayer.setRoute()` is stubbed; bind the ambient bed
    to `SaveTruth.route` (ember-field / obsidian-calm / determination).
 4. **A Judgment beat.** A Sans-style judgment surface that reads back the route +

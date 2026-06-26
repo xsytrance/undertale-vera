@@ -79,3 +79,23 @@ Companion demeanor now shifts by route (the first roadmap next-beat).
 
 Route-aware music is already functional at the layer level (`MusicLayer.setRoute`
 + per-route bed); binding it to a live save is a frontend task for a later UI beat.
+
+## Beat 2 — "It Remembers" (the save-aware ledger)
+Characters now reference the player's ACTUAL recorded state across visits — the
+morally-loaded save-aware angle. Bucket A (SACRED), ADD-only.
+- `ledger.py` (pure): `snapshot_fields_from_truth`, `summarize_change` (honest
+  deltas only — never claims a change when a value is unknown or equal), and
+  `build_remembrance_grounding` (SACRED block; "" below two visits so the
+  single-visit baseline is byte-identical).
+- `backend/models.py`: `SaveSnapshot` table — one immutable row per reading,
+  `counter` = per-project visit number, never overwritten/wiped.
+- `undertale_vera_app.py`: record snapshot #1 on `/api/upload`; new
+  `POST /api/projects/{id}/refresh-save` (a return visit — re-read, update current
+  truth, APPEND a snapshot) and `GET /api/projects/{id}/save-memory` (the ledger).
+  Chat injects the remembrance grounding (SACRED) into the prompt.
+- `prompt_builder.build_system_prompt`: new `remembrance` slot, placed with the
+  facts (after the save block), not the free voice.
+- `tests/ledger_test.py`: real deltas, no-claim-when-unknown, additivity across
+  visits (prior snapshot untouched), chat grounding includes remembrance, and a
+  memory write never writes the Bucket A ledger.
+- Verified: `pytest -q` → **30 passing**.

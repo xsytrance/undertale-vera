@@ -26,9 +26,10 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+import ledger
 import living_memory as lm
 from avatar_resolver import resolve_avatar
-from backend.models import Base, CharacterMemory, Project
+from backend.models import Base, CharacterMemory, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
 from llm_client import LLMUnavailable, generate_reply
 from prompt_builder import build_system_prompt
@@ -55,6 +56,61 @@ def get_db():
 
 def _now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
+
+
+def _record_snapshot(db: Session, project_id: int, save_truth: dict[str, Any]) -> SaveSnapshot:
+    """Append one immutable remembrance-ledger row (Bucket A, ADD-only).
+
+    Never overwrites prior snapshots — the player's history accrues across visits.
+    """
+    import hashlib
+    import json
+
+    fields = ledger.snapshot_fields_from_truth(save_truth)
+    prior = (
+        db.query(SaveSnapshot)
+        .filter(SaveSnapshot.project_id == project_id)
+        .count()
+    )
+    fingerprint = hashlib.sha256(
+        json.dumps(fields, sort_keys=True, default=str).encode()
+    ).hexdigest()
+    snap = SaveSnapshot(
+        project_id=project_id,
+        counter=prior + 1,
+        name=fields["name"],
+        love=fields["love"],
+        route=fields["route"],
+        route_confidence=fields["route_confidence"],
+        total_kills=fields["total_kills"],
+        save_fingerprint=fingerprint,
+    )
+    db.add(snap)
+    db.commit()
+    db.refresh(snap)
+    return snap
+
+
+def _snapshots_for(db: Session, project_id: int) -> list[dict[str, Any]]:
+    rows = (
+        db.query(SaveSnapshot)
+        .filter(SaveSnapshot.project_id == project_id)
+        .order_by(SaveSnapshot.counter.asc(), SaveSnapshot.id.asc())
+        .all()
+    )
+    return [
+        {
+            "counter": r.counter,
+            "name": r.name,
+            "love": r.love,
+            "route": r.route,
+            "route_confidence": r.route_confidence,
+            "total_kills": r.total_kills,
+            "save_fingerprint": r.save_fingerprint,
+            "created_at": r.created_at.isoformat() if r.created_at else None,
+        }
+        for r in rows
+    ]
 
 
 # ── health ───────────────────────────────────────────────────────────────────
@@ -91,7 +147,59 @@ async def upload_save(
     db.commit()
     db.refresh(project)
 
+    # First remembrance-ledger entry (the save begins to remember).
+    _record_snapshot(db, project.id, truth)
+
     return {"project_id": project.id, "save_truth": truth, "validation": validation}
+
+
+@app.post("/api/projects/{project_id}/refresh-save")
+async def refresh_save(
+    project_id: int,
+    file0: Optional[UploadFile] = File(default=None),
+    undertale_ini: Optional[UploadFile] = File(default=None),
+    db: Session = Depends(get_db),
+) -> dict[str, Any]:
+    """Re-read a later save for the SAME project (a return visit).
+
+    Read-only re: the save files. Updates the project's current SaveTruth and
+    APPENDS a new remembrance snapshot — prior snapshots are never touched.
+    """
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    if file0 is None and undertale_ini is None:
+        raise HTTPException(status_code=400, detail="Provide file0 and/or undertale.ini")
+
+    file0_text = (await file0.read()).decode("utf-8", "replace") if file0 else None
+    ini_text = (await undertale_ini.read()).decode("utf-8", "replace") if undertale_ini else None
+    parsed = parse_undertale_save(file0_text=file0_text, ini_text=ini_text)
+    truth = build_save_truth(parsed)
+
+    project.save_data = truth
+    db.commit()
+    snap = _record_snapshot(db, project_id, truth)
+
+    return {
+        "project_id": project_id,
+        "save_truth": truth,
+        "visit": snap.counter,
+        "remembrance": ledger.build_remembrance_grounding(_snapshots_for(db, project_id)),
+    }
+
+
+@app.get("/api/projects/{project_id}/save-memory")
+def save_memory(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The remembrance ledger: the chronological snapshots ('the save remembers')."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    snaps = _snapshots_for(db, project_id)
+    return {
+        "project_id": project_id,
+        "snapshots": snaps,
+        "remembrance": ledger.build_remembrance_grounding(snaps),
+    }
 
 
 @app.get("/api/projects/{project_id}/save-truth")
@@ -145,8 +253,11 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
 
     save_truth = project.save_data or {}
     memory_grounding = _memory_grounding_for(db, project_id, req.character, req.message)
+    remembrance = ledger.build_remembrance_grounding(_snapshots_for(db, project_id))
     system_prompt = build_system_prompt(
-        req.character, save_truth, memory_grounding=memory_grounding
+        req.character, save_truth,
+        memory_grounding=memory_grounding,
+        remembrance=remembrance,
     )
 
     grounding_source = "llm"
