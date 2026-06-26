@@ -26,6 +26,7 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+import judgment as judgment_mod
 import ledger
 import living_memory as lm
 from avatar_resolver import resolve_avatar
@@ -208,6 +209,66 @@ def get_save_truth(project_id: int, db: Session = Depends(get_db)) -> dict[str, 
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     return {"project_id": project_id, "save_truth": project.save_data}
+
+
+# ── the Judgment beat ────────────────────────────────────────────────────────
+
+@app.get("/api/projects/{project_id}/judgment")
+def get_judgment(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Deterministic sacred judgment: route / LOVE / kills read off SaveTruth."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    snaps = _snapshots_for(db, project_id)
+    return {"project_id": project_id, "judgment": judgment_mod.build_judgment(project.save_data or {}, snaps)}
+
+
+class JudgmentSpeakRequest(BaseModel):
+    character: str = "sans"
+
+
+@app.post("/api/projects/{project_id}/judgment/speak")
+def speak_judgment(project_id: int, req: JudgmentSpeakRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The judgment delivered IN-VOICE, grounded in the sacred readout.
+
+    The structured judgment is the sacred core; the spoken line is free voice over
+    it. Degrades to the deterministic verdict line when no model is reachable.
+    """
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    if not get_character(req.character):
+        raise HTTPException(status_code=404, detail=f"unknown character {req.character!r}")
+
+    save_truth = project.save_data or {}
+    snaps = _snapshots_for(db, project_id)
+    judgment = judgment_mod.build_judgment(save_truth, snaps)
+    remembrance = ledger.build_remembrance_grounding(snaps)
+    system_prompt = build_system_prompt(req.character, save_truth, remembrance=remembrance)
+    judge_msg = (
+        "Deliver your judgment of this player now. Read back what the save shows — "
+        "their route, their LOVE, their kills — in your own voice. State only what "
+        "is in the save; name the unknowns honestly; invent nothing."
+    )
+
+    grounding_source = "llm"
+    try:
+        result = generate_reply(system_prompt, judge_msg)
+        spoken = result.get("text") or ""
+        model = result.get("model")
+    except LLMUnavailable:
+        grounding_source = "deterministic_fallback"
+        spoken = judgment["verdict"]["line"]
+        model = None
+
+    return {
+        "project_id": project_id,
+        "character": get_character(req.character)["name"],
+        "judgment": judgment,
+        "spoken": spoken,
+        "model": model,
+        "grounding": {"source": grounding_source, "system_prompt": system_prompt},
+    }
 
 
 # ── characters ───────────────────────────────────────────────────────────────

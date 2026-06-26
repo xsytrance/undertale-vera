@@ -16,10 +16,18 @@ portraits · Inspector inherited & sweeping. **Scaffold + chat only** — no sco
    returns the chronology, and chat injects a SACRED remembrance block so
    characters speak to the player's *actual* recorded changes. Covered by
    `tests/ledger_test.py`.
-3. **Route-aware music.** `MusicLayer.setRoute()` is stubbed; bind the ambient bed
-   to `SaveTruth.route` (ember-field / obsidian-calm / determination).
-4. **A Judgment beat.** A Sans-style judgment surface that reads back the route +
-   kills from SaveTruth — sacred facts only, delivered in-voice.
+3. **Route-aware music.** The layer is done (`MusicLayer.setRoute()` +
+   per-route bed); the remaining work is a small frontend binding to drive it from a
+   live `SaveTruth.route` once there's a save-upload UI.
+4. ~~**A Judgment beat.**~~ ✅ **Shipped (Beat 4).** `judgment.py` +
+   `GET/POST /api/projects/{id}/judgment[/speak]` read route + LOVE + kills back to
+   the player — sacred facts verbatim, unknowns named, verdict derived not guessed,
+   in-voice delivery grounded. Covered by `tests/judgment_test.py`.
+
+## Further out
+- A save-upload **frontend UI** (would unblock route-aware music binding + a visible
+  Judgment screen) — currently the static shell is a style demo.
+- Canonical character-voice review and the Undertale style LoRA (see above).
 
 ## Needs human review
 - **Canonical character voices** (Sans/Toriel/Papyrus/Flowey/Undyne) — Spine-0

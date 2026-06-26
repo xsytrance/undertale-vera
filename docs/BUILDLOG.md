@@ -99,3 +99,17 @@ morally-loaded save-aware angle. Bucket A (SACRED), ADD-only.
   visits (prior snapshot untouched), chat grounding includes remembrance, and a
   memory write never writes the Bucket A ledger.
 - Verified: `pytest -q` → **30 passing**.
+
+## Beat 4 — The Judgment beat
+A Sans-style judgment surface reads the morally-loaded save back to the player.
+The most SACRED-leaning surface — facts verbatim, unknowns named, nothing invented.
+- `judgment.py` (pure): `build_judgment` returns `facts` (verbatim from SaveTruth),
+  a `verdict` tone classification derived from the route (free flavour in our own
+  accent, asserts no new fact), `honest_gaps` (the unknowns, named explicitly), and
+  the SACRED remembrance deltas. `undetermined` → the open verdict, never guessed.
+- `undertale_vera_app.py`: `GET /api/projects/{id}/judgment` (deterministic) and
+  `POST /api/projects/{id}/judgment/speak` (in-voice via the LLM, grounded; degrades
+  to the deterministic verdict line when no model is reachable).
+- `tests/judgment_test.py`: verdict tracks route, facts verbatim, unknowns named,
+  structured + spoken endpoints, graceful degradation.
+- Verified: `pytest -q` → **36 passing**.
