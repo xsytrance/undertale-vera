@@ -113,3 +113,22 @@ The most SACRED-leaning surface — facts verbatim, unknowns named, nothing inve
 - `tests/judgment_test.py`: verdict tracks route, facts verbatim, unknowns named,
   structured + spoken endpoints, graceful degradation.
 - Verified: `pytest -q` → **36 passing**.
+
+## Beat 3 + Frontend UI — the visible end-to-end app
+A dependency-free, no-build frontend on the static shell ties every beat together
+and binds route-aware music to the live save.
+- `static/index.html` + `static/js/app.js`: upload (`file0`/`undertale.ini`) →
+  SaveTruth summary with the route badge → character roster (relic portraits) →
+  grounded chat (dialogue vessel + typewriter ink-reveal) → the Judgment screen
+  (deterministic readout + "let them say it") → return-visit refresh-save showing
+  the remembrance deltas. Reuses the Determination Chronicle CSS (extended with
+  in-palette panels/buttons/inputs).
+- Route-aware music (Beat 3) now bound: `app.js` calls `MusicLayer.setRoute(route)`
+  from the live SaveTruth route, and tints the header soul-sigil Determination-red
+  on the Genocide beat.
+- `inspector.py`: registered `/js/app.js`; added a `UNDERTALE_VERA_CHROMIUM` pinned
+  browser override (for PLAYWRIGHT_BROWSERS_PATH boxes) and filtered external-CDN
+  console noise (font CDN failures aren't app defects; CSS ships serif fallbacks).
+- Verified in a REAL browser (Chromium via Playwright): upload → route badge →
+  roster → chat panel → judgment → refresh→remembrance all pass; Inspector
+  Playwright sweep is green (0 failures, no console errors at mobile + desktop).

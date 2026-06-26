@@ -150,6 +150,72 @@ h1, h2, h3, .display {
   50% { border-color: transparent; }
 }
 
+/* ── app shell: panels, buttons, inputs (in-palette) ─────────────────────── */
+.panel {
+  max-width: 820px;
+  margin: 18px auto;
+  padding: 18px;
+  background: linear-gradient(180deg, var(--obsidian-panel), var(--plate-inner));
+  border: 1px solid var(--plate-frame);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(184,147,63,0.12);
+}
+.panel h2 { margin: 0 0 12px; font-size: 1.15rem; }
+.muted { color: var(--ink-dim); font-size: 0.9rem; }
+.hidden { display: none; }
+
+.btn {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  background: var(--obsidian-2);
+  border: 1px solid var(--brass);
+  border-radius: 7px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.btn:hover { background: var(--plate-inner); box-shadow: 0 0 14px rgba(184,147,63,0.25); }
+.btn.determined { border-color: var(--crimson); color: var(--determination); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+input[type="file"], input[type="text"] {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  background: var(--plate-inner);
+  border: 1px solid var(--plate-frame);
+  border-radius: 6px;
+  padding: 8px;
+}
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* character roster cards */
+.roster { display: flex; gap: 14px; flex-wrap: wrap; }
+.char-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 120px; padding: 12px; cursor: pointer;
+  background: var(--plate-inner); border: 1px solid var(--plate-frame); border-radius: 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.char-card:hover { border-color: var(--brass); box-shadow: 0 0 14px rgba(184,147,63,0.2); }
+.char-card.selected { border-color: var(--ember); }
+.char-card .relic-portrait { width: 72px; height: 72px; }
+.char-card .name { font-family: var(--font-display); color: var(--ember); font-size: 0.95rem; }
+
+/* chat transcript */
+.transcript { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.bubble { padding: 10px 14px; border-radius: 8px; max-width: 90%; white-space: pre-wrap; }
+.bubble.you { align-self: flex-end; background: var(--plate-inner); border: 1px solid var(--plate-frame); }
+.bubble.them { align-self: flex-start; background: var(--obsidian-2); border: 1px solid var(--brass); }
+.bubble .who { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-dim); margin-bottom: 4px; }
+
+/* judgment readout */
+.verdict-line { font-size: 1.1rem; color: var(--brass-edge); margin: 8px 0; }
+.facts-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-family: var(--font-mono); font-size: 0.9rem; }
+.facts-grid .k { color: var(--ink-dim); }
+.gap { color: var(--ink-dim); font-style: italic; }
+.remembrance { border-left: 2px solid var(--ember); padding-left: 12px; margin-top: 10px; color: var(--ink); }
+
 /* route badge — Determination-red reserved for the route/soul beat */
 .route-badge {
   display: inline-flex;

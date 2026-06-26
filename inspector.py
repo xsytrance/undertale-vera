@@ -40,10 +40,16 @@ SURFACES: list[tuple[str, str, float, Optional[str]]] = [
 REQUIRED_ASSETS: list[str] = [
     "/css/determination.css",
     "/js/music.js",
+    "/js/app.js",
 ]
 
-# Console noise to ignore (generic, ported from the FFT probe).
-CONSOLE_IGNORE = ("favicon", "autoplay", "ReadPixels", "WebGL")
+# Console noise to ignore (generic, ported from the FFT probe). Includes failures
+# loading EXTERNAL CDNs (e.g. the Google Fonts stylesheet) — those are environment
+# connectivity issues, not app defects, and the CSS ships serif fallbacks.
+CONSOLE_IGNORE = (
+    "favicon", "autoplay", "ReadPixels", "WebGL",
+    "ERR_CONNECTION", "ERR_NAME_NOT_RESOLVED", "fonts.googleapis", "fonts.gstatic",
+)
 
 
 def _http_get(url: str, timeout: float = 15.0) -> tuple[Optional[int], int, Optional[str]]:
@@ -107,8 +113,16 @@ def sweep_playwright(base: str, out_dir: Optional[str]) -> Optional[dict[str, An
     viewports = [("mobile", 390, 844), ("desktop", 1280, 900)]
     results: list[dict[str, Any]] = []
 
+    # Honor a pinned browser binary (the FFT probe hardcoded a chromium path; we
+    # take it from the environment so the same harness runs on boxes where the
+    # browser isn't auto-discoverable, e.g. PLAYWRIGHT_BROWSERS_PATH installs).
+    launch_kwargs: dict[str, Any] = {"headless": True}
+    chromium_path = os.environ.get("UNDERTALE_VERA_CHROMIUM")
+    if chromium_path and os.path.exists(chromium_path):
+        launch_kwargs["executable_path"] = chromium_path
+
     with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
+        browser = p.chromium.launch(**launch_kwargs)
         for label, path, settle, selector in SURFACES:
             for vp_name, w, h in viewports:
                 console_errors: list[str] = []
