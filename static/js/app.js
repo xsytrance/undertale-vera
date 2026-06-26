@@ -41,6 +41,7 @@
         $("upload-status").textContent = "Save read. Project #" + res.project_id + ".";
         renderTruth(res.save_truth, null, "");
         loadRoster();
+        loadShelf();
       })
       .catch(function (e) { $("upload-status").textContent = "Error: " + e.message; });
   }
@@ -91,6 +92,40 @@
   }
   function row(k, v) { return '<div class="k">' + k + "</div><div>" + v + "</div>"; }
 
+  // ── save shelf (switch between read saves) ───────────────────────────────
+  function loadShelf() {
+    api("/api/projects").then(function (res) {
+      var el = $("shelf"); el.innerHTML = "";
+      if (!res.projects.length) { $("shelf-panel").classList.add("hidden"); return; }
+      res.projects.forEach(function (p) {
+        var route = p.route || "undetermined";
+        var card = document.createElement("div");
+        card.className = "char-card";
+        card.style.width = "150px";
+        card.innerHTML =
+          '<div class="name">' + (p.name || "Save #" + p.project_id) + "</div>" +
+          '<span class="route-badge ' + route.toLowerCase() + '" style="font-size:0.72rem;">' +
+          route + "</span>";
+        card.onclick = function () { loadProject(p.project_id); };
+        el.appendChild(card);
+      });
+      $("shelf-panel").classList.remove("hidden");
+    });
+  }
+
+  function loadProject(id) {
+    api("/api/projects/" + id + "/save-truth").then(function (res) {
+      state.projectId = id;
+      state.history = {};
+      state.character = null;
+      $("refresh-btn").classList.remove("hidden");
+      $("chat-panel").classList.add("hidden");
+      $("judgment-panel").classList.add("hidden");
+      renderTruth(res.save_truth, null, "");
+      loadRoster();
+    });
+  }
+
   // ── roster ────────────────────────────────────────────────────────────────
   function loadRoster() {
     api("/api/characters").then(function (res) {
@@ -114,15 +149,23 @@
   function selectCharacter(c) {
     state.character = c.name;
     if (!state.history[c.name]) state.history[c.name] = [];
-    Array.prototype.forEach.call(document.querySelectorAll(".char-card"), function (el) {
+    Array.prototype.forEach.call(document.querySelectorAll("#roster .char-card"), function (el) {
       el.classList.toggle("selected", el.dataset.name === c.name);
     });
     $("chat-name").textContent = c.name;
     var p = $("chat-portrait");
     if (c.avatar_url) { p.outerHTML = '<img class="relic-portrait" id="chat-portrait" src="' + c.avatar_url + '" />'; }
-    renderTranscript();
     $("chat-panel").classList.remove("hidden");
     $("judgment-panel").classList.add("hidden");
+    // Load the persisted transcript so the conversation survives a reload.
+    api("/api/projects/" + state.projectId + "/conversations/" + c.name.toLowerCase())
+      .then(function (res) {
+        state.history[c.name] = (res.messages || []).map(function (m) {
+          return { role: m.role, content: m.content };
+        });
+        renderTranscript();
+      })
+      .catch(function () { renderTranscript(); });
   }
 
   // ── chat ──────────────────────────────────────────────────────────────────
@@ -206,6 +249,7 @@
   // ── wiring ────────────────────────────────────────────────────────────────
   window.addEventListener("DOMContentLoaded", function () {
     if (window.MusicLayer) window.MusicLayer.init();
+    loadShelf();
     $("upload-btn").onclick = uploadSave;
     $("refresh-btn").onclick = refreshSave;
     $("send-btn").onclick = sendMessage;

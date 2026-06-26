@@ -25,9 +25,10 @@ portraits · Inspector inherited & sweeping. **Scaffold + chat only** — no sco
    in-voice delivery grounded. Covered by `tests/judgment_test.py`.
 
 ## Further out
-- The save-upload **frontend UI** is now live (vanilla JS, no build). Possible
-  follow-ups: a project shelf / multi-save dashboard, per-character avatars wired to
-  real generated portraits, and persisted chat transcripts.
+- The save-upload **frontend UI**, the **save shelf** (switch between read saves),
+  and **persisted chat transcripts** are all live (vanilla JS, no build). Possible
+  follow-ups: per-character avatars wired to real generated portraits, transcript
+  export, and a dedicated Judgment-room screen.
 - Canonical character-voice review and the Undertale style LoRA (see above) — still
   the main items needing a human.
 

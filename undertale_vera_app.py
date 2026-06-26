@@ -30,7 +30,7 @@ import judgment as judgment_mod
 import ledger
 import living_memory as lm
 from avatar_resolver import resolve_avatar
-from backend.models import Base, CharacterMemory, Project, SaveSnapshot
+from backend.models import Base, CharacterMemory, Conversation, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
 from llm_client import LLMUnavailable, generate_reply
 from prompt_builder import build_system_prompt
@@ -203,6 +203,23 @@ def save_memory(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any
     }
 
 
+@app.get("/api/projects")
+def list_projects(db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The save shelf: every read save, newest first, with a route summary."""
+    rows = db.query(Project).order_by(Project.created_at.desc(), Project.id.desc()).all()
+    out = []
+    for p in rows:
+        st = p.save_data or {}
+        out.append({
+            "project_id": p.id,
+            "name": p.name,
+            "route": (st.get("route") or {}).get("route"),
+            "love": (st.get("play_state") or {}).get("love"),
+            "created_at": p.created_at.isoformat() if p.created_at else None,
+        })
+    return {"projects": out}
+
+
 @app.get("/api/projects/{project_id}/save-truth")
 def get_save_truth(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     project = db.get(Project, project_id)
@@ -289,6 +306,38 @@ class ChatRequest(BaseModel):
     history: Optional[list[dict[str, str]]] = None
 
 
+def _get_or_create_conversation(db: Session, project_id: int, character: str) -> Conversation:
+    key = normalize_key(character)
+    row = (
+        db.query(Conversation)
+        .filter(Conversation.project_id == project_id, Conversation.character_key == key)
+        .one_or_none()
+    )
+    if row is None:
+        row = Conversation(project_id=project_id, character_key=key, messages=[])
+        db.add(row)
+        db.commit()
+        db.refresh(row)
+    return row
+
+
+def _append_turns(db: Session, project_id: int, character: str, user_msg: str, reply: str) -> None:
+    """Persist the chat turn (a RECORD; distinct from Bucket-B memory + the ledger)."""
+    row = _get_or_create_conversation(db, project_id, character)
+    msgs = list(row.messages or [])
+    msgs.append({"role": "user", "content": user_msg, "at": _now_iso()})
+    msgs.append({"role": "assistant", "content": reply, "at": _now_iso()})
+    row.messages = msgs[-200:]  # bounded
+    db.commit()
+
+
+@app.get("/api/projects/{project_id}/conversations/{character}")
+def get_conversation(project_id: int, character: str, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Load the persisted transcript so a conversation survives a reload."""
+    row = _get_or_create_conversation(db, project_id, character)
+    return {"character_key": row.character_key, "messages": row.messages or []}
+
+
 def _memory_grounding_for(db: Session, project_id: int, character: str, message: str) -> str:
     """Pull Bucket-B recollections and format them as labeled grounding."""
     key = normalize_key(character)
@@ -335,6 +384,9 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
             f"shows: your route reads as {route}. I won't pretend to more than that."
         )
         model = None
+
+    # Persist the turn so the transcript survives a reload.
+    _append_turns(db, project_id, req.character, req.message, text)
 
     return {
         "response": text,

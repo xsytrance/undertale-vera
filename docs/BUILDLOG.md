@@ -132,3 +132,17 @@ and binds route-aware music to the live save.
 - Verified in a REAL browser (Chromium via Playwright): upload → route badge →
   roster → chat panel → judgment → refresh→remembrance all pass; Inspector
   Playwright sweep is green (0 failures, no console errors at mobile + desktop).
+
+## Polish — save shelf + persisted transcripts
+- `backend/models.py`: `Conversation` table (per project+character chat log — a
+  RECORD, distinct from Bucket-B `CharacterMemory` and the SACRED `SaveSnapshot`).
+- `undertale_vera_app.py`: `GET /api/projects` (the save shelf, newest first, with
+  a route summary), `GET /api/projects/{id}/conversations/{character}` (load a
+  persisted transcript), and `chat` now appends each turn so conversations survive
+  a reload.
+- Frontend: a "Your saves" shelf to switch between read saves; selecting a
+  character loads its persisted transcript from the server.
+- `inspector.py`: registered the `/api/projects` surface.
+- `tests/projects_test.py`: shelf lists saves with route, transcripts persist
+  across calls, transcripts are per-character.
+- Verified: `pytest -q` → **39 passing**; Inspector green.

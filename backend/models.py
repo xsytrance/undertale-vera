@@ -69,6 +69,27 @@ class SaveSnapshot(Base):
     created_at = Column(DateTime, nullable=False, default=_now)  # load order = chronology
 
 
+class Conversation(Base):
+    """Persisted chat transcript per (project, character).
+
+    The grounded chat log so a conversation survives a page reload. This is a
+    RECORD of what was said — distinct from CharacterMemory (the curated Bucket-B
+    bond) and from SaveSnapshot (the SACRED ledger). `messages` is
+    [{role, content, at}].
+    """
+
+    __tablename__ = "conversations"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    character_key = Column(String(255), nullable=False, index=True)
+    messages = Column(JSON)  # [{role, content, at}]
+    created_at = Column(DateTime, nullable=False, default=_now)
+    updated_at = Column(DateTime, nullable=False, default=_now, onupdate=_now)
+
+
 class CharacterMemory(Base):
     """Per-(project, character) Living Memory. Bucket B — FREE.
 
