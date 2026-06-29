@@ -77,10 +77,10 @@ def test_maxed_love_without_kill_signal_still_genocide():
 # ── documented boss-kill flags (community + corpus confirmed: TK/PK) ──────────
 class _FlagStub:
     """Stand-in carrying undertale.ini kill flags ([Toriel] TK, [Papyrus] PK)."""
-    def __init__(self, love, kills=None, tk=False, pk=False):
+    def __init__(self, love, kills=None, tk=False, pk=False, flags=None):
         self.love = love
         self._k = kills
-        self._flags = {}
+        self._flags = dict(flags or {})
         if tk:
             self._flags[("toriel", "tk")] = "1.000000"
         if pk:
@@ -126,3 +126,40 @@ def test_kill_flag_signal_appears_in_signals():
     r = detect_route(_FlagStub(15, kills=103, tk=True, pk=True))
     assert any("Toriel killed" in s for s in r["signals"])
     assert any("Papyrus killed" in s for s in r["signals"])
+
+
+# ── befriend/date flags (True Pacifist requirements) + spare/kill contradiction ──
+def _flags(**kv):
+    # kv like pd=True, ud=True → {('papyrus','pd'): '1', ...}
+    keymap = {"pd": ("papyrus", "pd"), "ud": ("undyne", "ud"), "ad": ("alphys", "ad"),
+              "ts": ("toriel", "ts"), "ps": ("papyrus", "ps")}
+    return {keymap[k]: "1.000000" for k, v in kv.items() if v}
+
+
+def test_befriend_flags_extracted():
+    from route_detection import extract_befriend_flags
+    chars = {f["character"] for f in extract_befriend_flags(_FlagStub(1, flags=_flags(pd=True, ud=True)))}
+    assert chars == {"Papyrus", "Undyne"}
+
+
+def test_pacifist_with_befriend_flags_is_high():
+    # No-kill run PLUS date flags (only reachable on a no-kill path) → high, not medium.
+    r = detect_route(_FlagStub(1, kills=0, flags=_flags(pd=True, ud=True, ad=True)))
+    assert r["route"] == "Pacifist"
+    assert r["confidence"] == "high"
+    assert any("befriend/date flags" in x.lower() for x in r["reasons"])
+
+
+def test_pacifist_without_befriend_flags_stays_medium():
+    # Early no-kill save: indistinguishable from a no-kill Neutral → honest medium.
+    r = detect_route(_FlagStub(1, kills=0))
+    assert r["route"] == "Pacifist"
+    assert r["confidence"] == "medium"
+
+
+def test_spare_and_kill_same_character_is_contradiction():
+    # Toriel marked BOTH spared and killed → impossible → undetermined.
+    r = detect_route(_FlagStub(20, kills=50, flags=_flags(ts=True), tk=True))
+    assert r["route"] == "undetermined"
+    assert any("mutually exclusive" in x for x in r["reasons"])
+    assert any("Toriel" in x for x in r["reasons"])

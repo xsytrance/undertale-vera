@@ -55,15 +55,39 @@ assumed. See `route_detection.py`:
 |---|---|---|
 | LOVE 20 **and** a boss-kill flag set | Genocide | **confirmed** |
 | LOVE 20 (the ceiling) | Genocide | high |
-| LOVE 1 and 0 kills | Pacifist | medium* |
+| LOVE 1, 0 kills, **and a befriend/date flag** | Pacifist | **high** |
+| LOVE 1 and 0 kills (no befriend flags yet) | Pacifist | medium* |
 | LOVE > 1, recorded kills, **and/or a boss-kill flag** | Neutral | medium |
 | boss-kill flag set **but** LOVE 1 (no EXP) | undetermined | low (contradiction) |
+| same character **spared AND killed** | undetermined | low (contradiction) |
 | no readable LOVE and no kills | undetermined | unknown |
 
-\* Pacifist is capped at **medium** on purpose: a no-kill run is *necessary* but not
-*sufficient* for True Pacifist — confirming that additionally needs befriend/date
-flags whose exact ini indices vary across game versions. We say so in the grounding
-rather than over-claiming.
+\* Pacifist without befriend flags stays **medium**: a no-kill run is *necessary* but
+not *sufficient* for True Pacifist — and is indistinguishable from a no-kill Neutral
+until the dating begins.
+
+### Befriend/date flags (True Pacifist requirements)
+A no-kill run alone can't tell a budding True Pacifist from a passive no-kill Neutral.
+The date/befriend flags settle it — they're reachable **only** on a no-kill path
+(the Undyne date is gated behind killing nothing), so their presence is decisive.
+Allow-list `route_detection.BEFRIEND_FLAGS`:
+
+| Flag | Meaning | Corpus (set in) |
+|---|---|---|
+| `[Papyrus] PD` | Papyrus dated | 37/49 Pacifist, **0/15 Genocide** |
+| `[Undyne] UD` | Undyne dated/befriended | 27/49 Pacifist, **0/15 Genocide** |
+| `[Alphys] AD` | Alphys dated | 9/49 Pacifist, **0/15 Genocide** |
+
+With any present (and LOVE 1 + 0 kills), Pacifist is reported at **high**; an early
+no-kill save with none stays **medium**. These never *create* a Pacifist call — kills
+or a kill flag still override — they only grade an already-no-kill run. The flags and
+their meanings were mined by `tools/flag_mine.py` and cross-checked against the
+[True Pacifist Route](https://undertale.fandom.com/wiki/True_Pacifist_Route) docs
+(date Papyrus → Undyne → Alphys, having killed no one).
+
+**Spare/kill contradiction:** the same character marked both spared (`TS`/`PS`) and
+killed (`TK`/`PK`) is impossible in a real run, so it resolves to `undetermined` —
+the mercy-side mirror of the LOVE/kills contradiction guard.
 
 ### Boss-kill flags (a hard "violence occurred" signal)
 `undertale.ini` records binary kill flags per major character. We use a conservative,

@@ -332,3 +332,27 @@ and turned the result into a sharper, still-honest route detector.
   `route_detection_test.py`. `docs/SAVE_FORMAT.md` documents the flags, the
   community cross-check, and the max_hp correction.
 - Verified: `pytest -q` → **105 passing**; flag_mine + detector re-run on the live corpus.
+
+## More mining, mercy side — befriend/date flags grade Pacifist confidence
+The kill-flag work had a mirror: the Pacifist signals the old code admitted it
+couldn't read. Mined and wired them, still without over-claiming.
+- `tools/flag_mine.py` surfaced the date/befriend flags in Pacifist scene order:
+  `[Papyrus] PD` (37/49), `[Undyne] UD` (27/49), `[Alphys] AD` (9/49) — all **0/15
+  Genocide**. Cross-checked against the True Pacifist Route docs: the dates require
+  having killed no one (the Undyne date is gated on it), so these are Pacifist-only.
+- `route_detection.py`: `BEFRIEND_FLAGS` + `extract_befriend_flags`. A no-kill run
+  (LOVE 1 + 0 kills, no kill flag) WITH a befriend/date flag is reported Pacifist
+  **high** — the flags separate a TRUE Pacifist path from a passive no-kill Neutral,
+  resolving the exact ambiguity that forced the old medium cap. Early no-kill saves
+  with no befriend flags honestly stay **medium**. Befriend flags never *create* a
+  Pacifist call (kills / kill flags still override) — they only grade one.
+- `SPARE_KILL_PAIRS` + `find_spare_kill_conflicts`: the same character marked BOTH
+  spared (TS/PS) and killed (TK/PK) is impossible → `undetermined`. The mercy-side
+  mirror of the LOVE/kills contradiction guard (0 such conflicts in the real corpus;
+  fires only on edits).
+- Corpus effect: Pacifist now splits 37 **high** / 12 **medium** (was 49 medium);
+  Genocide unchanged; no route flips, no Genocide/Pacifist cross-contamination.
+- Tests: befriend extraction, Pacifist high vs medium, spare/kill contradiction in
+  `route_detection_test.py`. `docs/SAVE_FORMAT.md` documents the flags + the wiki
+  cross-check + the contradiction guard.
+- Verified: `pytest -q` → **109 passing**; detector re-run on the live corpus.
