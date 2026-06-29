@@ -19,6 +19,18 @@
      "text": "A magical barrier seals the monsters within the Underground beneath the mountain. Freeing them is bound up with human souls and the king's grim duty, and it looms over the journey's end."},
     {"id": "evt-mercy", "type": "concept", "title": "Mercy and sparing",
      "tags": ["mercy", "spare", "fight", "act", "flee"],
-     "text": "Encounters in the Underground can be resolved without violence: one can ACT, show mercy, and SPARE a monster instead of fighting. Choosing mercy where others would strike is the heart of the gentlest path."}
+     "text": "Encounters in the Underground can be resolved without violence: one can ACT, show mercy, and SPARE a monster instead of fighting. Choosing mercy where others would strike is the heart of the gentlest path."},
+    {"id": "evt-save-points", "type": "concept", "title": "SAVE points",
+     "tags": ["save", "star", "determination", "checkpoint"],
+     "text": "Glowing SAVE points scattered through the Underground let a determined soul record their progress. The act of saving is tied to determination itself, and the resolve a place inspires is what makes saving possible there."},
+    {"id": "evt-souls", "type": "concept", "title": "Human SOULs",
+     "tags": ["soul", "souls", "human", "barrier", "asgore", "fallen children"],
+     "text": "Human SOULs are powerful and persistent, prized in the Underground because of their role in breaking the barrier. Several humans fell before the player's journey, and their fates are bound up in the king's grim plan and the Underground's hope of freedom."},
+    {"id": "evt-true-lab", "type": "concept", "title": "The True Lab",
+     "tags": ["true lab", "alphys", "amalgamates", "determination", "secret"],
+     "text": "Beneath Alphys's lab lies a hidden facility where experiments with determination went wrong, producing the Amalgamates — melded monsters cared for in secret. It is one of the Underground's quietest, saddest truths, uncovered only on the most peaceful path."},
+    {"id": "evt-stay-determined", "type": "concept", "title": "Stay determined",
+     "tags": ["determination", "resolve", "keep going", "hope"],
+     "text": "However grim the Underground becomes, the refrain is to stay determined — to hold onto the resolve to keep going. Determination is what lets a soul persist when everything else says stop."}
   ]
 }
