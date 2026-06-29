@@ -29,6 +29,7 @@ from sqlalchemy.orm import Session, sessionmaker
 import judgment as judgment_mod
 import ledger
 import living_memory as lm
+import rag_engine
 from avatar_resolver import resolve_avatar
 from backend.models import Base, CharacterMemory, Conversation, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
@@ -290,6 +291,21 @@ def speak_judgment(project_id: int, req: JudgmentSpeakRequest, db: Session = Dep
 
 # ── characters ───────────────────────────────────────────────────────────────
 
+@app.get("/api/lore")
+def lore(q: str = "", character: Optional[str] = None) -> dict[str, Any]:
+    """Inspect what the RAG lore layer would retrieve for a query (FREE bucket).
+
+    Exposed so retrieved world-knowledge is auditable — it is never save state.
+    """
+    docs = rag_engine.retrieve(q, character=character) if q else []
+    return {
+        "query": q,
+        "character": character,
+        "backend": rag_engine.backend_in_use(),
+        "results": docs,
+    }
+
+
 @app.get("/api/characters")
 def get_characters() -> dict[str, Any]:
     chars = list_characters()
@@ -364,10 +380,14 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
     save_truth = project.save_data or {}
     memory_grounding = _memory_grounding_for(db, project_id, req.character, req.message)
     remembrance = ledger.build_remembrance_grounding(_snapshots_for(db, project_id))
+    lore_grounding = rag_engine.format_lore_grounding(
+        rag_engine.retrieve(req.message, character=req.character)
+    )
     system_prompt = build_system_prompt(
         req.character, save_truth,
         memory_grounding=memory_grounding,
         remembrance=remembrance,
+        lore_grounding=lore_grounding,
     )
 
     grounding_source = "llm"

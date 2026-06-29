@@ -4,6 +4,10 @@ __pycache__/
 .venv/
 .pytest_cache/
 
+# ── RAG vector index (rebuildable from knowledge/collections/*.json) ─────────
+knowledge/chroma_db/
+chroma.sqlite3
+
 # ── Runtime data (read-only spine never commits uploaded saves or the DB) ────
 undertale_vera.db
 *.sqlite3
