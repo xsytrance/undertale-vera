@@ -40,3 +40,35 @@ def test_undetermined_when_no_signals():
 def test_reasons_are_present_for_audit():
     r = _route("file0_genocide", "undertale_genocide.ini")
     assert r["reasons"] and all(isinstance(x, str) for x in r["reasons"])
+
+
+# ── contradiction guard (verified against a real save-editor corpus) ─────────
+class _Stub:
+    """Minimal stand-in for ParsedUndertaleSave (no copyrighted save data)."""
+    def __init__(self, love, kills):
+        self.love = love
+        self._k = kills
+
+    def ini_get(self, section, key):
+        if (section, key) == ("general", "kills"):
+            return None if self._k is None else str(self._k)
+        return None
+
+
+def test_maxed_love_with_zero_kills_is_undetermined_not_genocide():
+    # Real edited saves (e.g. a "True Pacifist" file) carry LOVE 20 + Kills 0 —
+    # internally contradictory. Honest answer: undetermined, never a guess.
+    r = detect_route(_Stub(20, 0))
+    assert r["route"] == "undetermined"
+    assert any("contradict" in x for x in r["reasons"])
+
+
+def test_love_one_with_recorded_kills_is_undetermined():
+    r = detect_route(_Stub(1, 5))
+    assert r["route"] == "undetermined"
+
+
+def test_maxed_love_without_kill_signal_still_genocide():
+    # No contradicting kill count present → LOVE 20 reads as Genocide.
+    assert detect_route(_Stub(20, None))["route"] == "Genocide"
+    assert detect_route(_Stub(20, 9))["route"] == "Genocide"
