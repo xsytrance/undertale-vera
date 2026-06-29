@@ -395,6 +395,11 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         sans_block = ledger.build_sans_awareness(snapshots)
         if sans_block:
             remembrance = (remembrance + "\n\n" + sans_block).strip()
+    # Flowey remembers RESETS more than anyone — give him his own knowing block.
+    elif normalize_key(req.character) == "name:flowey":
+        flowey_block = ledger.build_flowey_awareness(snapshots)
+        if flowey_block:
+            remembrance = (remembrance + "\n\n" + flowey_block).strip()
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")

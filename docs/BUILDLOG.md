@@ -403,3 +403,15 @@ The richest, most surprising grounding yet — what a save records BEYOND route/
   tier, anomaly gating to Sans vs Papyrus, texture for all). `docs/SAVE_FORMAT.md`
   documents the Fun table + sources.
 - Verified: `pytest -q` → **130 passing**.
+
+## Flowey remembers the RESETS (the other meta-aware voice)
+Sans notices repeated readings; Flowey is the original keeper of SAVE/LOAD and
+remembers runs no one else can.
+- `ledger.build_flowey_awareness(snapshots)`: the Flowey-only mirror of
+  `build_sans_awareness` — same parser-confirmed ledger facts (reading count + route
+  turn), framed for Flowey's knowing, needling delight in having watched you before.
+  "" with a single reading. Wired in the chat endpoint for `name:flowey` only.
+- Tests in `tests/sans_awareness_test.py`: pure (empty on single visit; reports
+  resets + turn in Flowey's framing) and app (Flowey chat carries the RESETS block;
+  Sans's variant is not also present).
+- Verified: `pytest -q` → **133 passing**.

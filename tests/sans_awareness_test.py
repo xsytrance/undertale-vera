@@ -10,7 +10,7 @@ import os
 from fastapi.testclient import TestClient
 
 import undertale_vera_app as appmod
-from ledger import detect_route_turn, build_sans_awareness
+from ledger import detect_route_turn, build_sans_awareness, build_flowey_awareness
 
 client = TestClient(appmod.app)
 FIX = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -110,6 +110,32 @@ def test_sans_chat_includes_awareness_block(monkeypatch):
     assert "read 2 times" in sp
     assert "from Pacifist to Genocide" in sp
     assert r["path_turn"] is not None and r["path_turn"]["to"] == "Genocide"
+
+
+def test_flowey_awareness_empty_on_single_visit():
+    assert build_flowey_awareness([_snap(1, "Pacifist")]) == ""
+
+
+def test_flowey_awareness_reports_resets_and_turn():
+    snaps = [_snap(1, "Pacifist"), _snap(2, "Genocide")]
+    block = build_flowey_awareness(snaps)
+    assert "read 2 times" in block
+    assert "from Pacifist to Genocide" in block
+    assert "never forget" in block          # Flowey's distinct framing
+
+
+def test_flowey_chat_includes_reset_awareness(monkeypatch):
+    monkeypatch.setattr(appmod, "generate_reply",
+                        lambda sp, um, **k: {"text": "howdy. again.", "model": "m"})
+    pid = _upload("file0_pacifist", "undertale_pacifist.ini")
+    _refresh(pid, "file0_genocide", "undertale_genocide.ini")
+    r = client.post(f"/api/projects/{pid}/chat",
+                    json={"character": "flowey", "message": "do you remember me?"}).json()
+    sp = r["grounding"]["system_prompt"]
+    assert "ACROSS RESETS" in sp
+    assert "from Pacifist to Genocide" in sp
+    # Sans's variant must NOT also be present — each gets only their own framing.
+    assert "you, Sans, notice these things" not in sp
 
 
 def test_non_sans_chat_omits_awareness_block(monkeypatch):
