@@ -98,7 +98,27 @@ def detect_route(parsed) -> dict[str, Any]:
             ],
         }
 
-    # LV 20 is the Genocide ceiling — only reachable by near-total killing.
+    # CONTRADICTION GUARD (verified against a real save-editor corpus): when LOVE
+    # and the recorded kill count point in OPPOSITE directions, the save is
+    # internally inconsistent (often an edited save). The honest answer is
+    # "undetermined" — we refuse to pick a route over self-contradicting facts.
+    if love == LOVE_GENOCIDE_CEILING and total_kills == 0:
+        reasons.append(
+            "LOVE is maxed at 20 (only reachable by near-total killing), yet the "
+            "recorded kill count is 0 — these signals contradict (often an edited "
+            "save). Refusing to guess a route; left undetermined."
+        )
+        return _result("undetermined", "low", love, total_kills, signals, reasons)
+    if love == LOVE_NO_KILLS and isinstance(total_kills, int) and total_kills > 0:
+        reasons.append(
+            f"LOVE is 1 (no EXP ever gained), yet {total_kills} kills are recorded — "
+            "these signals contradict (often an edited save or a per-area counter). "
+            "Refusing to guess a route; left undetermined."
+        )
+        return _result("undetermined", "low", love, total_kills, signals, reasons)
+
+    # LV 20 is the Genocide ceiling — only reachable by near-total killing. (Kills
+    # here is >0 or unknown; the contradictory Kills==0 case was handled above.)
     if love == LOVE_GENOCIDE_CEILING:
         reasons.append(
             "LOVE is at the maximum of 20, which is only reachable by killing "
@@ -115,8 +135,9 @@ def detect_route(parsed) -> dict[str, Any]:
             "run, consistent with a Pacifist route."
         )
         reasons.append(
-            "Note: confirming TRUE Pacifist additionally requires befriend/date "
-            "flags not read here, so confidence is held at medium."
+            "Note: a no-kill NEUTRAL run also matches this; confirming TRUE Pacifist "
+            "additionally requires befriend/date flags not read here, so confidence "
+            "is held at medium."
         )
         return _result("Pacifist", "medium", love, total_kills, signals, reasons)
 
