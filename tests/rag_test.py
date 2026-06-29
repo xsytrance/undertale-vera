@@ -86,3 +86,31 @@ def test_lore_endpoint_is_auditable():
     r = client.get("/api/lore", params={"q": "undyne royal guard", "character": "undyne"}).json()
     assert r["backend"] in ("keyword", "vector")
     assert any(d["title"] == "Undyne" for d in r["results"])
+
+
+# ── route gating (#1): world-knowledge visibility by route, NOT a save-fact ──
+
+def test_doc_allowed_route_gating():
+    paci_only = {"routes": ["Pacifist"], "spoiler": True}
+    universal = {"routes": None, "spoiler": False}
+    assert rag_engine.doc_allowed(paci_only, "Pacifist") is True
+    assert rag_engine.doc_allowed(paci_only, "Genocide") is False
+    assert rag_engine.doc_allowed(paci_only, "undetermined") is False  # don't presume
+    assert rag_engine.doc_allowed(paci_only, None) is False
+    assert rag_engine.doc_allowed(universal, None) is True             # universal always
+
+
+def test_true_lab_lore_is_pacifist_gated():
+    q = "the hidden true lab and the amalgamates"
+    on_paci = [d["id"] for d in rag_engine.keyword_retrieve(q, route="Pacifist")]
+    on_geno = [d["id"] for d in rag_engine.keyword_retrieve(q, route="Genocide")]
+    on_unknown = [d["id"] for d in rag_engine.keyword_retrieve(q, route=None)]
+    assert "evt-true-lab" in on_paci          # visible on its route
+    assert "evt-true-lab" not in on_geno      # gated out on the wrong route
+    assert "evt-true-lab" not in on_unknown   # hidden while route is unknown
+
+
+def test_genocide_lore_is_genocide_gated():
+    q = "the empty dusty path and final resolve"
+    assert "evt-genocide-resolve" in [d["id"] for d in rag_engine.keyword_retrieve(q, route="Genocide")]
+    assert "evt-genocide-resolve" not in [d["id"] for d in rag_engine.keyword_retrieve(q, route="Pacifist")]

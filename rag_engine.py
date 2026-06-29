@@ -61,8 +61,35 @@ def load_documents(collections_dir: str = COLLECTIONS_DIR) -> list[dict[str, Any
                     "character": d.get("character"),
                     "tags": list(d.get("tags", [])),
                     "text": d["text"],
+                    # Route gating: a doc with `routes` is only visible on those
+                    # routes; absent → universal (every route). `spoiler` docs are
+                    # hidden until the route is known. This gates WHAT world-lore is
+                    # retrievable — it never asserts the player's route as a fact.
+                    "routes": d.get("routes") or None,
+                    "spoiler": bool(d.get("spoiler", False)),
                 })
     return docs
+
+
+_KNOWN_ROUTES = ("Pacifist", "Neutral", "Genocide")
+
+
+def doc_allowed(doc: dict[str, Any], route: Optional[str]) -> bool:
+    """Is this lore doc appropriate to surface on the given route?
+
+    - A doc tagged with `routes` shows only when the player's route matches.
+    - A `spoiler` doc stays hidden while the route is unknown/undetermined.
+    - Everything else is universal. This is visibility gating, NOT a save-fact:
+      lore can still never establish or contradict the route.
+    """
+    known = route in _KNOWN_ROUTES
+    routes = doc.get("routes")
+    if routes:
+        if not known or route not in routes:
+            return False
+    if doc.get("spoiler") and not known:
+        return False
+    return True
 
 
 # ── keyword backend (always available) ───────────────────────────────────────
@@ -70,11 +97,13 @@ def load_documents(collections_dir: str = COLLECTIONS_DIR) -> list[dict[str, Any
 def keyword_retrieve(
     query: str,
     character: Optional[str] = None,
+    route: Optional[str] = None,
     k: int = 4,
     docs: Optional[list[dict[str, Any]]] = None,
 ) -> list[dict[str, Any]]:
-    """Pure overlap retriever. Deterministic; no external deps."""
+    """Pure overlap retriever. Deterministic; no external deps. Route-gated."""
     docs = docs if docs is not None else load_documents()
+    docs = [d for d in docs if doc_allowed(d, route)]
     q = _tokens(query)
     if character:
         q |= _tokens(character)
@@ -116,14 +145,18 @@ def _vector_collection():
         return None
 
 
-def vector_retrieve(query: str, character: Optional[str] = None, k: int = 4):
-    """Embed-and-query via Chroma. Returns None when the vector backend isn't ready."""
+def vector_retrieve(query: str, character: Optional[str] = None, route: Optional[str] = None, k: int = 4):
+    """Embed-and-query via Chroma, then route-gate. None when backend isn't ready.
+
+    Route gating is applied post-retrieval (Chroma metadata can't hold a list), so
+    we over-fetch and then filter + truncate to k.
+    """
     col = _vector_collection()
     if col is None:
         return None
     q = query if not character else f"{character}: {query}"
     try:
-        res = col.query(query_texts=[q], n_results=k)
+        res = col.query(query_texts=[q], n_results=max(k * 4, 12))
     except Exception:  # noqa: BLE001
         return None
     out: list[dict[str, Any]] = []
@@ -132,23 +165,33 @@ def vector_retrieve(query: str, character: Optional[str] = None, k: int = 4):
     texts = (res.get("documents") or [[]])[0]
     for i, doc_id in enumerate(ids):
         meta = metas[i] if i < len(metas) else {}
-        out.append({
+        routes_meta = meta.get("routes") or ""
+        doc = {
             "id": doc_id,
             "type": meta.get("type", "lore"),
             "title": meta.get("title", doc_id),
             "character": meta.get("character"),
             "tags": (meta.get("tags") or "").split(",") if meta.get("tags") else [],
             "text": texts[i] if i < len(texts) else "",
-        })
-    return out
+            "routes": routes_meta.split(",") if routes_meta else None,
+            "spoiler": bool(meta.get("spoiler", False)),
+        }
+        if doc_allowed(doc, route):
+            out.append(doc)
+    return out[:k]
 
 
-def retrieve(query: str, character: Optional[str] = None, k: int = 4) -> list[dict[str, Any]]:
-    """Retrieve top-k lore docs. Prefers the vector backend; falls back to keyword."""
-    v = vector_retrieve(query, character, k)
+def retrieve(
+    query: str,
+    character: Optional[str] = None,
+    route: Optional[str] = None,
+    k: int = 4,
+) -> list[dict[str, Any]]:
+    """Retrieve top-k route-gated lore docs. Prefers vector; falls back to keyword."""
+    v = vector_retrieve(query, character, route, k)
     if v is not None:
         return v
-    return keyword_retrieve(query, character, k)
+    return keyword_retrieve(query, character, route, k)
 
 
 def backend_in_use() -> str:

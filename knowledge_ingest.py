@@ -66,6 +66,8 @@ def ingest() -> int:
             "title": d["title"],
             "character": d["character"] or "",
             "tags": ",".join(d["tags"]),
+            "routes": ",".join(d["routes"]) if d.get("routes") else "",
+            "spoiler": bool(d.get("spoiler", False)),
         } for d in docs],
     )
     print(f"ingested {len(docs)} lore documents into '{CHROMA_COLLECTION}' at {CHROMA_DIR}")
