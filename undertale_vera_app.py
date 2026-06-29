@@ -26,9 +26,11 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+import hallucination_guard
 import judgment as judgment_mod
 import ledger
 import living_memory as lm
+import provenance as provenance_mod
 import rag_engine
 from avatar_resolver import resolve_avatar
 from backend.models import Base, CharacterMemory, Conversation, Project, SaveSnapshot
@@ -386,9 +388,8 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")
-    lore_grounding = rag_engine.format_lore_grounding(
-        rag_engine.retrieve(req.message, character=req.character, route=save_route)
-    )
+    lore_docs = rag_engine.retrieve(req.message, character=req.character, route=save_route)
+    lore_grounding = rag_engine.format_lore_grounding(lore_docs)
     system_prompt = build_system_prompt(
         req.character, save_truth,
         memory_grounding=memory_grounding,
@@ -411,6 +412,18 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         )
         model = None
 
+    # Second line of defense: check the model's ACTUAL reply against the sacred
+    # SaveTruth, and build the per-reply provenance (sacred vs free) for the UI.
+    guard = hallucination_guard.check_response(text, save_truth)
+    prov = provenance_mod.build_provenance(
+        save_truth,
+        character=get_character(req.character)["name"],
+        lore_docs=lore_docs,
+        memory_used=bool(memory_grounding.strip()),
+        remembrance_used=bool(remembrance.strip()),
+        guard=guard,
+    )
+
     # Persist the turn so the transcript survives a reload.
     _append_turns(db, project_id, req.character, req.message, text)
 
@@ -420,6 +433,8 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         "model": model,
         "grounding": {"source": grounding_source, "system_prompt": system_prompt},
         "route": (save_truth.get("route") or {}).get("route"),
+        "guard": guard,
+        "provenance": prov,
     }
 
 

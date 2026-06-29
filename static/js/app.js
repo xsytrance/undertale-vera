@@ -203,12 +203,43 @@
     }).then(function (res) {
       hist.push({ role: "assistant", content: res.response });
       renderTranscript();
-      var last = $("transcript").lastChild.querySelector("span");
-      typewriter(last, res.response);
+      var bubble = $("transcript").lastChild;
+      typewriter(bubble.querySelector("span"), res.response);
+      renderProvenance(bubble, res);   // the wall, made visible
     }).catch(function (e) {
       hist.push({ role: "assistant", content: "(error: " + e.message + ")" });
       renderTranscript();
     });
+  }
+
+  // ── provenance overlay (sacred vs free, + the hallucination guard) ───────
+  function chip(cls, text) {
+    var s = document.createElement("span");
+    s.className = "chip " + cls; s.textContent = text; return s;
+  }
+  function renderProvenance(bubble, res) {
+    var p = res.provenance; if (!p) return;
+    var box = document.createElement("div");
+    box.className = "provenance";
+    var s = p.sacred, f = p.free;
+    box.appendChild(Object.assign(document.createElement("span"),
+      { className: "label", textContent: "SACRED" }));
+    if (s.route) box.appendChild(chip("sacred", "route: " + s.route));
+    if (s.love !== null && s.love !== undefined) box.appendChild(chip("sacred", "LOVE: " + s.love));
+    if (s.kills !== null && s.kills !== undefined) box.appendChild(chip("sacred", "kills: " + s.kills));
+    box.appendChild(Object.assign(document.createElement("span"),
+      { className: "label", textContent: "FREE" }));
+    if (f.voice) box.appendChild(chip("free", "voice: " + f.voice));
+    (f.lore || []).slice(0, 3).forEach(function (t) { box.appendChild(chip("free", "lore: " + t)); });
+    if (f.memory_used) box.appendChild(chip("free", "memory"));
+    if (f.remembrance_used) box.appendChild(chip("free", "remembers"));
+    // the guard verdict
+    if (res.guard && res.guard.clean === false) {
+      box.appendChild(chip("warn", "⚠ contradicts save (" + res.guard.issues.length + ")"));
+    } else {
+      box.appendChild(chip("ok", "✓ grounded"));
+    }
+    bubble.appendChild(box);
   }
 
   // ── judgment ──────────────────────────────────────────────────────────────

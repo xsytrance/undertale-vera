@@ -194,3 +194,22 @@ the two-bucket wall.
   eval on the deterministic keyword backend (100%).
 - Verified: `pytest -q` → **58 passing**; `lore_eval` → 12/12 on BOTH the keyword and
   vector backends (route gating confirmed with real embeddings).
+
+## Hallucination guard + provenance overlay (the wall, made visible)
+The two-bucket wall is now enforced AND visible at the reply level.
+- `hallucination_guard.py` (pure): `check_response(reply, save_truth)` scans the
+  model's ACTUAL reply for claims that contradict the SACRED facts (route / LOVE /
+  kills) and flags them. Conservative (clear second-person assertions only — no
+  false positives on loose talk) and ADVISORY (it never rewrites the model; the
+  prompt stays the primary wall). Closes the blueprint's loop: verify the fact
+  survives live generation, not just prompt assembly.
+- `provenance.py` (pure): `build_provenance(...)` reports, per reply, the SACRED
+  facts in play vs the FREE sources that coloured it (voice, retrieved lore titles,
+  memory, remembrance) — plus the guard verdict.
+- Chat endpoint returns `guard` + `provenance`; `static/js/app.js` renders a
+  provenance overlay under each reply (SACRED chips / FREE chips / ✓ grounded or
+  ⚠ contradicts-save), styled in the Determination Chronicle palette.
+- `tests/hallucination_guard_test.py`: route/LOVE/kills contradictions flagged,
+  matching facts pass, undetermined-route assertions caught, provenance shape, and
+  the chat response carries both (incl. a misbehaving-model case the guard catches).
+- Verified: `pytest -q` → **67 passing**; browser-confirmed the overlay renders.
