@@ -26,6 +26,7 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+import character_disposition
 import hallucination_guard
 import judgment as judgment_mod
 import ledger
@@ -398,11 +399,14 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
     save_route = (save_truth.get("route") or {}).get("route")
     lore_docs = rag_engine.retrieve(req.message, character=req.character, route=save_route)
     lore_grounding = rag_engine.format_lore_grounding(lore_docs)
+    # SACRED: who the save records as killed/spared/befriended (parser-derived).
+    disposition_grounding = character_disposition.grounding_from_truth(save_truth)
     system_prompt = build_system_prompt(
         req.character, save_truth,
         memory_grounding=memory_grounding,
         remembrance=remembrance,
         lore_grounding=lore_grounding,
+        disposition_grounding=disposition_grounding,
     )
 
     grounding_source = "llm"

@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+from character_disposition import derive_dispositions
 from route_detection import detect_route
 from save_parser import CONFIDENCE_VALUES, ParsedUndertaleSave
 
@@ -92,6 +93,9 @@ def build_save_truth(
         "choices": {
             "spared_everyone_so_far": (route["route"] == "Pacifist") or None,
         },
+        # Per-character disposition (killed / spared / befriended / unknown), derived
+        # from documented, corpus-corroborated ini flags. SACRED — never invented.
+        "dispositions": derive_dispositions(parsed),
         "parser_confidence": parser_confidence,
         # Cross-source agreement (file0 vs undertale.ini) for overlapping fields.
         # Empty when only one source was provided. Two independent recordings that

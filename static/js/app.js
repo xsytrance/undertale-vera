@@ -230,6 +230,10 @@
     if (res.path_turn) {
       box.appendChild(chip("sacred", "↳ path turned: " + res.path_turn.from + " → " + res.path_turn.to));
     }
+    var disp = s.dispositions || {};
+    Object.keys(disp).forEach(function (who) {
+      box.appendChild(chip("sacred", who + ": " + disp[who]));
+    });
     box.appendChild(Object.assign(document.createElement("span"),
       { className: "label", textContent: "FREE" }));
     if (f.voice) box.appendChild(chip("free", "voice: " + f.voice));

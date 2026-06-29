@@ -98,6 +98,7 @@ def build_system_prompt(
     memory_grounding: str = "",
     remembrance: str = "",
     lore_grounding: str = "",
+    disposition_grounding: str = "",
     character_override: Optional[dict[str, Any]] = None,
 ) -> str:
     """Assemble the full grounded system prompt for one character.
@@ -127,6 +128,11 @@ def build_system_prompt(
 
     # 2. SaveTruth (SACRED) — anchored high so it governs the rest.
     sections.append(build_save_block(save_truth))
+
+    # 2a. Per-character disposition (SACRED — who was killed/spared/befriended,
+    # derived from documented flags). Sits with the save-facts, not the free voice.
+    if disposition_grounding.strip():
+        sections.append(disposition_grounding.strip())
 
     # 2b. Remembrance ledger (SACRED — parser-confirmed history across visits).
     if remembrance.strip():

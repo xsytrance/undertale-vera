@@ -28,6 +28,12 @@ def build_provenance(
     play = st.get("play_state") or {}
     route = st.get("route") or {}
     kills = st.get("kills") or {}
+    # Definite per-character outcomes only (killed/spared/befriended) — SACRED.
+    dispositions = {
+        c: (d or {}).get("status")
+        for c, d in (st.get("dispositions") or {}).items()
+        if (d or {}).get("status") in ("killed", "spared", "befriended")
+    }
 
     return {
         "sacred": {
@@ -36,6 +42,7 @@ def build_provenance(
             "route": route.get("route"),
             "route_confidence": route.get("confidence"),
             "kills": kills.get("total"),
+            "dispositions": dispositions,
         },
         "free": {
             "voice": character,

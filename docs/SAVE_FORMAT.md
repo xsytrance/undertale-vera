@@ -89,6 +89,17 @@ their meanings were mined by `tools/flag_mine.py` and cross-checked against the
 killed (`TK`/`PK`) is impossible in a real run, so it resolves to `undetermined` —
 the mercy-side mirror of the LOVE/kills contradiction guard.
 
+### Per-character disposition (SACRED chat grounding)
+The same flags drive `character_disposition.py`, which derives a per-character
+outcome — **killed / spared / befriended / unknown** — for each major character
+(`DISPOSITION_FLAGS`: Toriel `tk`/`ts`, Papyrus `pk`/`ps`/`pd`, Undyne `ud`,
+Alphys `ad`). It feeds a SACRED "WHO YOU'VE MET" block into the chat prompt so a
+character can speak to a *real* outcome ("you befriended my brother" / "you killed
+Toriel") — never a guess. `befriended` outranks `spared`; a character flagged both
+killed and spared is `contradicted` and is **not** asserted as any outcome. No flag
+→ `unknown` → simply not listed. Surfaced in `SaveTruth.dispositions` and the
+provenance overlay.
+
 ### Boss-kill flags (a hard "violence occurred" signal)
 `undertale.ini` records binary kill flags per major character. We use a conservative,
 corpus-corroborated allow-list (`route_detection.KILL_FLAGS`):

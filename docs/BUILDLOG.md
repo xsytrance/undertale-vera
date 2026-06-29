@@ -356,3 +356,26 @@ couldn't read. Mined and wired them, still without over-claiming.
   `route_detection_test.py`. `docs/SAVE_FORMAT.md` documents the flags + the wiki
   cross-check + the contradiction guard.
 - Verified: `pytest -q` → **109 passing**; detector re-run on the live corpus.
+
+## Per-character disposition — who you killed, spared, or befriended (SACRED)
+The flag mining paid its biggest dividend in the chat layer: characters can now
+speak to a *real* per-person outcome instead of a generic route.
+- `character_disposition.py` (pure): `DISPOSITION_FLAGS` maps each major character
+  to its documented, corpus-validated outcome flags — Toriel (tk/ts),
+  Papyrus (pk/ps/pd), Undyne (ud), Alphys (ad). `derive_dispositions` returns
+  killed / spared / befriended / unknown per character, with precedence (killed +
+  mercy both set → `contradicted`, never asserted; befriended outranks spared).
+- SACRED grounding: `build_disposition_grounding` / `grounding_from_truth` render a
+  "WHO YOU'VE MET" block listing only definite outcomes; "" when nothing is recorded
+  (baseline byte-identical). Lives in the SACRED bucket of the prompt (section 2a,
+  with the save-facts) — `prompt_builder` gained a `disposition_grounding` param and
+  the chat endpoint feeds it from the stored SaveTruth.
+- `save_truth` carries an additive `dispositions` block; `provenance` surfaces the
+  definite outcomes on the SACRED side and `app.js` renders them as chips.
+- Verified on the live corpus: a late Genocide save grounds "Toriel: killed,
+  Papyrus: killed" (Sans's brother — he'd know); a late Pacifist grounds everyone
+  befriended/spared. No flag → not listed, never guessed.
+- Tests: `tests/character_disposition_test.py` (derivation incl. contradiction,
+  grounding text, truth-based grounding, provenance, and chat-prompt wiring —
+  present with flags, absent without). `docs/SAVE_FORMAT.md` documents the flags.
+- Verified: `pytest -q` → **119 passing**.
