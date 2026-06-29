@@ -97,6 +97,7 @@ def build_system_prompt(
     *,
     memory_grounding: str = "",
     remembrance: str = "",
+    lore_grounding: str = "",
     character_override: Optional[dict[str, Any]] = None,
 ) -> str:
     """Assemble the full grounded system prompt for one character.
@@ -149,6 +150,10 @@ def build_system_prompt(
     demeanor = build_demeanor_block(char, save_truth)
     if demeanor:
         sections.append(demeanor)
+
+    # 3c. World lore (FREE — retrieved general knowledge, walled from save-facts).
+    if lore_grounding.strip():
+        sections.append(lore_grounding.strip())
 
     # 4. Living Memory (FREE, clearly fenced as out-of-game)
     if memory_grounding.strip():

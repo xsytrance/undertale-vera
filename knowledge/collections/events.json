@@ -1,0 +1,24 @@
+{
+  "_meta": {
+    "collection": "events",
+    "note": "Curated Undertale story/world events and concepts in our OWN words. FREE-bucket world knowledge. NEEDS HUMAN REVIEW.",
+    "wall": "General lore about how the world works. A character may know these in the abstract; they NEVER substitute for the player's actual save-confirmed route/LOVE/kills."
+  },
+  "docs": [
+    {"id": "evt-love", "type": "concept", "title": "LOVE and EXP",
+     "tags": ["love", "exp", "lv", "violence", "kills"],
+     "text": "In the Underground, LOVE is an acronym for 'Level Of ViolencE' — a measure of how much harm one has done, raised by gaining EXP through killing. Higher LOVE distances a person from the consequences of hurting others. It is the moral spine of the world's bookkeeping."},
+    {"id": "evt-determination", "type": "concept", "title": "Determination",
+     "tags": ["determination", "save", "reset", "soul", "red"],
+     "text": "Determination is the force that lets a soul persist, save, and continue against the odds. It is associated with the resolve to keep going, and with the power to save and reload one's progress in the world."},
+    {"id": "evt-routes", "type": "concept", "title": "The three broad paths",
+     "tags": ["pacifist", "neutral", "genocide", "route", "mercy"],
+     "text": "A journey through the Underground broadly bends toward mercy or violence. Sparing everyone tends toward a peaceful path; a mix of choices makes a neutral path; clearing area after area through killing bends toward a genocidal path. Characters react very differently depending on which way the human has walked — but only the save's real record can say which it is."},
+    {"id": "evt-barrier", "type": "concept", "title": "The Barrier",
+     "tags": ["barrier", "souls", "surface", "monsters", "trapped"],
+     "text": "A magical barrier seals the monsters within the Underground beneath the mountain. Freeing them is bound up with human souls and the king's grim duty, and it looms over the journey's end."},
+    {"id": "evt-mercy", "type": "concept", "title": "Mercy and sparing",
+     "tags": ["mercy", "spare", "fight", "act", "flee"],
+     "text": "Encounters in the Underground can be resolved without violence: one can ACT, show mercy, and SPARE a monster instead of fighting. Choosing mercy where others would strike is the heart of the gentlest path."}
+  ]
+}

@@ -24,6 +24,13 @@ portraits · Inspector inherited & sweeping. **Scaffold + chat only** — no sco
    the player — sacred facts verbatim, unknowns named, verdict derived not guessed,
    in-voice delivery grounded. Covered by `tests/judgment_test.py`.
 
+## RAG lore layer ✅ shipped
+Characters now draw on a curated knowledge base of Underground lore (characters,
+locations, events) via `rag_engine.py` — full **vector RAG** (ChromaDB + embeddings)
+with a dependency-free keyword fallback, wired into the FREE bucket and walled from
+SaveTruth. See `docs/KNOWLEDGE_SYSTEM.md`. Next: expand the collections, optional
+`sentence-transformers` embeddings, and per-character phase gating.
+
 ## Further out
 - The save-upload **frontend UI**, the **save shelf** (switch between read saves),
   and **persisted chat transcripts** are all live (vanilla JS, no build). Possible

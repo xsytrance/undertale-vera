@@ -35,6 +35,7 @@ SURFACES: list[tuple[str, str, float, Optional[str]]] = [
     ("health", "/api/health", 1.0, None),
     ("characters", "/api/characters", 1.0, None),
     ("projects", "/api/projects", 1.0, None),
+    ("lore", "/api/lore?q=waterfall", 1.0, None),
 ]
 
 # Static assets the scaffold must ship. Existence is checked over HTTP.

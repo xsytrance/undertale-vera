@@ -146,3 +146,21 @@ and binds route-aware music to the live save.
 - `tests/projects_test.py`: shelf lists saves with route, transcripts persist
   across calls, transcripts are per-character.
 - Verified: `pytest -q` → **39 passing**; Inspector green.
+
+## RAG lore layer — world knowledge (FREE bucket)
+Characters can now draw on curated Underground lore without hallucinating, behind
+the two-bucket wall.
+- `knowledge/collections/*.json`: curated lore (characters/locations/events) in our
+  own words, ADD-only, flagged for human review.
+- `rag_engine.py`: retrieval with two auto-selected backends — VECTOR (ChromaDB +
+  `all-MiniLM-L6-v2` embeddings) when deps+index exist, else a pure KEYWORD fallback
+  (so the app/tests run with no heavy deps). `format_lore_grounding` carries the
+  wall in writing; "" on no hits keeps the baseline byte-identical.
+- `knowledge_ingest.py` + `requirements-rag.txt`: build the vector index
+  (gitignored, rebuildable). `GET /api/lore?q=` exposes retrieval for audit.
+- Wiring: chat injects lore into the FREE bucket, AFTER the sacred SaveTruth +
+  remembrance blocks; lore can never assert a save-fact.
+- `tests/rag_test.py`: retrieval, the wall, chat injection, baseline preservation.
+- Verified: `pytest -q` → **50 passing** (keyword path); the VECTOR index was built
+  here with ChromaDB and confirmed to do semantic retrieval (e.g. "who weighs my
+  sins at the very end" → Sans). See `docs/KNOWLEDGE_SYSTEM.md`.

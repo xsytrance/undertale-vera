@@ -1,0 +1,13 @@
+# Optional RAG deps for the full VECTOR lore backend.
+# The core app + test suite do NOT need these — without a built index, rag_engine
+# falls back to a pure keyword retriever.
+#
+# Install + build the index:
+#   pip install -r requirements-rag.txt
+#   python3 knowledge_ingest.py
+
+chromadb>=0.4
+# sentence-transformers is preferred for embeddings; if it (and torch) are too
+# heavy for your environment, chromadb's built-in ONNX MiniLM embedder is used
+# automatically as a fallback by knowledge_ingest.py.
+sentence-transformers>=2.2
