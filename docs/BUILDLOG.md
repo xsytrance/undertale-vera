@@ -415,3 +415,15 @@ remembers runs no one else can.
   resets + turn in Flowey's framing) and app (Flowey chat carries the RESETS block;
   Sans's variant is not also present).
 - Verified: `pytest -q` → **133 passing**.
+
+## Area, everywhere — room-id fallback (corpus-derived, 64/64)
+Area detection relied on [General].RoomName, which the real corpus saves don't carry
+— so area was None for all 64. Added a room-id range fallback.
+- save_flavor.ROOM_AREA_RANGES: Ruins 1-45, Snowdin 46-82, Waterfall 83-138,
+  Hotland 139-195, the CORE 196-218, the King's castle 219-245, the True Lab 246-260.
+  Boundaries derived from the corpus by cross-checking each room id against its scene
+  label — matched 64/64. area_from_save now prefers the (version-robust) room name
+  and falls back to the id ranges; ids outside the validated span -> None.
+- Effect: all 64 corpus saves now resolve a sensible area (was 0); the fixture's
+  RoomName still wins over its id. Tests in tests/save_flavor_test.py.
+- Verified: pytest -q -> 135 passing.

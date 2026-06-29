@@ -20,8 +20,22 @@ def test_area_from_room_name():
     assert area_from_save({"play_state": {"room_name": "water_dump"}}) == "Waterfall"
 
 
-def test_area_none_when_no_room_name():
-    assert area_from_save({"play_state": {"room": 145}}) is None
+def test_area_from_room_id_fallback():
+    # No room name → corpus-validated room-id ranges resolve the area.
+    assert area_from_save({"play_state": {"room": 6}}) == "the Ruins"
+    assert area_from_save({"play_state": {"room": 68}}) == "Snowdin"
+    assert area_from_save({"play_state": {"room": 90}}) == "Waterfall"
+    assert area_from_save({"play_state": {"room": 145}}) == "Hotland"
+    assert area_from_save({"play_state": {"room": 246}}) == "the True Lab"
+
+
+def test_room_name_wins_over_room_id():
+    # The documented name is the reliable signal; it beats the id fallback.
+    assert area_from_save({"play_state": {"room_name": "ruins_entrance", "room": 200}}) == "the Ruins"
+
+
+def test_area_none_when_unknown_or_out_of_range():
+    assert area_from_save({"play_state": {"room": 999}}) is None   # beyond validated span
     assert area_from_save({}) is None
 
 

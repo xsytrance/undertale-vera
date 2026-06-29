@@ -168,8 +168,13 @@ like they *know* you. All SACRED (parser-derived facts); the Fun-value events ar
 documented lore tied to a real recorded number.
 
 - **Area** — from `[General].RoomName` (substring → area: `ruins`→the Ruins,
-  `water`→Waterfall, `core`→the CORE, …). Room *numbers* shift across versions, so we
-  never guess area from those — no room name → `None`.
+  `water`→Waterfall, `core`→the CORE, …). When no room name is recorded, a
+  **room-id range fallback** (`ROOM_AREA_RANGES`) takes over — boundaries derived
+  from the real 64-save corpus, each room id cross-checked against its scene label
+  (matched **64/64**): Ruins 1–45, Snowdin 46–82, Waterfall 83–138, Hotland 139–195,
+  the CORE 196–218, the King's castle 219–245, the True Lab 246–260. The room name
+  wins when present (robust across versions); ids outside the validated span → `None`,
+  never guessed.
 - **Play time** — `[General].Time` (frames @30 fps) → a soft phrase ("about 3 hours").
 - **Pie flavour** — `[Toriel] Bscotch` (1 butterscotch, 2 cinnamon).
 - **The Fun value** — `[General].Fun` (1–100), Undertale's deepest secret. At exact
