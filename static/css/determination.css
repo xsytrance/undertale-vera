@@ -62,6 +62,10 @@ body {
   height: 100vh;
   display: block;
   pointer-events: none;
+  /* the field renders at low res and upscales as crisp chunky pixels, matching
+     the pixel-art portraits */
+  image-rendering: pixelated;
+  image-rendering: crisp-edges;     /* Firefox */
 }
 /* when the living field is running, drop the gradient so the shader shows through
    (the obsidian wash + any Prime art still ride on .scene-backdrop above it) */

@@ -1,18 +1,22 @@
-/* ShaderField — the living, route-reactive backdrop (WebGL).
+/* ShaderField — the living, route-reactive PIXEL-ART backdrop (WebGL).
  *
- * A fullscreen fragment shader behind everything: a slow drifting ember/haze field
- * colour-graded by the save's ROUTE. Pacifist drifts warm and gold; Genocide
- * desaturates to ash and CORRUPTS (scanline tear, RGB split, glitch bursts);
- * undetermined is a cold murk. A `glitch()` pulse is the hook for the Fun-value
- * anomaly — when the save brushes a Gaster threshold, the field tears for a beat.
+ * A fullscreen field behind everything, rendered at a low internal resolution and
+ * upscaled crisp (image-rendering: pixelated) so it reads as chunky pixel art that
+ * matches the pixel portraits. Colour-graded by the save's ROUTE: Pacifist drifts
+ * warm and gold; Genocide desaturates to ash and CORRUPTS (row tear, RGB split);
+ * undetermined is a cold murk. Colours are posterized to a few levels with a hash
+ * dither for an authentic limited-palette look. `pulse()` tears the field for a
+ * beat — the Fun-value anomaly hook.
  *
- * Pure vanilla, no build step. Degrades cleanly: if WebGL is unavailable,
- * `supported` stays false and scene.js keeps the CSS gradient fallback. */
+ * Pure vanilla, no build step. Degrades cleanly: no WebGL → `supported` stays false
+ * and scene.js keeps the CSS gradient fallback. */
 (function () {
   "use strict";
 
-  var VERT =
-    "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
+  // Each shader pixel ≈ PIXEL screen px. Bigger = chunkier blocks.
+  var PIXEL = 6;
+
+  var VERT = "attribute vec2 p; void main(){ gl_Position = vec4(p, 0.0, 1.0); }";
 
   var FRAG = [
     "precision mediump float;",
@@ -23,59 +27,57 @@
     "float noise(vec2 p){ vec2 i=floor(p), f=fract(p);",
     "  float a=hash(i), b=hash(i+vec2(1.,0.)), c=hash(i+vec2(0.,1.)), d=hash(i+vec2(1.,1.));",
     "  vec2 u=f*f*(3.-2.*f); return mix(mix(a,b,u.x),mix(c,d,u.x),u.y); }",
-    "float fbm(vec2 p){ float s=0.,a=.5; for(int i=0;i<5;i++){ s+=a*noise(p); p*=2.02; a*=.5;} return s; }",
+    "float fbm(vec2 p){ float s=0.,a=.5; for(int i=0;i<4;i++){ s+=a*noise(p); p*=2.03; a*=.5;} return s; }",
     "void main(){",
     "  vec2 uv = gl_FragCoord.xy / uRes;",
-    "  vec2 p = uv; p.x *= uRes.x/uRes.y;",
+    // row-quantized horizontal tear (corruption + glitch bursts)
     "  float g = uGlitch + uCorrupt*0.6;",
-    // horizontal band tearing (corruption + glitch bursts)
-    "  float band = step(0.62, hash(vec2(floor(uv.y*42.0), floor(uTime*9.0))));",
-    "  uv.x += (hash(vec2(floor(uv.y*30.0), floor(uTime*13.0)))-0.5) * g * band * 0.07;",
-    "  p = uv; p.x *= uRes.x/uRes.y;",
-    // drifting haze
-    "  float n  = fbm(p*2.5 + vec2(uTime*0.05, -uTime*0.08));",
-    "  float n2 = fbm(p*5.0 - vec2(uTime*0.03,  uTime*0.06));",
-    "  float field = mix(n, n2, 0.5);",
+    "  float row = floor(uv.y*uRes.y);",
+    "  float band = step(0.62, hash(vec2(row, floor(uTime*9.0))));",
+    "  uv.x += (hash(vec2(row, floor(uTime*13.0)))-0.5) * g * band * 0.09;",
+    "  vec2 p = uv; p.x *= uRes.x/uRes.y;",
+    // drifting haze (chunky at low res)
+    "  float field = mix(fbm(p*2.2 + vec2(uTime*0.05,-uTime*0.07)),",
+    "                    fbm(p*4.2 - vec2(uTime*0.03, uTime*0.05)), 0.5);",
     "  vec3 col = mix(uColA, uColB, smoothstep(0.15, 0.85, field));",
-    // rising ember flecks
+    // chunky ember blocks
     "  float em = 0.0;",
     "  for(int i=0;i<3;i++){ float fi=float(i);",
-    "    vec2 ep = p*8.0 + vec2(fi*13.1, -uTime*(0.6+fi*0.22));",
+    "    vec2 ep = p*7.0 + vec2(fi*12.7, -uTime*(0.5+fi*0.2));",
     "    vec2 gid=floor(ep); vec2 lf=fract(ep)-0.5;",
-    "    float h=hash(gid+fi*7.0); float tw=0.5+0.5*sin(uTime*3.0+h*31.0);",
-    "    em += smoothstep(0.42,0.0,length(lf))*step(0.93,h)*tw; }",
-    "  col += uColB * em * uEmber * 1.3;",
-    // scanlines (stronger under corruption)
-    "  float scan = 0.92 + 0.08*sin(uv.y*uRes.y*1.4);",
-    "  col *= mix(1.0, scan, 0.3 + 0.5*uCorrupt);",
-    // cheap RGB split on glitch/corruption
-    "  col.r += g*0.10*sin(uv.y*80.0 + uTime*20.0);",
-    "  col.b -= g*0.08*sin(uv.y*70.0 - uTime*15.0);",
+    "    float h=hash(gid+fi*5.0); float tw=0.5+0.5*sin(uTime*3.0+h*30.0);",
+    "    em += step(0.93,h)*step(length(lf),0.34)*tw; }",
+    "  col += uColB * em * uEmber * 1.25;",
+    // scanline + cheap RGB split (reads chunky after posterize)
+    "  col *= mix(1.0, 0.9+0.1*sin(uv.y*uRes.y*3.14), 0.3 + 0.5*uCorrupt);",
+    "  col.r += g*0.10*sin(uv.y*60.0 + uTime*20.0);",
+    "  col.b -= g*0.08*sin(uv.y*55.0 - uTime*15.0);",
     // desaturate toward ash under corruption
     "  float lum = dot(col, vec3(0.299,0.587,0.114));",
     "  col = mix(col, vec3(lum)*vec3(1.05,0.96,0.9), uCorrupt*0.5);",
-    // vignette + backdrop dim
-    "  col *= smoothstep(1.25, 0.30, length(uv-0.5));",
-    "  col *= 0.85;",
+    // vignette
+    "  col *= smoothstep(1.30, 0.30, length(uv-0.5));",
+    // ── PIXEL-ART palette quantization: posterize + per-pixel hash dither ──
+    "  float levels = 5.0;",
+    "  float dth = (hash(floor(gl_FragCoord.xy)) - 0.5) / levels;",
+    "  col = floor(col*levels + 0.5 + dth) / levels;",
+    "  col *= 0.9;",
     "  gl_FragColor = vec4(col, 1.0);",
     "}"
   ].join("\n");
 
-  // route → {a:[r,g,b], b:[r,g,b], corrupt, ember}  (0..1 colours)
+  // route → palette (0..1 colours) + corruption + ember weight
   var PALETTES = {
-    pacifist:     { a: [0.07, 0.06, 0.04], b: [0.91, 0.63, 0.30], corrupt: 0.0, ember: 1.0 },
-    neutral:      { a: [0.05, 0.05, 0.07], b: [0.42, 0.36, 0.54], corrupt: 0.08, ember: 0.5 },
-    genocide:     { a: [0.06, 0.03, 0.04], b: [0.56, 0.18, 0.23], corrupt: 0.85, ember: 0.7 },
-    undetermined: { a: [0.05, 0.05, 0.06], b: [0.16, 0.20, 0.25], corrupt: 0.0, ember: 0.25 }
+    pacifist:     { a: [0.07, 0.06, 0.04], b: [0.91, 0.63, 0.30], corrupt: 0.0,  ember: 1.0  },
+    neutral:      { a: [0.05, 0.05, 0.07], b: [0.42, 0.36, 0.54], corrupt: 0.08, ember: 0.5  },
+    genocide:     { a: [0.06, 0.03, 0.04], b: [0.56, 0.18, 0.23], corrupt: 0.85, ember: 0.7  },
+    undetermined: { a: [0.05, 0.05, 0.06], b: [0.16, 0.20, 0.25], corrupt: 0.0,  ember: 0.25 }
   };
 
-  var gl, prog, canvas, raf = 0, start = 0;
-  var u = {};                       // uniform locations
-  // current + target animated state (lerped each frame)
+  var gl, prog, canvas, raf = 0, start = 0, u = {};
   var cur = { a: [0.05,0.05,0.06], b: [0.16,0.20,0.25], corrupt: 0, ember: 0.25 };
   var tgt = { a: cur.a.slice(), b: cur.b.slice(), corrupt: 0, ember: 0.25 };
-  var glitch = 0;                   // decays toward 0
-  var supported = false;
+  var glitch = 0, supported = false;
 
   function compile(type, src) {
     var s = gl.createShader(type);
@@ -88,9 +90,9 @@
 
   function resize() {
     if (!canvas) return;
-    var dpr = Math.min(window.devicePixelRatio || 1, 1.5);
-    canvas.width = Math.floor(innerWidth * dpr);
-    canvas.height = Math.floor(innerHeight * dpr);
+    // Low internal resolution → chunky pixels (CSS upscales crisp via pixelated).
+    canvas.width = Math.max(2, Math.round(window.innerWidth / PIXEL));
+    canvas.height = Math.max(2, Math.round(window.innerHeight / PIXEL));
     if (gl) gl.viewport(0, 0, canvas.width, canvas.height);
   }
 
@@ -98,15 +100,14 @@
 
   function frame(now) {
     if (!start) start = now;
-    var t = (now - start) / 1000;
-    var k = 0.05;                                   // transition smoothing
+    var t = (now - start) / 1000, k = 0.05;
     for (var i = 0; i < 3; i++) {
       cur.a[i] = lerp(cur.a[i], tgt.a[i], k);
       cur.b[i] = lerp(cur.b[i], tgt.b[i], k);
     }
     cur.corrupt = lerp(cur.corrupt, tgt.corrupt, k);
     cur.ember = lerp(cur.ember, tgt.ember, k);
-    glitch *= 0.90;                                 // glitch pulse decay
+    glitch *= 0.90;
 
     gl.uniform1f(u.uTime, t);
     gl.uniform2f(u.uRes, canvas.width, canvas.height);
@@ -133,7 +134,6 @@
     if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) { supported = false; return false; }
     gl.useProgram(prog);
 
-    // fullscreen triangle
     var buf = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, buf);
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
@@ -153,13 +153,11 @@
   }
 
   function setRoute(route) {
-    var key = (route || "undetermined").toLowerCase();
-    var pal = PALETTES[key] || PALETTES.undetermined;
+    var pal = PALETTES[(route || "undetermined").toLowerCase()] || PALETTES.undetermined;
     tgt.a = pal.a.slice(); tgt.b = pal.b.slice();
     tgt.corrupt = pal.corrupt; tgt.ember = pal.ember;
   }
 
-  // a one-shot tear — the Fun-value anomaly hook
   function pulse(strength) { glitch = Math.max(glitch, strength || 1.0); }
 
   window.ShaderField = {

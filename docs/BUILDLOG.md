@@ -466,3 +466,15 @@ by the save's route, layering under the static-art system already in place.
   routes render, Genocide visibly corrupts.
 - Composes with Prime's art: the shader is the LIVE underlayer; static scenes
   (when delivered) paint over it at reduced opacity.
+
+## Pixel-art pass on the living backdrop
+Converted the shader field to chunky PIXEL ART so it matches the pixel portraits.
+- `scene_shader.js`: render at a low internal resolution (each shader pixel ≈ 6
+  screen px) and let CSS upscale crisp (`image-rendering: pixelated` on
+  `.scene-shader`). Colours posterized to 5 levels with a per-pixel hash dither for
+  an authentic limited-palette look; embers became blocky; the corruption row-tear
+  reads as displaced pixel rows on Genocide. Pixel size (`PIXEL`) and palette
+  `levels` are one-line tunables.
+- Browser-verified: Pacifist = chunky warm-gold blocks with blocky embers;
+  Genocide = ashen crimson with visible row-tear; 0 console errors.
+- Still degrades to the CSS gradient when WebGL is unavailable.
