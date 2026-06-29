@@ -379,3 +379,27 @@ speak to a *real* per-person outcome instead of a generic route.
   grounding text, truth-based grounding, provenance, and chat-prompt wiring —
   present with flags, absent without). `docs/SAVE_FORMAT.md` documents the flags.
 - Verified: `pytest -q` → **119 passing**.
+
+## Deep cuts — save texture + the Fun-value anomaly (blow their minds)
+The richest, most surprising grounding yet — what a save records BEYOND route/stats.
+- `save_flavor.py` (pure): derives SACRED "texture" — current **area** (from the
+  documented `[General].RoomName`, never from fragile room numbers; None when
+  absent), **play time** (frames@30fps → "about N hours"), and Toriel's **pie
+  flavour** (`Bscotch` 1=butterscotch/2=cinnamon) — plus the crown jewel, the **Fun
+  value** event detector. At documented exact values the Fun value silently gates the
+  Gaster Followers (61–63), the Sound Test Room (65), the gray-door Mystery Man (66),
+  and the Goner Kid (90+); thresholds cross-checked against the Undertale Wiki +
+  CYBERPEDIA. Most values have no event → silent, never invented.
+- Grounding: `build_texture_grounding` (area/time/pie, SACRED, for everyone) and
+  `build_anomaly_grounding` (the eerie Fun-value truth, gated in the chat layer to
+  the save/meta-aware characters Sans & Flowey). Both "" when nothing applies
+  (baseline byte-identical). `prompt_builder` gains `texture_grounding` +
+  `anomaly_grounding` params (SACRED sections 2c/2d).
+- `save_truth` carries `toriel_pie`; `provenance` surfaces area/playtime/fun_event on
+  the SACRED side; `app.js` renders area/time chips and a "⌖ anomaly" chip.
+- Live-corpus validated: the genocide run's Fun 13 correctly fires the Wrong Number
+  Song; the pacifist run's Fun 88 is correctly silent; pie reads cinnamon.
+- Tests: `tests/save_flavor_test.py` (area from name only, pie, playtime, every Fun
+  tier, anomaly gating to Sans vs Papyrus, texture for all). `docs/SAVE_FORMAT.md`
+  documents the Fun table + sources.
+- Verified: `pytest -q` → **130 passing**.

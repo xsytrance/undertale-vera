@@ -14,6 +14,8 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+import save_flavor
+
 
 def build_provenance(
     save_truth: dict[str, Any],
@@ -43,6 +45,9 @@ def build_provenance(
             "route_confidence": route.get("confidence"),
             "kills": kills.get("total"),
             "dispositions": dispositions,
+            "area": save_flavor.area_from_save(st),
+            "playtime": save_flavor.humanize_playtime(play.get("play_time_frames")),
+            "fun_event": (save_flavor.fun_value_event(play.get("fun")) or {}).get("name"),
         },
         "free": {
             "voice": character,

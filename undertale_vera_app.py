@@ -27,6 +27,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 import character_disposition
+import save_flavor
 import hallucination_guard
 import judgment as judgment_mod
 import ledger
@@ -401,12 +402,20 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
     lore_grounding = rag_engine.format_lore_grounding(lore_docs)
     # SACRED: who the save records as killed/spared/befriended (parser-derived).
     disposition_grounding = character_disposition.grounding_from_truth(save_truth)
+    # SACRED texture (area / play time / pie) for everyone; the Fun-value anomaly is
+    # eerie meta-lore, so only the save/reset-aware characters (Sans, Flowey) get it.
+    texture_grounding = save_flavor.build_texture_grounding(save_truth)
+    anomaly_grounding = ""
+    if normalize_key(req.character) in ("name:sans", "name:flowey"):
+        anomaly_grounding = save_flavor.build_anomaly_grounding(save_truth)
     system_prompt = build_system_prompt(
         req.character, save_truth,
         memory_grounding=memory_grounding,
         remembrance=remembrance,
         lore_grounding=lore_grounding,
         disposition_grounding=disposition_grounding,
+        texture_grounding=texture_grounding,
+        anomaly_grounding=anomaly_grounding,
     )
 
     grounding_source = "llm"

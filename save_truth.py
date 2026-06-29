@@ -61,6 +61,8 @@ def build_save_truth(
         "play_time_frames": _ini_int(parsed, "general", "time"),
         "gold": _ini_int(parsed, "general", "gold"),
         "fun": _ini_int(parsed, "general", "fun"),
+        # Toriel's pie flavour ([Toriel] Bscotch: 1 butterscotch, 2 cinnamon).
+        "toriel_pie": _ini_int(parsed, "toriel", "bscotch"),
     }
 
     parser_confidence = {

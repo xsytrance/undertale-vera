@@ -99,6 +99,8 @@ def build_system_prompt(
     remembrance: str = "",
     lore_grounding: str = "",
     disposition_grounding: str = "",
+    texture_grounding: str = "",
+    anomaly_grounding: str = "",
     character_override: Optional[dict[str, Any]] = None,
 ) -> str:
     """Assemble the full grounded system prompt for one character.
@@ -137,6 +139,14 @@ def build_system_prompt(
     # 2b. Remembrance ledger (SACRED — parser-confirmed history across visits).
     if remembrance.strip():
         sections.append(remembrance.strip())
+
+    # 2c. Save texture (SACRED — small recorded details: area, play time, pie).
+    if texture_grounding.strip():
+        sections.append(texture_grounding.strip())
+
+    # 2d. The Fun-value anomaly (SACRED — only passed to save/meta-aware characters).
+    if anomaly_grounding.strip():
+        sections.append(anomaly_grounding.strip())
 
     # 3. Speaking style / personality (FREE)
     style_bits = []

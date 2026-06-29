@@ -162,6 +162,36 @@ signals are absent or contradictory it returns **`undetermined`** — it will ne
 fabricate a route to fill a blank, because a wrong route breaks immersion and trust
 faster than an honest "I can't tell yet."
 
+## Deep cuts — save texture + the Fun value (`save_flavor.py`)
+Beyond route and stats, the save records intimate detail that makes a character feel
+like they *know* you. All SACRED (parser-derived facts); the Fun-value events are
+documented lore tied to a real recorded number.
+
+- **Area** — from `[General].RoomName` (substring → area: `ruins`→the Ruins,
+  `water`→Waterfall, `core`→the CORE, …). Room *numbers* shift across versions, so we
+  never guess area from those — no room name → `None`.
+- **Play time** — `[General].Time` (frames @30 fps) → a soft phrase ("about 3 hours").
+- **Pie flavour** — `[Toriel] Bscotch` (1 butterscotch, 2 cinnamon).
+- **The Fun value** — `[General].Fun` (1–100), Undertale's deepest secret. At exact
+  values it silently unlocks rare events; we surface them for the save/meta-aware
+  characters (Sans, Flowey) as an unsettling truth:
+
+  | Fun | Event | Tier |
+  |---|---|---|
+  | 2–39 | the Wrong Number Song (Snowdin) | quirk |
+  | 46–50 | a mysterious mis-dialed call (Snowdin) | quirk |
+  | 56–57 | the Nightmare in the word search (Snowdin) | quirk |
+  | 61 / 62 / 63 | the **Gaster Followers** (Hotland) | gaster |
+  | 65 | the Sound Test Room (Snowdin) | gaster |
+  | 66 | the gray door / the **Mystery Man** (Waterfall) | gaster |
+  | 90–100 | the **Goner Kid** (Waterfall) | gaster |
+
+  Thresholds cross-checked against the
+  [Fun value](https://undertale.wiki/w/Fun_value) /
+  [Fun Value](https://undertale.fandom.com/wiki/Fun_Value) wikis. Most values (the
+  gaps) have no event — those stay silent, never invented. The anomaly block is gated
+  to Sans/Flowey in the chat layer; the texture block (area/time/pie) reaches everyone.
+
 ## Fixtures
 The test fixtures under `tests/fixtures/` are **synthetic, hand-authored to follow
 this format** — not real game saves, no copyrighted data. See that folder's README.
