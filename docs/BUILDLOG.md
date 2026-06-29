@@ -303,3 +303,32 @@ from a real 64-save corpus (re-uploaded by the user), never by guessing.
   promotion; implausible→null). `docs/SAVE_FORMAT.md` documents all of it.
 - Verified: `pytest -q` → **95 passing**; engine + corroboration re-run on the
   live 64-save corpus.
+
+## More parse mining — boss-kill flags confirm Genocide (corpus + the Internet)
+Mined the undertale.ini plot-flag space, cross-checked it against community docs,
+and turned the result into a sharper, still-honest route detector.
+- `tools/flag_mine.py`: the ini analog of `parser_expand.py`. Groups a
+  route-labelled corpus and tags flags that separate routes. On the 64-save corpus
+  it found `[Toriel] TK` and `[Papyrus] PK` set in Genocide saves and **0/49**
+  Pacifist runs (plus the Pacifist-side spare flags `TS`/`PS`/`PD`).
+- Internet cross-check (pcy.ulyssis.be, CYBERPEDIA, Undertale Wiki) CONFIRMED
+  `TK = Toriel killed`, `PK = Papyrus killed`, and independently confirmed the
+  file0 indices promoted in the previous PR (line 36 = Fun, 548 = room, 549 = time).
+  A community claim that file0 line 3 = current HP did NOT survive corpus checking:
+  index 2 follows `16+4·LV` across all 64 saves (LV1→20…LV19→92) while index 3 is a
+  constant 20 — index 2 is max HP. Promoted `max_hp` medium→**high**; trusted the
+  data over the forum.
+- `route_detection.py`: `KILL_FLAGS` allow-list + `extract_kill_flags`. A set kill
+  flag is a hard "violence occurred" signal — it forms a Neutral floor, promotes
+  LOVE 20 to a **confirmed** Genocide (two independent records of total slaughter),
+  and if it appears with LOVE 1 exposes a contradiction → undetermined. It never
+  upgrades a mid-run save to Genocide (killing some bosses ≠ full clearance), so
+  those honestly stay Neutral.
+- Corpus effect: the one complete Genocide save → Genocide **confirmed** (was high);
+  14 mid-run Genocide saves stay Neutral with explicit kill-flag evidence; **0/49**
+  Pacifist saves affected. No over-claiming.
+- Tests: `tests/flag_mine_test.py` (discriminative detection, both-route flags
+  rejected, leakage threshold, fixture read) + kill-flag cases in
+  `route_detection_test.py`. `docs/SAVE_FORMAT.md` documents the flags, the
+  community cross-check, and the max_hp correction.
+- Verified: `pytest -q` → **105 passing**; flag_mine + detector re-run on the live corpus.

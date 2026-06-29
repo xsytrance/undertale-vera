@@ -53,15 +53,48 @@ assumed. See `route_detection.py`:
 
 | Observed | Route | Confidence |
 |---|---|---|
+| LOVE 20 **and** a boss-kill flag set | Genocide | **confirmed** |
 | LOVE 20 (the ceiling) | Genocide | high |
 | LOVE 1 and 0 kills | Pacifist | medium* |
-| LOVE > 1 and/or recorded kills | Neutral | medium |
+| LOVE > 1, recorded kills, **and/or a boss-kill flag** | Neutral | medium |
+| boss-kill flag set **but** LOVE 1 (no EXP) | undetermined | low (contradiction) |
 | no readable LOVE and no kills | undetermined | unknown |
 
 \* Pacifist is capped at **medium** on purpose: a no-kill run is *necessary* but not
 *sufficient* for True Pacifist — confirming that additionally needs befriend/date
 flags whose exact ini indices vary across game versions. We say so in the grounding
 rather than over-claiming.
+
+### Boss-kill flags (a hard "violence occurred" signal)
+`undertale.ini` records binary kill flags per major character. We use a conservative,
+corpus-corroborated allow-list (`route_detection.KILL_FLAGS`):
+
+| Flag | Meaning | Corpus (set in) |
+|---|---|---|
+| `[Toriel] TK` | Toriel killed | 14/15 Genocide, **0/49 Pacifist** |
+| `[Papyrus] PK` | Papyrus killed | 12/15 Genocide, **0/49 Pacifist** |
+
+A set kill flag cannot coexist with a true no-kill run, so it: confirms killing
+beyond doubt (a Neutral floor); **promotes LOVE 20 to a `confirmed` Genocide** (two
+independent records of total slaughter); and, if it somehow appears with LOVE 1,
+exposes a **contradiction** (killing a boss raises LOVE) → `undetermined`. It never
+*upgrades* a mid-run save to Genocide — killing some bosses is not the full clearance
+Genocide demands, so those stay Neutral. The allow-list was derived by
+`tools/flag_mine.py` (the ini analog of `tools/parser_expand.py`), which also
+surfaced the Pacifist-side spare flags `[Toriel] TS` / `[Papyrus] PS` for future use.
+
+### Cross-checked against community documentation
+The corpus findings were independently corroborated against community references
+([pcy.ulyssis.be/undertale/flags](https://pcy.ulyssis.be/undertale/flags),
+[CYBERPEDIA flags](https://cyberpedia.miraheze.org/wiki/User:Emeryradio-fduser/Flags),
+[Undertale Wiki: SAVE](https://undertale.fandom.com/wiki/SAVE)). They agree on
+`TK = Toriel killed`, `PK = Papyrus killed`, and on the file0 indices we promoted —
+**line 36 = Fun, line 548 = room, line 549 = time** (1-indexed; our 0-indexed
+`fun@35` / `room@547` / refused `time@548`). One community claim (line 3 = *current*
+HP) did **not** survive corpus verification: index 2 tracks `16 + 4·LV` exactly
+across all 64 saves (LV1→20, LV13→68, LV19→92) while index 3 is a constant 20 — so
+index 2 is **max HP** (now confidence `high`), and we trusted the data over the
+forum note. Verification beats deference.
 
 ### Verified against a real save corpus
 The parser's field mapping was confirmed against a real corpus of Undertale saves

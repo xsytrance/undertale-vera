@@ -33,6 +33,19 @@ ROUTES = ("Pacifist", "Neutral", "Genocide", "undetermined")
 LOVE_NO_KILLS = 1
 LOVE_GENOCIDE_CEILING = 20
 
+# Documented major-character KILL flags from undertale.ini. Each is a hard,
+# binary record that a specific boss was killed — community-documented (TK =
+# "Toriel killed", PK = "Papyrus killed") AND corpus-corroborated: across a real
+# 64-save corpus these were set in 0/49 no-kill (Pacifist) runs and only ever in
+# Genocide saves. Their presence is therefore an UNAMBIGUOUS "violence occurred"
+# signal — it cannot coexist with a true no-kill run. (section, key, character).
+# Allow-list is intentionally conservative + extensible; only corpus-confirmed
+# kill flags belong here, never a guessed one.
+KILL_FLAGS: tuple[tuple[str, str, str], ...] = (
+    ("toriel", "tk", "Toriel"),
+    ("papyrus", "pk", "Papyrus"),
+)
+
 
 def _maybe_int(v: Any) -> Optional[int]:
     try:
@@ -61,6 +74,25 @@ def extract_kill_signals(parsed) -> dict[str, Any]:
     return {"total_kills": total, "consulted": consulted}
 
 
+def extract_kill_flags(parsed) -> list[dict[str, Any]]:
+    """Documented boss-kill flags that are SET (present and non-zero) in the save.
+
+    Each returned flag is a hard, version-stable record that a major character was
+    killed. Reads undertale.ini by name; never inferred, never guessed.
+    """
+    found: list[dict[str, Any]] = []
+    if not hasattr(parsed, "ini_get"):
+        return found
+    for section, key, character in KILL_FLAGS:
+        raw = parsed.ini_get(section, key)
+        if raw is None:
+            continue
+        val = _maybe_int(raw)
+        if val not in (None, 0):
+            found.append({"section": section, "key": key, "character": character, "raw": raw})
+    return found
+
+
 def detect_route(parsed) -> dict[str, Any]:
     """Derive the route block for SaveTruth from a ParsedUndertaleSave.
 
@@ -77,12 +109,17 @@ def detect_route(parsed) -> dict[str, Any]:
     love = getattr(parsed, "love", None)
     kills = extract_kill_signals(parsed)
     total_kills = kills["total_kills"]
+    kill_flags = extract_kill_flags(parsed)
+    flag_chars = [f["character"] for f in kill_flags]
+    has_kill_flag = bool(kill_flags)
     signals: list[str] = []
     reasons: list[str] = []
 
     if love is not None:
         signals.append(f"LOVE={love}")
     signals.extend(kills["consulted"])
+    for f in kill_flags:
+        signals.append(f"[{f['section']}] {f['key']}={f['raw']} ({f['character']} killed)")
 
     # No usable signal at all → undetermined. This is the honest default.
     if love is None and total_kills is None:
@@ -116,6 +153,13 @@ def detect_route(parsed) -> dict[str, Any]:
             "Refusing to guess a route; left undetermined."
         )
         return _result("undetermined", "low", love, total_kills, signals, reasons)
+    if has_kill_flag and love == LOVE_NO_KILLS:
+        reasons.append(
+            f"LOVE is 1 (no EXP ever gained), yet a documented boss-kill flag is set "
+            f"({', '.join(flag_chars)} killed) — killing a boss raises LOVE, so these "
+            "cannot both hold honestly (an edited save). Left undetermined, not guessed."
+        )
+        return _result("undetermined", "low", love, total_kills, signals, reasons)
 
     # LV 20 is the Genocide ceiling — only reachable by near-total killing. (Kills
     # here is >0 or unknown; the contradictory Kills==0 case was handled above.)
@@ -124,6 +168,14 @@ def detect_route(parsed) -> dict[str, Any]:
             "LOVE is at the maximum of 20, which is only reachable by killing "
             "nearly every monster — consistent with a Genocide route."
         )
+        if has_kill_flag:
+            # Maxed LOVE *and* documented boss kills — two independent records of
+            # total slaughter. This is the one case we'll call Genocide "confirmed".
+            reasons.append(
+                f"Documented boss-kill flags are also set ({', '.join(flag_chars)} "
+                "killed), independently corroborating the maxed LOVE — Genocide, confirmed."
+            )
+            return _result("Genocide", "confirmed", love, total_kills, signals, reasons)
         return _result("Genocide", "high", love, total_kills, signals, reasons)
 
     # LV 1 with no kills observed → a confirmed no-kill run. This is necessary
@@ -143,12 +195,18 @@ def detect_route(parsed) -> dict[str, Any]:
 
     # Any LOVE above 1 (and below the ceiling), or recorded kills, means the run
     # has spilled blood but is not a confirmed full Genocide — that is Neutral.
-    if (love is not None and love > LOVE_NO_KILLS) or (total_kills not in (0, None)):
+    if (love is not None and love > LOVE_NO_KILLS) or (total_kills not in (0, None)) or has_kill_flag:
         reasons.append(
-            "Some killing has occurred (LOVE above 1 and/or recorded kills) but "
-            "not the total clearance that defines Genocide — consistent with a "
-            "Neutral route."
+            "Some killing has occurred (LOVE above 1, recorded kills, and/or a boss-"
+            "kill flag) but not the total clearance that defines Genocide — consistent "
+            "with a Neutral route."
         )
+        if has_kill_flag:
+            reasons.append(
+                f"Boss-kill flags are set ({', '.join(flag_chars)} killed) — this "
+                "removes any doubt that killing occurred, but is not by itself the "
+                "full clearance Genocide requires, so the route is held at Neutral."
+            )
         if love is not None and love >= 15:
             reasons.append(
                 "LOVE is unusually high; this leans toward Genocide but is not "
