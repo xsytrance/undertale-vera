@@ -13,9 +13,32 @@ raw (`ParsedUndertaleSave.file0_lines`) but left semantically `null`:
 | 0 | `name` | confirmed | the fallen human's entered name |
 | 1 | `love` (LV) | confirmed | LOVE — "Level Of ViolencE"; 1 means zero EXP/kills |
 | 2 | `max_hp` | medium | default 20 at LV 1; grows with LOVE — range-validated |
+| 11 | `kills` | high | kill counter; mirrors `[General].Kills` — range-validated |
+| 35 | `fun` | high | the "Fun value" RNG flag (1–100); mirrors `[General].Fun` |
+| 547 | `room` | high | current room id; mirrors `[General].Room` |
 
 Out-of-range or unparseable values become `None` with confidence `unknown`, and a
 warning is recorded — **never** a guessed value.
+
+### How indices 11 / 35 / 547 were promoted (data-driven, not guessed)
+These three were `unknown` until `tools/parser_expand.py` corroborated each against
+a documented `[General]` key across a **real 64-save corpus** (Pacifist + Genocide)
+at **100% agreement, 64/64 saves** — evidence, not assumption. The same run
+reconfirmed `file0[1] ↔ Love` (64/64) and, crucially, **refused** `[General].Time`
+(only 58% — it drifts between the file0 snapshot and the ini write), so it stays
+unmapped. A candidate is promoted only at 100% over a meaningful sample; one
+counterexample means we don't claim it. Re-run the engine on any corpus:
+`python3 tools/parser_expand.py <corpus_dir>`.
+
+### Cross-source corroboration (the wall at parse time)
+`love`, `kills`, `room`, and `fun` are recorded in **both** `file0` and
+`undertale.ini`. When both are present the parser checks them against each other
+(`save_parser.corroborate`): agreement promotes the field to **confirmed** (two
+independent recordings concur — our strongest evidence); disagreement keeps the
+`file0` (save-slot) value, drops confidence to **low**, and emits a warning (a
+likely edited save). It never silently picks a side or averages. Across the real
+corpus this held at **256/256** field-checks in agreement — the conflict path stays
+dormant on legitimate saves and fires only on tampered ones.
 
 ## `undertale.ini` — flags
 Standard INI (`[section]` + `key=value`, values double-quoted). We parse it into

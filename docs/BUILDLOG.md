@@ -274,3 +274,32 @@ A red-team harness that attacks the two-bucket wall directly, then gates on it.
 - CI runs the adversarial + lore gates as their own steps (both 100% on the
   keyword backend, verified in a clean venv).
 - Verified: `pytest -q` → **85 passing**; `voice_eval --min 1.0` → 8/8.
+
+## Data-driven parser expansion — the real corpus as ground truth
+Promoted three file0 indices from `unknown` → documented, justified by evidence
+from a real 64-save corpus (re-uploaded by the user), never by guessing.
+- `tools/parser_expand.py`: the sanctioned expansion engine. For each documented
+  `[General]` key it scans every file0 index across the corpus and proposes a
+  mapping ONLY at 100% agreement over a meaningful sample (whitespace/quote/float
+  tolerant compare). On the 64-save corpus it PROMOTED `kills↔file0[11]`,
+  `fun↔file0[35]`, `room↔file0[547]` (all 64/64), reconfirmed `love↔file0[1]`
+  (64/64), and correctly REFUSED `time` (58% — it drifts between the file0 snapshot
+  and the ini write). One counterexample = no claim.
+- `save_parser.py`: indices 11/35/547 added to `FILE0_KNOWN_FIELDS` (confidence
+  "high"), decoded into new `kills`/`fun`/`room` fields with range validation
+  (absent/implausible → None, no warning — same honest-silence policy as max_hp).
+- Cross-source corroboration (`save_parser.corroborate`): for fields in BOTH
+  file0 and the ini (love/kills/room/fun), the two independent reads are checked —
+  AGREE → confidence promoted to "confirmed"; DISAGREE → keep the file0 (save-slot)
+  value, drop to "low", warn (likely edited save). Never silently picks/averages.
+  Validated across the corpus: 256/256 field-checks agree, zero conflicts.
+- `save_truth.py`: additive `corroboration` block + kills/fun/room in
+  `parser_confidence` (schema v1 unchanged; existing assertions intact).
+- Synthetic genocide/neutral fixtures made internally consistent (file0[11] now
+  matches their ini Kills) so they model real, un-edited saves.
+- Tests: `tests/parser_expand_test.py` (engine promotes a corroborated index,
+  refuses noisy/under-sampled ones) and `tests/corroboration_test.py` (new indices
+  decode; agreement→confirmed; disagreement→edited-save warning; file0-only→no
+  promotion; implausible→null). `docs/SAVE_FORMAT.md` documents all of it.
+- Verified: `pytest -q` → **95 passing**; engine + corroboration re-run on the
+  live 64-save corpus.

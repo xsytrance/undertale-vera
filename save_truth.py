@@ -66,6 +66,9 @@ def build_save_truth(
         "name": _confidence(parsed.confidence.get("name")),
         "love": _confidence(parsed.confidence.get("love")),
         "max_hp": _confidence(parsed.confidence.get("max_hp")),
+        "kills": _confidence(parsed.confidence.get("kills")),
+        "fun": _confidence(parsed.confidence.get("fun")),
+        "room": _confidence(parsed.confidence.get("room")),
         "route": _confidence(route.get("confidence")),
     }
 
@@ -90,6 +93,10 @@ def build_save_truth(
             "spared_everyone_so_far": (route["route"] == "Pacifist") or None,
         },
         "parser_confidence": parser_confidence,
+        # Cross-source agreement (file0 vs undertale.ini) for overlapping fields.
+        # Empty when only one source was provided. Two independent recordings that
+        # AGREE are our strongest evidence; a DISAGREE flags a likely edited save.
+        "corroboration": dict(parsed.corroboration),
         "warnings": list(parsed.warnings),
         "prompt_contract": {
             "save_truth_wins": True,
