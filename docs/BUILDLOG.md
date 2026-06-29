@@ -234,3 +234,18 @@ records every reading; now HE (and only he) can speak to it.
   app wiring (refresh surfaces path_turn; Sans chat carries the block, Toriel does
   not; path_turn rides every chat response).
 - Verified: `pytest -q` → **78 passing**.
+
+## Real CI — the wall as a merge gate (GitHub Actions)
+Every prior PR shipped with `total_count: 0` checks — the suite was an honour
+system. Now it gates merges.
+- `.github/workflows/ci.yml`: on push/PR to `main`, sets up Python 3.11, installs
+  ONLY `requirements.txt` + pytest (the suite mocks the LLM and the RAG layer
+  falls back to a pure keyword retriever, so the heavy `requirements-rag.txt`
+  vector deps are deliberately excluded — fast, deterministic, no network/model).
+  Steps: `py_compile *.py backend/*.py` (syntax) → `pytest -q`. `ANTHROPIC_API_KEY`
+  is empty by design; no chat test needs a live key. Concurrency-cancels superseded
+  runs; least-privilege `contents: read`.
+- README gets a CI status badge.
+- Verified by reproducing CI exactly in a clean venv (core deps only): py_compile
+  OK, **78 passed** — confirms the green path doesn't depend on the dev box's
+  pre-installed chromadb/playwright.
