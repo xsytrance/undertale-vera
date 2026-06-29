@@ -216,6 +216,22 @@ input[type="file"], input[type="text"] {
 .gap { color: var(--ink-dim); font-style: italic; }
 .remembrance { border-left: 2px solid var(--ember); padding-left: 12px; margin-top: 10px; color: var(--ink); }
 
+/* provenance overlay — the wall, made visible per reply */
+.provenance {
+  margin-top: 8px; padding-top: 8px;
+  border-top: 1px dashed var(--plate-frame);
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+.provenance .label { font-family: var(--font-mono); font-size: 0.66rem; color: var(--ink-dim); margin-right: 2px; }
+.chip {
+  font-family: var(--font-mono); font-size: 0.68rem;
+  padding: 2px 8px; border-radius: 999px; border: 1px solid var(--plate-frame);
+}
+.chip.sacred { color: var(--brass-edge); border-color: var(--brass); }
+.chip.free   { color: var(--ink-dim); }
+.chip.warn   { color: var(--determination); border-color: var(--crimson); }
+.chip.ok     { color: var(--ember-soft); border-color: var(--ember-soft); }
+
 /* route badge — Determination-red reserved for the route/soul beat */
 .route-badge {
   display: inline-flex;
