@@ -17,6 +17,9 @@ def test_collections_load():
     docs = rag_engine.load_documents()
     ids = {d["id"] for d in docs}
     assert "char-sans" in ids and "loc-waterfall" in ids and "evt-love" in ids
+    # expanded collections: items + supporting-cast NPCs
+    assert "item-butterscotch-pie" in ids and "npc-temmie" in ids
+    assert len(docs) >= 30
 
 
 def test_keyword_retrieve_finds_relevant_lore():

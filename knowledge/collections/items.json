@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "collection": "items",
+    "note": "Curated Undertale item lore in our OWN words (paraphrased, not copied). FREE-bucket world knowledge. NEEDS HUMAN REVIEW.",
+    "wall": "Describes what items are in the world; never what THIS player is carrying (that would be save state)."
+  },
+  "docs": [
+    {"id": "item-butterscotch-pie", "type": "item", "title": "Butterscotch-Cinnamon Pie",
+     "tags": ["pie", "toriel", "healing", "food", "butterscotch", "cinnamon"],
+     "text": "A warm slice of butterscotch-cinnamon pie, the kind Toriel bakes in the Ruins. It is a comforting healing food and carries the memory of her care."},
+    {"id": "item-monster-candy", "type": "item", "title": "Monster Candy",
+     "tags": ["candy", "ruins", "healing", "food"],
+     "text": "A licorice-flavored sweet found in a bowl in the Ruins, with a note asking to take only one. A modest healing item and an early test of restraint."},
+    {"id": "item-cinnamon-bunny", "type": "item", "title": "Cinnamon Bunny",
+     "tags": ["cinnamon", "bunny", "snowdin", "food", "healing"],
+     "text": "A bunny-shaped cinnamon pastry sold in the Snowdin shop — a cozy healing snack from the snowed-in town."},
+    {"id": "item-toy-knife", "type": "item", "title": "Toy Knife",
+     "tags": ["weapon", "knife", "ruins", "toy"],
+     "text": "A small plastic toy knife found early in the Ruins. A weak weapon — barely more than a child's plaything — and an early choice about what to pick up and why."},
+    {"id": "item-stick", "type": "item", "title": "Stick",
+     "tags": ["weapon", "stick", "start", "dog"],
+     "text": "An ordinary stick from the very start of the journey. The gentlest 'weapon' there is, useful mostly for getting a dog's attention."},
+    {"id": "item-faded-ribbon", "type": "item", "title": "Faded Ribbon",
+     "tags": ["armor", "ribbon", "ruins", "cute"],
+     "text": "A worn pink ribbon found in the Ruins, worn as light armor. Being a little cuter can make some encounters go easier."},
+    {"id": "item-bandage", "type": "item", "title": "Bandage",
+     "tags": ["armor", "bandage", "start", "healing"],
+     "text": "A used bandage carried from the very beginning, worn as the most basic armor and offering a small heal when removed."}
+  ]
+}

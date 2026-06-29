@@ -164,3 +164,17 @@ the two-bucket wall.
 - Verified: `pytest -q` → **50 passing** (keyword path); the VECTOR index was built
   here with ChromaDB and confirmed to do semantic retrieval (e.g. "who weighs my
   sins at the very end" → Sans). See `docs/KNOWLEDGE_SYSTEM.md`.
+
+## Corpus-audit tool + lore expansion
+- `tools/corpus_audit.py`: a repeatable parser+route sweep over any save folder
+  (real folder-per-save OR flat fixture layout) → coverage report (parse count,
+  per-label route distribution, LOVE range, undetermined count, warnings/structure
+  issues). Read-only; never commits/copies save data. `tests/corpus_audit_test.py`
+  covers discovery + the report. Verified against a real 64-save corpus: 64/64
+  parsed, 0 warnings, 0 structure issues; routes honest (Pacifist saves → Pacifist;
+  mid-genocide-run saves → Neutral until the LOVE 20 ceiling → Genocide).
+- Lore expansion: `knowledge/collections/items.json` (consumables/weapons/armor),
+  `npcs.json` (Napstablook, Temmie, Muffet, the dogs, Monster Kid, …), and more
+  `events.json` concepts (SAVE points, human SOULs, the True Lab, "stay
+  determined"). 37 lore docs total; vector index rebuilt and confirmed semantic.
+- Verified: `pytest -q` → **53 passing**.
