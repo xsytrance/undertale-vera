@@ -1,0 +1,95 @@
+{
+  "_doc": {
+    "purpose": "ComfyUI pixel-portrait pipeline for undertale-vera's 'Determination Chronicle' style. Ported from fft-psx-vera/comfy_workflows/portrait.json (Illustrious-XL + LoRA + BiRefNet bg-removal + scale + save), retuned for museum-lit PIXEL character portraits in OUR accent (obsidian field, ember/brass warmth, reinterpreted soul-sigil framing). Do NOT use Undertale assets; this trains/uses a NEW style LoRA.",
+    "style": "Determination Chronicle — relic-framed pixel portrait, obsidian background, ember/brass museum lighting, restrained Determination-red accent.",
+    "env": {
+      "COMFY_URL": "http://127.0.0.1:8188",
+      "COMFY_CKPT": "Illustrious-XL-v2.0.safetensors",
+      "COMFY_LORA": "undertale_determination_pixel.safetensors",
+      "COMFY_BG_MODEL": "birefnet.safetensors"
+    },
+    "prompt_approach": "Positive: 'determination_chronicle_style, pixel art character portrait, {character} of the Underground, bust framing, museum-lit, warm ember and brass rim light, deep obsidian background, expressive face, looking at viewer'. Negative: 'red heart icon, copyrighted undertale sprite, watermark, text, signature, frame, extra limbs, blurry, full body, hands'. Reserve Determination-red for soul/route beats only.",
+    "outputs": "512x512 transparent PNG; saved to static/assets/portraits/ (GITIGNORED). Generate 2-3 sample relic portraits only — do not batch the full cast."
+  },
+  "1": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "Illustrious-XL-v2.0.safetensors" }
+  },
+  "2": {
+    "class_type": "LoraLoader",
+    "inputs": {
+      "lora_name": "undertale_determination_pixel.safetensors",
+      "strength_model": 1.1,
+      "strength_clip": 1.0,
+      "model": ["1", 0],
+      "clip": ["1", 1]
+    }
+  },
+  "3": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "determination_chronicle_style, pixel art character portrait, bust framing, museum-lit, warm ember and brass rim light, deep obsidian background, expressive face, looking at viewer",
+      "clip": ["2", 1]
+    }
+  },
+  "4": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "red heart icon, copyrighted undertale sprite, watermark, text, signature, frame, weapon, extra limbs, extra fingers, blurry, full body, hands, deformed",
+      "clip": ["2", 1]
+    }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": 1024, "height": 1024, "batch_size": 1 }
+  },
+  "6": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 0,
+      "steps": 30,
+      "cfg": 5.5,
+      "sampler_name": "dpmpp_2m",
+      "scheduler": "karras",
+      "denoise": 1.0,
+      "model": ["2", 0],
+      "positive": ["3", 0],
+      "negative": ["4", 0],
+      "latent_image": ["5", 0]
+    }
+  },
+  "7": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["6", 0], "vae": ["1", 2] }
+  },
+  "8": {
+    "class_type": "LoadBackgroundRemovalModel",
+    "inputs": { "model_name": "birefnet.safetensors" }
+  },
+  "9": {
+    "class_type": "RemoveBackground",
+    "inputs": { "model": ["8", 0], "image": ["7", 0] }
+  },
+  "10": {
+    "class_type": "InvertMask",
+    "inputs": { "mask": ["9", 1] }
+  },
+  "11": {
+    "class_type": "JoinImageWithAlpha",
+    "inputs": { "image": ["7", 0], "alpha": ["10", 0] }
+  },
+  "12": {
+    "class_type": "ImageScale",
+    "inputs": {
+      "upscale_method": "lanczos",
+      "width": 512,
+      "height": 512,
+      "crop": "center",
+      "image": ["11", 0]
+    }
+  },
+  "13": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "undertale_vera/relic_portrait", "images": ["12", 0] }
+  }
+}

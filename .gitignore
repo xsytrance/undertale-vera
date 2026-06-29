@@ -1,0 +1,39 @@
+# ── Python ──────────────────────────────────────────────────────────────────
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# ── Runtime data (read-only spine never commits uploaded saves or the DB) ────
+undertale_vera.db
+*.sqlite3
+data/uploads/
+saves/
+
+# ── Generated art — NEVER batch-commit generated portraits ───────────────────
+# The ComfyUI pixel-portrait pipeline writes here; sample relics are proof only.
+static/assets/portraits/*.png
+static/assets/portraits/*.jpg
+static/assets/portraits/*.webp
+# Source art format — never commit raw art anywhere in the tree.
+*.webp
+# Overnight / batch art output (mirrors the FFT spine; ~GBs per run).
+generation/
+dogfood-output/
+
+# ── Generated audio (the music LAYER is committed; the soundtrack is not) ────
+*.mp3
+static/audio/
+
+# ── Inspector / QA artifacts (screenshots, summaries) ────────────────────────
+dogfood-output/inspector/
+
+# ── Logs, caches, secrets ────────────────────────────────────────────────────
+logs/
+*.log
+.cache/
+.env
+
+# ── OS ───────────────────────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db

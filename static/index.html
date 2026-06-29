@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>undertale-vera · The Save Remembers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/determination.css" />
+</head>
+<body>
+  <header style="text-align:center; padding:28px 16px 4px;">
+    <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
+      <span class="soul-sigil" id="header-sigil" aria-hidden="true"></span>
+      <h1 style="margin:0;">Determination Chronicle</h1>
+    </div>
+    <p class="display" style="color:var(--ink-dim); font-size:0.85rem; letter-spacing:0.18em;">
+      UNDERTALE&nbsp;·&nbsp;VERA&nbsp;—&nbsp;THE&nbsp;SAVE&nbsp;REMEMBERS
+    </p>
+  </header>
+
+  <!-- 1. Upload / refresh a save -->
+  <section class="panel" id="upload-panel">
+    <h2>Read a save</h2>
+    <p class="muted">Read-only. Provide <code>file0</code> and/or <code>undertale.ini</code>.
+      Unknown fields stay null — never guessed.</p>
+    <div class="row">
+      <label class="muted">file0 <input type="file" id="file0-input" /></label>
+      <label class="muted">undertale.ini <input type="file" id="ini-input" /></label>
+      <button class="btn" id="upload-btn">Read save</button>
+      <button class="btn hidden" id="refresh-btn">Read a later save (return visit)</button>
+    </div>
+    <p class="muted" id="upload-status"></p>
+  </section>
+
+  <!-- 1b. Save shelf -->
+  <section class="panel hidden" id="shelf-panel">
+    <h2>Your saves</h2>
+    <div class="roster" id="shelf"></div>
+  </section>
+
+  <!-- 2. SaveTruth summary -->
+  <section class="panel hidden" id="truth-panel">
+    <h2>What the save shows <span class="muted" id="visit-label"></span></h2>
+    <div class="facts-grid" id="truth-facts"></div>
+    <div style="margin-top:10px;">
+      <span class="route-badge" id="route-badge"></span>
+    </div>
+    <div class="remembrance hidden" id="remembrance-box"></div>
+    <div class="row" style="margin-top:14px;">
+      <label class="muted"><input type="checkbox" id="music-toggle" /> ambient music (route-aware)</label>
+    </div>
+  </section>
+
+  <!-- 3. Characters -->
+  <section class="panel hidden" id="roster-panel">
+    <h2>Who's here</h2>
+    <div class="roster" id="roster"></div>
+  </section>
+
+  <!-- 4. Chat -->
+  <section class="panel hidden" id="chat-panel">
+    <div class="dialogue-vessel">
+      <div class="relic-portrait empty" id="chat-portrait" role="img"></div>
+      <div class="dialogue-body">
+        <div class="dialogue-name" id="chat-name">—</div>
+        <div class="transcript" id="transcript"></div>
+      </div>
+    </div>
+    <div class="row" style="margin-top:12px;">
+      <input type="text" id="chat-input" placeholder="say something…" style="flex:1; min-width:200px;" />
+      <button class="btn" id="send-btn">Send</button>
+      <button class="btn determined" id="judge-btn">Judgment</button>
+    </div>
+  </section>
+
+  <!-- 5. Judgment -->
+  <section class="panel hidden" id="judgment-panel">
+    <h2>Judgment</h2>
+    <div class="verdict-line" id="verdict-line"></div>
+    <div class="facts-grid" id="judgment-facts"></div>
+    <ul id="judgment-gaps" class="muted"></ul>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn" id="speak-btn">Let them say it</button>
+    </div>
+    <div class="bubble them hidden" id="spoken-box" style="margin-top:12px;"></div>
+  </section>
+
+  <p style="color:var(--ink-dim); text-align:center; font-size:0.85rem; margin:24px 0 48px;">
+    Facts are sacred, feelings are free.
+  </p>
+
+  <script src="/js/music.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

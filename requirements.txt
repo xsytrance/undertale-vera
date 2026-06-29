@@ -1,0 +1,15 @@
+# undertale-vera backend — core runtime dependencies.
+# Install: pip install -r requirements.txt
+
+fastapi>=0.110
+uvicorn>=0.29
+SQLAlchemy>=2.0          # 2.0 ORM API
+pydantic>=2.6            # v2 models
+python-multipart>=0.0.9  # required for the save-file upload endpoint
+
+# Grounded character chat targets Anthropic Claude (default: claude-opus-4-8).
+anthropic>=0.40
+
+# Optional, used by the Inspector's Playwright engine (falls back to HTTP-only
+# checks when absent, so it is not strictly required to run the sweep):
+# playwright>=1.40

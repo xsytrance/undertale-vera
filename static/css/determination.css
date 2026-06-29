@@ -1,0 +1,235 @@
+/* ════════════════════════════════════════════════════════════════════════
+   DETERMINATION CHRONICLE — undertale-vera style layer
+   ------------------------------------------------------------------------
+   Undertale's GRAMMAR in the MultiVera accent. We do NOT copy Undertale assets
+   or its red pixel heart. Instead:
+     - deep obsidian field, warmed with the MultiVera ember / brass / crimson palette
+     - a REINTERPRETED soul motif: an ember-gem SIGIL (faceted lozenge), not a heart
+     - a restyled dialogue vessel: engraved-plate frame + portrait inset +
+       typewriter ink-reveal (reusing campfire kinetics)
+     - "museum-lit" pixel portraits framed like relics
+     - Determination-red reserved as a RARE accent for soul / route / high emotion
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* obsidian field */
+  --obsidian:        #0c0b10;
+  --obsidian-2:      #15131c;
+  --obsidian-panel:  #1b1822;
+
+  /* ember / brass / crimson warmth */
+  --ember:           #e8a24c;
+  --ember-soft:      #c9863a;
+  --brass:           #b9933f;
+  --brass-edge:      #d8b765;
+  --crimson:         #8e2f3a;
+
+  /* Determination-red — RARE accent only (soul/route/high-emotion beats) */
+  --determination:   #d12f3e;
+
+  --ink:             #efe6d2;   /* warm parchment ink */
+  --ink-dim:         #a89b82;
+
+  --plate-frame:     #3a3128;
+  --plate-inner:     #221d18;
+
+  --font-display:    "Cinzel", "Georgia", serif;
+  --font-body:       "Crimson Text", "Georgia", serif;
+  --font-mono:       "Space Mono", "JetBrains Mono", monospace;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background:
+    radial-gradient(1200px 700px at 50% -10%, var(--obsidian-2), var(--obsidian) 60%);
+  color: var(--ink);
+  font-family: var(--font-body);
+  letter-spacing: 0.01em;
+}
+
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  color: var(--brass-edge);
+  text-shadow: 0 1px 0 #000, 0 0 18px rgba(232, 162, 76, 0.12);
+  letter-spacing: 0.06em;
+}
+
+/* ── the reinterpreted SOUL: an ember-gem sigil (faceted lozenge) ─────────── */
+.soul-sigil {
+  width: 26px;
+  height: 26px;
+  display: inline-block;
+  /* a faceted gem/diamond lozenge — deliberately NOT a heart */
+  clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
+  background: linear-gradient(160deg, var(--ember) 0%, var(--ember-soft) 55%, var(--brass) 100%);
+  box-shadow: 0 0 14px rgba(232, 162, 76, 0.45), inset 0 0 6px rgba(0,0,0,0.45);
+  transform: rotate(0deg);
+}
+/* high-emotion / route beats may flip the sigil to Determination-red, sparingly */
+.soul-sigil.determined {
+  background: linear-gradient(160deg, var(--determination), #7d1622);
+  box-shadow: 0 0 18px rgba(209, 47, 62, 0.55), inset 0 0 6px rgba(0,0,0,0.5);
+}
+
+/* ── the dialogue vessel: engraved plate + portrait inset + ink reveal ────── */
+.dialogue-vessel {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 18px;
+  align-items: stretch;
+  max-width: 760px;
+  margin: 18px auto;
+  padding: 14px;
+  background:
+    linear-gradient(180deg, var(--obsidian-panel), var(--plate-inner));
+  border: 2px solid var(--plate-frame);
+  border-radius: 10px;
+  box-shadow:
+    inset 0 0 0 1px rgba(184, 147, 63, 0.18),
+    0 10px 30px rgba(0, 0, 0, 0.55);
+  position: relative;
+}
+/* engraved-plate top rail */
+.dialogue-vessel::before {
+  content: "";
+  position: absolute;
+  inset: 6px 6px auto 6px;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--brass), transparent);
+  opacity: 0.5;
+}
+
+/* museum-lit portrait, framed like a relic */
+.relic-portrait {
+  width: 96px;
+  height: 96px;
+  align-self: center;
+  border-radius: 6px;
+  background:
+    radial-gradient(60px 50px at 50% 30%, rgba(232,162,76,0.18), transparent 70%),
+    var(--plate-inner);
+  border: 2px solid var(--brass);
+  box-shadow: inset 0 0 12px rgba(0,0,0,0.6), 0 0 16px rgba(184,147,63,0.18);
+  image-rendering: pixelated;   /* keep pixel portraits crisp */
+  object-fit: cover;
+}
+.relic-portrait.empty::after {
+  content: "";
+  display: block;
+  /* default crest = the soul sigil, museum-lit */
+  width: 28px; height: 28px;
+  margin: 34px auto 0;
+  clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
+  background: linear-gradient(160deg, var(--ember), var(--brass));
+  opacity: 0.6;
+}
+
+.dialogue-body { padding: 4px 6px; }
+.dialogue-name {
+  font-family: var(--font-display);
+  color: var(--ember);
+  font-size: 1.05rem;
+  margin-bottom: 6px;
+}
+.dialogue-text {
+  font-size: 1.08rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* typewriter ink-reveal (reuses campfire kinetics) */
+.ink-reveal {
+  overflow: hidden;
+  border-right: 2px solid var(--ember);
+  animation: ink-caret 0.9s steps(1) infinite;
+}
+@keyframes ink-caret {
+  50% { border-color: transparent; }
+}
+
+/* ── app shell: panels, buttons, inputs (in-palette) ─────────────────────── */
+.panel {
+  max-width: 820px;
+  margin: 18px auto;
+  padding: 18px;
+  background: linear-gradient(180deg, var(--obsidian-panel), var(--plate-inner));
+  border: 1px solid var(--plate-frame);
+  border-radius: 10px;
+  box-shadow: inset 0 0 0 1px rgba(184,147,63,0.12);
+}
+.panel h2 { margin: 0 0 12px; font-size: 1.15rem; }
+.muted { color: var(--ink-dim); font-size: 0.9rem; }
+.hidden { display: none; }
+
+.btn {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  background: var(--obsidian-2);
+  border: 1px solid var(--brass);
+  border-radius: 7px;
+  padding: 8px 16px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+}
+.btn:hover { background: var(--plate-inner); box-shadow: 0 0 14px rgba(184,147,63,0.25); }
+.btn.determined { border-color: var(--crimson); color: var(--determination); }
+.btn:disabled { opacity: 0.5; cursor: default; }
+
+input[type="file"], input[type="text"] {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  background: var(--plate-inner);
+  border: 1px solid var(--plate-frame);
+  border-radius: 6px;
+  padding: 8px;
+}
+.row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+
+/* character roster cards */
+.roster { display: flex; gap: 14px; flex-wrap: wrap; }
+.char-card {
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  width: 120px; padding: 12px; cursor: pointer;
+  background: var(--plate-inner); border: 1px solid var(--plate-frame); border-radius: 8px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.char-card:hover { border-color: var(--brass); box-shadow: 0 0 14px rgba(184,147,63,0.2); }
+.char-card.selected { border-color: var(--ember); }
+.char-card .relic-portrait { width: 72px; height: 72px; }
+.char-card .name { font-family: var(--font-display); color: var(--ember); font-size: 0.95rem; }
+
+/* chat transcript */
+.transcript { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.bubble { padding: 10px 14px; border-radius: 8px; max-width: 90%; white-space: pre-wrap; }
+.bubble.you { align-self: flex-end; background: var(--plate-inner); border: 1px solid var(--plate-frame); }
+.bubble.them { align-self: flex-start; background: var(--obsidian-2); border: 1px solid var(--brass); }
+.bubble .who { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-dim); margin-bottom: 4px; }
+
+/* judgment readout */
+.verdict-line { font-size: 1.1rem; color: var(--brass-edge); margin: 8px 0; }
+.facts-grid { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; font-family: var(--font-mono); font-size: 0.9rem; }
+.facts-grid .k { color: var(--ink-dim); }
+.gap { color: var(--ink-dim); font-style: italic; }
+.remembrance { border-left: 2px solid var(--ember); padding-left: 12px; margin-top: 10px; color: var(--ink); }
+
+/* route badge — Determination-red reserved for the route/soul beat */
+.route-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 0.85rem;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--plate-frame);
+  background: var(--obsidian-panel);
+  color: var(--ink-dim);
+}
+.route-badge.genocide { color: var(--determination); border-color: var(--crimson); }
+.route-badge.pacifist { color: var(--ember); border-color: var(--ember-soft); }
+.route-badge.neutral  { color: var(--brass-edge); }
+.route-badge.undetermined { color: var(--ink-dim); font-style: italic; }
