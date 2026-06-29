@@ -189,6 +189,7 @@ async def refresh_save(
         "save_truth": truth,
         "visit": snap.counter,
         "remembrance": ledger.build_remembrance_grounding(_snapshots_for(db, project_id)),
+        "path_turn": ledger.detect_route_turn(_snapshots_for(db, project_id)),
     }
 
 
@@ -383,8 +384,15 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         raise HTTPException(status_code=404, detail=f"unknown character {req.character!r}")
 
     save_truth = project.save_data or {}
+    snapshots = _snapshots_for(db, project_id)
     memory_grounding = _memory_grounding_for(db, project_id, req.character, req.message)
-    remembrance = ledger.build_remembrance_grounding(_snapshots_for(db, project_id))
+    remembrance = ledger.build_remembrance_grounding(snapshots)
+    # Sans is canonically save/reset-aware — give HIM (only) the ledger-history
+    # block so he can speak to repeated readings and route turns. Sacred-derived.
+    if normalize_key(req.character) == "name:sans":
+        sans_block = ledger.build_sans_awareness(snapshots)
+        if sans_block:
+            remembrance = (remembrance + "\n\n" + sans_block).strip()
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")
@@ -433,6 +441,7 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         "model": model,
         "grounding": {"source": grounding_source, "system_prompt": system_prompt},
         "route": (save_truth.get("route") or {}).get("route"),
+        "path_turn": ledger.detect_route_turn(snapshots),
         "guard": guard,
         "provenance": prov,
     }

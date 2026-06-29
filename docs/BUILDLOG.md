@@ -213,3 +213,24 @@ The two-bucket wall is now enforced AND visible at the reply level.
   matching facts pass, undetermined-route assertions caught, provenance shape, and
   the chat response carries both (incl. a misbehaving-model case the guard catches).
 - Verified: `pytest -q` → **67 passing**; browser-confirmed the overlay renders.
+
+## Sans the save-aware judge — the "path turned" event (SACRED ledger history)
+Sans is canonically aware of saving, loading, and resets. The ledger already
+records every reading; now HE (and only he) can speak to it.
+- `ledger.detect_route_turn(snapshots)` (pure): walks consecutive readings and
+  returns the latest real route CHANGE (`{from, to, visit}`) — e.g. Pacifist →
+  Genocide — or `None` when the route is stable, unknown, or there's one reading.
+  Derived only from recorded routes; never inferred.
+- `ledger.build_sans_awareness(snapshots)` (pure): a SACRED grounding block, Sans-
+  only, surfacing the parser-confirmed reading count and any route turn, framed so
+  he may notice them in his own voice. `""` with fewer than two readings (nothing
+  to have noticed yet) — keeps the single-visit baseline byte-identical.
+- Chat endpoint appends the Sans block to `remembrance` ONLY for `name:sans`; both
+  chat and refresh-save responses now carry `path_turn` for the UI overlay.
+- `static/js/app.js`: a SACRED "↳ path turned: X → Y" chip in the provenance row
+  when a turn is recorded.
+- `tests/sans_awareness_test.py`: pure detect_route_turn (none/stable/detected/
+  latest/unknown-ignored) and build_sans_awareness (empty/visit-count/turn), plus
+  app wiring (refresh surfaces path_turn; Sans chat carries the block, Toriel does
+  not; path_turn rides every chat response).
+- Verified: `pytest -q` → **78 passing**.

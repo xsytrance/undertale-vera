@@ -68,6 +68,52 @@ def summarize_change(prev: dict[str, Any], curr: dict[str, Any]) -> list[str]:
     return changes
 
 
+def detect_route_turn(snapshots: list[dict[str, Any]]) -> Optional[dict[str, Any]]:
+    """The most recent route CHANGE across the ledger, or None.
+
+    Walks consecutive snapshots (chronological) and returns the latest pair whose
+    route actually changed — e.g. Pacifist → Genocide. Derived only from real
+    recorded routes; never inferred.
+    """
+    snaps = list(snapshots or [])
+    turn = None
+    for prev, curr in zip(snaps, snaps[1:]):
+        pr, cr = prev.get("route"), curr.get("route")
+        if pr and cr and pr != cr:
+            turn = {"from": pr, "to": cr, "visit": curr.get("counter")}
+    return turn
+
+
+def build_sans_awareness(snapshots: list[dict[str, Any]]) -> str:
+    """A SACRED grounding block for SANS specifically — he notices saves/resets.
+
+    Sans is canonically aware of saving, loading, and the weight of repeated runs.
+    This surfaces the parser-confirmed ledger facts (how many times the save has
+    been read, and any route turn) framed so he may speak to them knowingly. The
+    NUMBERS are sacred (from the real ledger); the 'he notices' is his character.
+    Returns '' with fewer than two readings — there's nothing yet to have noticed.
+    """
+    snaps = list(snapshots or [])
+    if len(snaps) < 2:
+        return ""
+    turn = detect_route_turn(snaps)
+    lines = [
+        "── WHAT THE SAVE'S HISTORY HOLDS (parser-confirmed; you, Sans, notice these things) ──",
+        f"This save has been read {len(snaps)} times — you can tell when something's "
+        "been done before.",
+    ]
+    if turn:
+        lines.append(
+            f"Between readings, the path turned from {turn['from']} to {turn['to']}. "
+            "That kind of change doesn't get past you."
+        )
+    lines.append(
+        "Speak to this only if it fits, in your own way — and never claim more than "
+        "is recorded here."
+    )
+    return "\n".join(lines)
+
+
 def build_remembrance_grounding(snapshots: list[dict[str, Any]]) -> str:
     """Render the SACRED 'what the save remembers' block from the ledger.
 
