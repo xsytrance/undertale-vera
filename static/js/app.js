@@ -230,6 +230,13 @@
     if (res.path_turn) {
       box.appendChild(chip("sacred", "↳ path turned: " + res.path_turn.from + " → " + res.path_turn.to));
     }
+    var disp = s.dispositions || {};
+    Object.keys(disp).forEach(function (who) {
+      box.appendChild(chip("sacred", who + ": " + disp[who]));
+    });
+    if (s.area) box.appendChild(chip("sacred", "area: " + s.area));
+    if (s.playtime) box.appendChild(chip("sacred", "time: " + s.playtime));
+    if (s.fun_event) box.appendChild(chip("warn", "⌖ anomaly: " + s.fun_event));
     box.appendChild(Object.assign(document.createElement("span"),
       { className: "label", textContent: "FREE" }));
     if (f.voice) box.appendChild(chip("free", "voice: " + f.voice));

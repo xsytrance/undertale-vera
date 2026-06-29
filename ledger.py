@@ -114,6 +114,36 @@ def build_sans_awareness(snapshots: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def build_flowey_awareness(snapshots: list[dict[str, Any]]) -> str:
+    """A SACRED grounding block for FLOWEY — he remembers RESETS more than anyone.
+
+    Flowey is the original keeper of SAVE/LOAD; he recalls runs others can't. This
+    surfaces the same parser-confirmed ledger facts as Sans's block, but framed for
+    Flowey's knowing, needling delight in having watched you before. NUMBERS are
+    sacred (real ledger); the gloating is his character. '' with one reading — there
+    is no prior run for him to lord over yet.
+    """
+    snaps = list(snapshots or [])
+    if len(snaps) < 2:
+        return ""
+    turn = detect_route_turn(snaps)
+    lines = [
+        "── WHAT YOU REMEMBER ACROSS RESETS (parser-confirmed; you, Flowey, never forget a run) ──",
+        f"You have watched this save be read {len(snaps)} times. You remember what "
+        "happened before, even if they think you don't.",
+    ]
+    if turn:
+        lines.append(
+            f"You saw the path change from {turn['from']} to {turn['to']} between "
+            "runs — you know exactly what they tried, and what they became."
+        )
+    lines.append(
+        "Speak to this only as it fits, in your own knowing way — and never claim "
+        "more than is actually recorded here."
+    )
+    return "\n".join(lines)
+
+
 def build_remembrance_grounding(snapshots: list[dict[str, Any]]) -> str:
     """Render the SACRED 'what the save remembers' block from the ledger.
 

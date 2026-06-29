@@ -33,6 +33,39 @@ ROUTES = ("Pacifist", "Neutral", "Genocide", "undetermined")
 LOVE_NO_KILLS = 1
 LOVE_GENOCIDE_CEILING = 20
 
+# Documented major-character KILL flags from undertale.ini. Each is a hard,
+# binary record that a specific boss was killed — community-documented (TK =
+# "Toriel killed", PK = "Papyrus killed") AND corpus-corroborated: across a real
+# 64-save corpus these were set in 0/49 no-kill (Pacifist) runs and only ever in
+# Genocide saves. Their presence is therefore an UNAMBIGUOUS "violence occurred"
+# signal — it cannot coexist with a true no-kill run. (section, key, character).
+# Allow-list is intentionally conservative + extensible; only corpus-confirmed
+# kill flags belong here, never a guessed one.
+KILL_FLAGS: tuple[tuple[str, str, str], ...] = (
+    ("toriel", "tk", "Toriel"),
+    ("papyrus", "pk", "Papyrus"),
+)
+
+# Documented BEFRIEND / DATE flags — the canonical True Pacifist requirements
+# (date Papyrus, date Undyne, date Alphys). Corpus-corroborated: set in 37/49
+# Pacifist saves and 0/15 Genocide (the Undyne date is gated behind a no-kill run,
+# so these literally cannot occur on a kill route). Their presence is what
+# distinguishes an ACTIVE Pacifist/befriend path from a passive no-kill Neutral —
+# the exact signal whose absence forced the old medium cap. (section, key, character).
+BEFRIEND_FLAGS: tuple[tuple[str, str, str], ...] = (
+    ("papyrus", "pd", "Papyrus"),
+    ("undyne", "ud", "Undyne"),
+    ("alphys", "ad", "Alphys"),
+)
+
+# Mutually-exclusive (spare, kill) flag pairs per character. A real run cannot both
+# spare AND kill the same monster, so both set at once is an edited/contradictory
+# save. (section, spare_key, kill_key, character).
+SPARE_KILL_PAIRS: tuple[tuple[str, str, str, str], ...] = (
+    ("toriel", "ts", "tk", "Toriel"),
+    ("papyrus", "ps", "pk", "Papyrus"),
+)
+
 
 def _maybe_int(v: Any) -> Optional[int]:
     try:
@@ -61,6 +94,56 @@ def extract_kill_signals(parsed) -> dict[str, Any]:
     return {"total_kills": total, "consulted": consulted}
 
 
+def extract_kill_flags(parsed) -> list[dict[str, Any]]:
+    """Documented boss-kill flags that are SET (present and non-zero) in the save.
+
+    Each returned flag is a hard, version-stable record that a major character was
+    killed. Reads undertale.ini by name; never inferred, never guessed.
+    """
+    found: list[dict[str, Any]] = []
+    if not hasattr(parsed, "ini_get"):
+        return found
+    for section, key, character in KILL_FLAGS:
+        raw = parsed.ini_get(section, key)
+        if raw is None:
+            continue
+        val = _maybe_int(raw)
+        if val not in (None, 0):
+            found.append({"section": section, "key": key, "character": character, "raw": raw})
+    return found
+
+
+def extract_befriend_flags(parsed) -> list[dict[str, Any]]:
+    """Documented befriend/date flags that are SET — the True Pacifist requirements.
+
+    Each is a hard record that the protagonist dated/befriended a character, which
+    is only reachable on a no-kill path. Read by name; never inferred.
+    """
+    found: list[dict[str, Any]] = []
+    if not hasattr(parsed, "ini_get"):
+        return found
+    for section, key, character in BEFRIEND_FLAGS:
+        raw = parsed.ini_get(section, key)
+        if raw is None:
+            continue
+        if _maybe_int(raw) not in (None, 0):
+            found.append({"section": section, "key": key, "character": character, "raw": raw})
+    return found
+
+
+def find_spare_kill_conflicts(parsed) -> list[str]:
+    """Characters whose SPARE and KILL flags are both set — an impossible pair."""
+    conflicts: list[str] = []
+    if not hasattr(parsed, "ini_get"):
+        return conflicts
+    for section, spare_key, kill_key, character in SPARE_KILL_PAIRS:
+        sp, kl = parsed.ini_get(section, spare_key), parsed.ini_get(section, kill_key)
+        if sp is not None and kl is not None and \
+                _maybe_int(sp) not in (None, 0) and _maybe_int(kl) not in (None, 0):
+            conflicts.append(character)
+    return conflicts
+
+
 def detect_route(parsed) -> dict[str, Any]:
     """Derive the route block for SaveTruth from a ParsedUndertaleSave.
 
@@ -77,12 +160,36 @@ def detect_route(parsed) -> dict[str, Any]:
     love = getattr(parsed, "love", None)
     kills = extract_kill_signals(parsed)
     total_kills = kills["total_kills"]
+    kill_flags = extract_kill_flags(parsed)
+    flag_chars = [f["character"] for f in kill_flags]
+    has_kill_flag = bool(kill_flags)
+    befriend_flags = extract_befriend_flags(parsed)
+    befriend_chars = [f["character"] for f in befriend_flags]
+    spare_kill_conflicts = find_spare_kill_conflicts(parsed)
     signals: list[str] = []
     reasons: list[str] = []
 
     if love is not None:
         signals.append(f"LOVE={love}")
     signals.extend(kills["consulted"])
+    for f in kill_flags:
+        signals.append(f"[{f['section']}] {f['key']}={f['raw']} ({f['character']} killed)")
+    for f in befriend_flags:
+        signals.append(f"[{f['section']}] {f['key']}={f['raw']} ({f['character']} befriended/dated)")
+
+    # CONTRADICTION: a character marked BOTH spared and killed — impossible in a real
+    # run. Refuse to derive a route over self-contradicting facts (an edited save).
+    if spare_kill_conflicts:
+        who = ", ".join(spare_kill_conflicts)
+        return {
+            "route": "undetermined", "confidence": "low", "love": love,
+            "total_kills": total_kills, "signals": signals,
+            "reasons": [
+                f"{who} is recorded as BOTH spared and killed — these flags are "
+                "mutually exclusive in a real run (an edited save). Refusing to guess "
+                "a route over contradictory facts; left undetermined."
+            ],
+        }
 
     # No usable signal at all → undetermined. This is the honest default.
     if love is None and total_kills is None:
@@ -116,6 +223,13 @@ def detect_route(parsed) -> dict[str, Any]:
             "Refusing to guess a route; left undetermined."
         )
         return _result("undetermined", "low", love, total_kills, signals, reasons)
+    if has_kill_flag and love == LOVE_NO_KILLS:
+        reasons.append(
+            f"LOVE is 1 (no EXP ever gained), yet a documented boss-kill flag is set "
+            f"({', '.join(flag_chars)} killed) — killing a boss raises LOVE, so these "
+            "cannot both hold honestly (an edited save). Left undetermined, not guessed."
+        )
+        return _result("undetermined", "low", love, total_kills, signals, reasons)
 
     # LV 20 is the Genocide ceiling — only reachable by near-total killing. (Kills
     # here is >0 or unknown; the contradictory Kills==0 case was handled above.)
@@ -124,6 +238,14 @@ def detect_route(parsed) -> dict[str, Any]:
             "LOVE is at the maximum of 20, which is only reachable by killing "
             "nearly every monster — consistent with a Genocide route."
         )
+        if has_kill_flag:
+            # Maxed LOVE *and* documented boss kills — two independent records of
+            # total slaughter. This is the one case we'll call Genocide "confirmed".
+            reasons.append(
+                f"Documented boss-kill flags are also set ({', '.join(flag_chars)} "
+                "killed), independently corroborating the maxed LOVE — Genocide, confirmed."
+            )
+            return _result("Genocide", "confirmed", love, total_kills, signals, reasons)
         return _result("Genocide", "high", love, total_kills, signals, reasons)
 
     # LV 1 with no kills observed → a confirmed no-kill run. This is necessary
@@ -134,21 +256,37 @@ def detect_route(parsed) -> dict[str, Any]:
             "LOVE is 1 (no EXP ever gained) and no kills are recorded — a no-kill "
             "run, consistent with a Pacifist route."
         )
+        if befriend_flags:
+            # Documented date/befriend flags are present — these are reachable ONLY
+            # on a no-kill path, so they distinguish an active TRUE Pacifist route
+            # from a passive no-kill Neutral. That resolves the old ambiguity → high.
+            reasons.append(
+                f"Befriend/date flags are recorded ({', '.join(befriend_chars)}) — "
+                "these are only reachable on a no-kill path and separate a TRUE "
+                "Pacifist route from a no-kill Neutral run, so confidence is high."
+            )
+            return _result("Pacifist", "high", love, total_kills, signals, reasons)
         reasons.append(
             "Note: a no-kill NEUTRAL run also matches this; confirming TRUE Pacifist "
-            "additionally requires befriend/date flags not read here, so confidence "
-            "is held at medium."
+            "additionally requires befriend/date flags, none of which are recorded "
+            "yet, so confidence is held at medium."
         )
         return _result("Pacifist", "medium", love, total_kills, signals, reasons)
 
     # Any LOVE above 1 (and below the ceiling), or recorded kills, means the run
     # has spilled blood but is not a confirmed full Genocide — that is Neutral.
-    if (love is not None and love > LOVE_NO_KILLS) or (total_kills not in (0, None)):
+    if (love is not None and love > LOVE_NO_KILLS) or (total_kills not in (0, None)) or has_kill_flag:
         reasons.append(
-            "Some killing has occurred (LOVE above 1 and/or recorded kills) but "
-            "not the total clearance that defines Genocide — consistent with a "
-            "Neutral route."
+            "Some killing has occurred (LOVE above 1, recorded kills, and/or a boss-"
+            "kill flag) but not the total clearance that defines Genocide — consistent "
+            "with a Neutral route."
         )
+        if has_kill_flag:
+            reasons.append(
+                f"Boss-kill flags are set ({', '.join(flag_chars)} killed) — this "
+                "removes any doubt that killing occurred, but is not by itself the "
+                "full clearance Genocide requires, so the route is held at Neutral."
+            )
         if love is not None and love >= 15:
             reasons.append(
                 "LOVE is unusually high; this leans toward Genocide but is not "

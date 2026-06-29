@@ -42,7 +42,8 @@ CONFIDENCE_VALUES = {"confirmed", "high", "medium", "low", "estimated", "unknown
 FILE0_KNOWN_FIELDS: dict[int, tuple[str, str]] = {
     0: ("name", "confirmed"),   # the fallen human's name (the player-entered name)
     1: ("love", "confirmed"),   # LV — the "LOVE" stat (Level Of ViolencE)
-    2: ("max_hp", "medium"),    # max HP; default 20 at LV 1, grows with LOVE
+    2: ("max_hp", "high"),      # max HP; follows 16+4·LV across the corpus (LV1→20,
+                                # LV13→68, LV19→92) — confirmed there, not current HP
     11: ("kills", "high"),      # kill counter; mirrors [General].Kills (per-room in canon)
     35: ("fun", "high"),        # the "Fun value" RNG flag; mirrors [General].Fun (1–100)
     547: ("room", "high"),      # current room id; mirrors [General].Room

@@ -303,3 +303,115 @@ from a real 64-save corpus (re-uploaded by the user), never by guessing.
   promotion; implausible→null). `docs/SAVE_FORMAT.md` documents all of it.
 - Verified: `pytest -q` → **95 passing**; engine + corroboration re-run on the
   live 64-save corpus.
+
+## More parse mining — boss-kill flags confirm Genocide (corpus + the Internet)
+Mined the undertale.ini plot-flag space, cross-checked it against community docs,
+and turned the result into a sharper, still-honest route detector.
+- `tools/flag_mine.py`: the ini analog of `parser_expand.py`. Groups a
+  route-labelled corpus and tags flags that separate routes. On the 64-save corpus
+  it found `[Toriel] TK` and `[Papyrus] PK` set in Genocide saves and **0/49**
+  Pacifist runs (plus the Pacifist-side spare flags `TS`/`PS`/`PD`).
+- Internet cross-check (pcy.ulyssis.be, CYBERPEDIA, Undertale Wiki) CONFIRMED
+  `TK = Toriel killed`, `PK = Papyrus killed`, and independently confirmed the
+  file0 indices promoted in the previous PR (line 36 = Fun, 548 = room, 549 = time).
+  A community claim that file0 line 3 = current HP did NOT survive corpus checking:
+  index 2 follows `16+4·LV` across all 64 saves (LV1→20…LV19→92) while index 3 is a
+  constant 20 — index 2 is max HP. Promoted `max_hp` medium→**high**; trusted the
+  data over the forum.
+- `route_detection.py`: `KILL_FLAGS` allow-list + `extract_kill_flags`. A set kill
+  flag is a hard "violence occurred" signal — it forms a Neutral floor, promotes
+  LOVE 20 to a **confirmed** Genocide (two independent records of total slaughter),
+  and if it appears with LOVE 1 exposes a contradiction → undetermined. It never
+  upgrades a mid-run save to Genocide (killing some bosses ≠ full clearance), so
+  those honestly stay Neutral.
+- Corpus effect: the one complete Genocide save → Genocide **confirmed** (was high);
+  14 mid-run Genocide saves stay Neutral with explicit kill-flag evidence; **0/49**
+  Pacifist saves affected. No over-claiming.
+- Tests: `tests/flag_mine_test.py` (discriminative detection, both-route flags
+  rejected, leakage threshold, fixture read) + kill-flag cases in
+  `route_detection_test.py`. `docs/SAVE_FORMAT.md` documents the flags, the
+  community cross-check, and the max_hp correction.
+- Verified: `pytest -q` → **105 passing**; flag_mine + detector re-run on the live corpus.
+
+## More mining, mercy side — befriend/date flags grade Pacifist confidence
+The kill-flag work had a mirror: the Pacifist signals the old code admitted it
+couldn't read. Mined and wired them, still without over-claiming.
+- `tools/flag_mine.py` surfaced the date/befriend flags in Pacifist scene order:
+  `[Papyrus] PD` (37/49), `[Undyne] UD` (27/49), `[Alphys] AD` (9/49) — all **0/15
+  Genocide**. Cross-checked against the True Pacifist Route docs: the dates require
+  having killed no one (the Undyne date is gated on it), so these are Pacifist-only.
+- `route_detection.py`: `BEFRIEND_FLAGS` + `extract_befriend_flags`. A no-kill run
+  (LOVE 1 + 0 kills, no kill flag) WITH a befriend/date flag is reported Pacifist
+  **high** — the flags separate a TRUE Pacifist path from a passive no-kill Neutral,
+  resolving the exact ambiguity that forced the old medium cap. Early no-kill saves
+  with no befriend flags honestly stay **medium**. Befriend flags never *create* a
+  Pacifist call (kills / kill flags still override) — they only grade one.
+- `SPARE_KILL_PAIRS` + `find_spare_kill_conflicts`: the same character marked BOTH
+  spared (TS/PS) and killed (TK/PK) is impossible → `undetermined`. The mercy-side
+  mirror of the LOVE/kills contradiction guard (0 such conflicts in the real corpus;
+  fires only on edits).
+- Corpus effect: Pacifist now splits 37 **high** / 12 **medium** (was 49 medium);
+  Genocide unchanged; no route flips, no Genocide/Pacifist cross-contamination.
+- Tests: befriend extraction, Pacifist high vs medium, spare/kill contradiction in
+  `route_detection_test.py`. `docs/SAVE_FORMAT.md` documents the flags + the wiki
+  cross-check + the contradiction guard.
+- Verified: `pytest -q` → **109 passing**; detector re-run on the live corpus.
+
+## Per-character disposition — who you killed, spared, or befriended (SACRED)
+The flag mining paid its biggest dividend in the chat layer: characters can now
+speak to a *real* per-person outcome instead of a generic route.
+- `character_disposition.py` (pure): `DISPOSITION_FLAGS` maps each major character
+  to its documented, corpus-validated outcome flags — Toriel (tk/ts),
+  Papyrus (pk/ps/pd), Undyne (ud), Alphys (ad). `derive_dispositions` returns
+  killed / spared / befriended / unknown per character, with precedence (killed +
+  mercy both set → `contradicted`, never asserted; befriended outranks spared).
+- SACRED grounding: `build_disposition_grounding` / `grounding_from_truth` render a
+  "WHO YOU'VE MET" block listing only definite outcomes; "" when nothing is recorded
+  (baseline byte-identical). Lives in the SACRED bucket of the prompt (section 2a,
+  with the save-facts) — `prompt_builder` gained a `disposition_grounding` param and
+  the chat endpoint feeds it from the stored SaveTruth.
+- `save_truth` carries an additive `dispositions` block; `provenance` surfaces the
+  definite outcomes on the SACRED side and `app.js` renders them as chips.
+- Verified on the live corpus: a late Genocide save grounds "Toriel: killed,
+  Papyrus: killed" (Sans's brother — he'd know); a late Pacifist grounds everyone
+  befriended/spared. No flag → not listed, never guessed.
+- Tests: `tests/character_disposition_test.py` (derivation incl. contradiction,
+  grounding text, truth-based grounding, provenance, and chat-prompt wiring —
+  present with flags, absent without). `docs/SAVE_FORMAT.md` documents the flags.
+- Verified: `pytest -q` → **119 passing**.
+
+## Deep cuts — save texture + the Fun-value anomaly (blow their minds)
+The richest, most surprising grounding yet — what a save records BEYOND route/stats.
+- `save_flavor.py` (pure): derives SACRED "texture" — current **area** (from the
+  documented `[General].RoomName`, never from fragile room numbers; None when
+  absent), **play time** (frames@30fps → "about N hours"), and Toriel's **pie
+  flavour** (`Bscotch` 1=butterscotch/2=cinnamon) — plus the crown jewel, the **Fun
+  value** event detector. At documented exact values the Fun value silently gates the
+  Gaster Followers (61–63), the Sound Test Room (65), the gray-door Mystery Man (66),
+  and the Goner Kid (90+); thresholds cross-checked against the Undertale Wiki +
+  CYBERPEDIA. Most values have no event → silent, never invented.
+- Grounding: `build_texture_grounding` (area/time/pie, SACRED, for everyone) and
+  `build_anomaly_grounding` (the eerie Fun-value truth, gated in the chat layer to
+  the save/meta-aware characters Sans & Flowey). Both "" when nothing applies
+  (baseline byte-identical). `prompt_builder` gains `texture_grounding` +
+  `anomaly_grounding` params (SACRED sections 2c/2d).
+- `save_truth` carries `toriel_pie`; `provenance` surfaces area/playtime/fun_event on
+  the SACRED side; `app.js` renders area/time chips and a "⌖ anomaly" chip.
+- Live-corpus validated: the genocide run's Fun 13 correctly fires the Wrong Number
+  Song; the pacifist run's Fun 88 is correctly silent; pie reads cinnamon.
+- Tests: `tests/save_flavor_test.py` (area from name only, pie, playtime, every Fun
+  tier, anomaly gating to Sans vs Papyrus, texture for all). `docs/SAVE_FORMAT.md`
+  documents the Fun table + sources.
+- Verified: `pytest -q` → **130 passing**.
+
+## Flowey remembers the RESETS (the other meta-aware voice)
+Sans notices repeated readings; Flowey is the original keeper of SAVE/LOAD and
+remembers runs no one else can.
+- `ledger.build_flowey_awareness(snapshots)`: the Flowey-only mirror of
+  `build_sans_awareness` — same parser-confirmed ledger facts (reading count + route
+  turn), framed for Flowey's knowing, needling delight in having watched you before.
+  "" with a single reading. Wired in the chat endpoint for `name:flowey` only.
+- Tests in `tests/sans_awareness_test.py`: pure (empty on single visit; reports
+  resets + turn in Flowey's framing) and app (Flowey chat carries the RESETS block;
+  Sans's variant is not also present).
+- Verified: `pytest -q` → **133 passing**.

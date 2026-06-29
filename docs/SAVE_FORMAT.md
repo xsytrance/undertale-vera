@@ -53,15 +53,83 @@ assumed. See `route_detection.py`:
 
 | Observed | Route | Confidence |
 |---|---|---|
+| LOVE 20 **and** a boss-kill flag set | Genocide | **confirmed** |
 | LOVE 20 (the ceiling) | Genocide | high |
-| LOVE 1 and 0 kills | Pacifist | medium* |
-| LOVE > 1 and/or recorded kills | Neutral | medium |
+| LOVE 1, 0 kills, **and a befriend/date flag** | Pacifist | **high** |
+| LOVE 1 and 0 kills (no befriend flags yet) | Pacifist | medium* |
+| LOVE > 1, recorded kills, **and/or a boss-kill flag** | Neutral | medium |
+| boss-kill flag set **but** LOVE 1 (no EXP) | undetermined | low (contradiction) |
+| same character **spared AND killed** | undetermined | low (contradiction) |
 | no readable LOVE and no kills | undetermined | unknown |
 
-\* Pacifist is capped at **medium** on purpose: a no-kill run is *necessary* but not
-*sufficient* for True Pacifist — confirming that additionally needs befriend/date
-flags whose exact ini indices vary across game versions. We say so in the grounding
-rather than over-claiming.
+\* Pacifist without befriend flags stays **medium**: a no-kill run is *necessary* but
+not *sufficient* for True Pacifist — and is indistinguishable from a no-kill Neutral
+until the dating begins.
+
+### Befriend/date flags (True Pacifist requirements)
+A no-kill run alone can't tell a budding True Pacifist from a passive no-kill Neutral.
+The date/befriend flags settle it — they're reachable **only** on a no-kill path
+(the Undyne date is gated behind killing nothing), so their presence is decisive.
+Allow-list `route_detection.BEFRIEND_FLAGS`:
+
+| Flag | Meaning | Corpus (set in) |
+|---|---|---|
+| `[Papyrus] PD` | Papyrus dated | 37/49 Pacifist, **0/15 Genocide** |
+| `[Undyne] UD` | Undyne dated/befriended | 27/49 Pacifist, **0/15 Genocide** |
+| `[Alphys] AD` | Alphys dated | 9/49 Pacifist, **0/15 Genocide** |
+
+With any present (and LOVE 1 + 0 kills), Pacifist is reported at **high**; an early
+no-kill save with none stays **medium**. These never *create* a Pacifist call — kills
+or a kill flag still override — they only grade an already-no-kill run. The flags and
+their meanings were mined by `tools/flag_mine.py` and cross-checked against the
+[True Pacifist Route](https://undertale.fandom.com/wiki/True_Pacifist_Route) docs
+(date Papyrus → Undyne → Alphys, having killed no one).
+
+**Spare/kill contradiction:** the same character marked both spared (`TS`/`PS`) and
+killed (`TK`/`PK`) is impossible in a real run, so it resolves to `undetermined` —
+the mercy-side mirror of the LOVE/kills contradiction guard.
+
+### Per-character disposition (SACRED chat grounding)
+The same flags drive `character_disposition.py`, which derives a per-character
+outcome — **killed / spared / befriended / unknown** — for each major character
+(`DISPOSITION_FLAGS`: Toriel `tk`/`ts`, Papyrus `pk`/`ps`/`pd`, Undyne `ud`,
+Alphys `ad`). It feeds a SACRED "WHO YOU'VE MET" block into the chat prompt so a
+character can speak to a *real* outcome ("you befriended my brother" / "you killed
+Toriel") — never a guess. `befriended` outranks `spared`; a character flagged both
+killed and spared is `contradicted` and is **not** asserted as any outcome. No flag
+→ `unknown` → simply not listed. Surfaced in `SaveTruth.dispositions` and the
+provenance overlay.
+
+### Boss-kill flags (a hard "violence occurred" signal)
+`undertale.ini` records binary kill flags per major character. We use a conservative,
+corpus-corroborated allow-list (`route_detection.KILL_FLAGS`):
+
+| Flag | Meaning | Corpus (set in) |
+|---|---|---|
+| `[Toriel] TK` | Toriel killed | 14/15 Genocide, **0/49 Pacifist** |
+| `[Papyrus] PK` | Papyrus killed | 12/15 Genocide, **0/49 Pacifist** |
+
+A set kill flag cannot coexist with a true no-kill run, so it: confirms killing
+beyond doubt (a Neutral floor); **promotes LOVE 20 to a `confirmed` Genocide** (two
+independent records of total slaughter); and, if it somehow appears with LOVE 1,
+exposes a **contradiction** (killing a boss raises LOVE) → `undetermined`. It never
+*upgrades* a mid-run save to Genocide — killing some bosses is not the full clearance
+Genocide demands, so those stay Neutral. The allow-list was derived by
+`tools/flag_mine.py` (the ini analog of `tools/parser_expand.py`), which also
+surfaced the Pacifist-side spare flags `[Toriel] TS` / `[Papyrus] PS` for future use.
+
+### Cross-checked against community documentation
+The corpus findings were independently corroborated against community references
+([pcy.ulyssis.be/undertale/flags](https://pcy.ulyssis.be/undertale/flags),
+[CYBERPEDIA flags](https://cyberpedia.miraheze.org/wiki/User:Emeryradio-fduser/Flags),
+[Undertale Wiki: SAVE](https://undertale.fandom.com/wiki/SAVE)). They agree on
+`TK = Toriel killed`, `PK = Papyrus killed`, and on the file0 indices we promoted —
+**line 36 = Fun, line 548 = room, line 549 = time** (1-indexed; our 0-indexed
+`fun@35` / `room@547` / refused `time@548`). One community claim (line 3 = *current*
+HP) did **not** survive corpus verification: index 2 tracks `16 + 4·LV` exactly
+across all 64 saves (LV1→20, LV13→68, LV19→92) while index 3 is a constant 20 — so
+index 2 is **max HP** (now confidence `high`), and we trusted the data over the
+forum note. Verification beats deference.
 
 ### Verified against a real save corpus
 The parser's field mapping was confirmed against a real corpus of Undertale saves
@@ -93,6 +161,36 @@ subset (LOVE, total kills, named ini keys) and is explicit about confidence. Whe
 signals are absent or contradictory it returns **`undetermined`** — it will never
 fabricate a route to fill a blank, because a wrong route breaks immersion and trust
 faster than an honest "I can't tell yet."
+
+## Deep cuts — save texture + the Fun value (`save_flavor.py`)
+Beyond route and stats, the save records intimate detail that makes a character feel
+like they *know* you. All SACRED (parser-derived facts); the Fun-value events are
+documented lore tied to a real recorded number.
+
+- **Area** — from `[General].RoomName` (substring → area: `ruins`→the Ruins,
+  `water`→Waterfall, `core`→the CORE, …). Room *numbers* shift across versions, so we
+  never guess area from those — no room name → `None`.
+- **Play time** — `[General].Time` (frames @30 fps) → a soft phrase ("about 3 hours").
+- **Pie flavour** — `[Toriel] Bscotch` (1 butterscotch, 2 cinnamon).
+- **The Fun value** — `[General].Fun` (1–100), Undertale's deepest secret. At exact
+  values it silently unlocks rare events; we surface them for the save/meta-aware
+  characters (Sans, Flowey) as an unsettling truth:
+
+  | Fun | Event | Tier |
+  |---|---|---|
+  | 2–39 | the Wrong Number Song (Snowdin) | quirk |
+  | 46–50 | a mysterious mis-dialed call (Snowdin) | quirk |
+  | 56–57 | the Nightmare in the word search (Snowdin) | quirk |
+  | 61 / 62 / 63 | the **Gaster Followers** (Hotland) | gaster |
+  | 65 | the Sound Test Room (Snowdin) | gaster |
+  | 66 | the gray door / the **Mystery Man** (Waterfall) | gaster |
+  | 90–100 | the **Goner Kid** (Waterfall) | gaster |
+
+  Thresholds cross-checked against the
+  [Fun value](https://undertale.wiki/w/Fun_value) /
+  [Fun Value](https://undertale.fandom.com/wiki/Fun_Value) wikis. Most values (the
+  gaps) have no event — those stay silent, never invented. The anomaly block is gated
+  to Sans/Flowey in the chat layer; the texture block (area/time/pie) reaches everyone.
 
 ## Fixtures
 The test fixtures under `tests/fixtures/` are **synthetic, hand-authored to follow

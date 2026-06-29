@@ -26,6 +26,8 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+import character_disposition
+import save_flavor
 import hallucination_guard
 import judgment as judgment_mod
 import ledger
@@ -393,16 +395,32 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         sans_block = ledger.build_sans_awareness(snapshots)
         if sans_block:
             remembrance = (remembrance + "\n\n" + sans_block).strip()
+    # Flowey remembers RESETS more than anyone — give him his own knowing block.
+    elif normalize_key(req.character) == "name:flowey":
+        flowey_block = ledger.build_flowey_awareness(snapshots)
+        if flowey_block:
+            remembrance = (remembrance + "\n\n" + flowey_block).strip()
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")
     lore_docs = rag_engine.retrieve(req.message, character=req.character, route=save_route)
     lore_grounding = rag_engine.format_lore_grounding(lore_docs)
+    # SACRED: who the save records as killed/spared/befriended (parser-derived).
+    disposition_grounding = character_disposition.grounding_from_truth(save_truth)
+    # SACRED texture (area / play time / pie) for everyone; the Fun-value anomaly is
+    # eerie meta-lore, so only the save/reset-aware characters (Sans, Flowey) get it.
+    texture_grounding = save_flavor.build_texture_grounding(save_truth)
+    anomaly_grounding = ""
+    if normalize_key(req.character) in ("name:sans", "name:flowey"):
+        anomaly_grounding = save_flavor.build_anomaly_grounding(save_truth)
     system_prompt = build_system_prompt(
         req.character, save_truth,
         memory_grounding=memory_grounding,
         remembrance=remembrance,
         lore_grounding=lore_grounding,
+        disposition_grounding=disposition_grounding,
+        texture_grounding=texture_grounding,
+        anomaly_grounding=anomaly_grounding,
     )
 
     grounding_source = "llm"
