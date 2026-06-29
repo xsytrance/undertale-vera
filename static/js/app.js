@@ -171,16 +171,39 @@
   }
 
   // ── chat ──────────────────────────────────────────────────────────────────
+  function avatarFor(name) {
+    var list = state.characters || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].name === name) return list[i].avatar_url || "";
+    }
+    return "";
+  }
+
   function renderTranscript() {
     var t = $("transcript"); t.innerHTML = "";
     (state.history[state.character] || []).forEach(function (m) {
+      var them = m.role !== "user";
+      var msg = document.createElement("div");
+      msg.className = "msg " + (them ? "them" : "you");
+
+      // the speaker's portrait sits beside their reply (crest until art lands)
+      if (them) {
+        var av = avatarFor(state.character);
+        var avEl = document.createElement(av ? "img" : "div");
+        avEl.className = "bubble-avatar" + (av ? "" : " empty");
+        if (av) { avEl.src = av; avEl.alt = state.character; }
+        msg.appendChild(avEl);
+      }
+
       var b = document.createElement("div");
-      b.className = "bubble " + (m.role === "user" ? "you" : "them");
-      b.innerHTML = '<div class="who">' + (m.role === "user" ? "you" : state.character) + "</div>";
+      b.className = "bubble " + (them ? "them" : "you");
+      var who = document.createElement("div");
+      who.className = "who"; who.textContent = them ? state.character : "you";
       var span = document.createElement("span");
       span.textContent = m.content;
-      b.appendChild(span);
-      t.appendChild(b);
+      b.appendChild(who); b.appendChild(span);
+      msg.appendChild(b);
+      t.appendChild(msg);
     });
   }
 
@@ -205,7 +228,8 @@
     }).then(function (res) {
       hist.push({ role: "assistant", content: res.response });
       renderTranscript();
-      var bubble = $("transcript").lastChild;
+      var row = $("transcript").lastChild;                 // the .msg row
+      var bubble = row.querySelector(".bubble") || row;     // provenance rides the bubble
       typewriter(bubble.querySelector("span"), res.response);
       renderProvenance(bubble, res);   // the wall, made visible
     }).catch(function (e) {

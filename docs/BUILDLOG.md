@@ -447,3 +447,17 @@ a route-reactive backdrop that works NOW (before any art).
   prompts, per-route scene prompts, shared style token + negative, LoRA training note).
 - Tests: `tests/scene_resolver_test.py` (resolve/normalize/tiny-file/endpoint).
 - Verified: `pytest -q` → **141 passing**.
+
+## Speaker portraits in the chat bubbles
+Each character reply now carries the speaker's portrait beside it (not just on the
+roster), so a face anchors every line.
+- `app.js`: messages render as `.msg` rows — a `.bubble-avatar` (the speaker's
+  `avatar_url` from /api/characters) beside the `.bubble`. `avatarFor()` looks it up
+  from the loaded roster; provenance still rides the bubble. User messages stay
+  right (no avatar), character replies left with their portrait.
+- `determination.css`: `.msg` row layout + a small museum-lit `.bubble-avatar`
+  (brass frame, pixelated) with an ember-gem crest fallback until art lands.
+- Drop-in: when Prime's portraits arrive at static/assets/portraits/<slug>.png,
+  `resolve_avatar` serves them and the face appears here automatically — no code
+  change; crest until then.
+- Browser-verified: portrait img renders beside the reply, 0 console errors.

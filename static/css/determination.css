@@ -233,10 +233,27 @@ input[type="file"], input[type="text"] {
 
 /* chat transcript */
 .transcript { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
-.bubble { padding: 10px 14px; border-radius: 8px; max-width: 90%; white-space: pre-wrap; }
-.bubble.you { align-self: flex-end; background: var(--plate-inner); border: 1px solid var(--plate-frame); }
-.bubble.them { align-self: flex-start; background: var(--obsidian-2); border: 1px solid var(--brass); }
+/* each message is a row: the speaker's portrait beside their bubble */
+.msg { display: flex; gap: 10px; align-items: flex-start; max-width: 92%; }
+.msg.them { align-self: flex-start; }
+.msg.you  { align-self: flex-end; flex-direction: row-reverse; }
+.bubble { padding: 10px 14px; border-radius: 8px; white-space: pre-wrap; min-width: 0; }
+.bubble.you { background: var(--plate-inner); border: 1px solid var(--plate-frame); }
+.bubble.them { background: var(--obsidian-2); border: 1px solid var(--brass); }
 .bubble .who { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-dim); margin-bottom: 4px; }
+/* the per-reply speaker portrait (museum-lit relic, small) */
+.bubble-avatar {
+  width: 40px; height: 40px; flex: 0 0 40px; margin-top: 2px;
+  border-radius: 6px; border: 1px solid var(--brass);
+  background: radial-gradient(30px 24px at 50% 30%, rgba(232,162,76,0.18), transparent 70%), var(--plate-inner);
+  box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+  image-rendering: pixelated; object-fit: cover;
+}
+.bubble-avatar.empty::after {       /* crest until a portrait lands */
+  content: ""; display: block; width: 15px; height: 15px; margin: 11px auto 0;
+  clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
+  background: linear-gradient(160deg, var(--ember), var(--brass)); opacity: 0.55;
+}
 
 /* judgment readout */
 .verdict-line { font-size: 1.1rem; color: var(--brass-edge); margin: 8px 0; }
