@@ -50,6 +50,25 @@ don't trust the model to know it).
   to do semantic retrieval — e.g. "who weighs my sins at the very end" → Sans (the
   judge); "glowing flowers that repeat what you whisper" → Waterfall.
 
+## Route gating (the morally-loaded layer)
+Lore docs may carry `routes` (a list) and/or `spoiler: true`. `rag_engine` gates
+visibility by the player's REAL route (from SaveTruth):
+- a doc with `routes` shows only when the player's route matches;
+- a `spoiler` doc stays hidden until the route is known;
+- absent → universal.
+
+This gates WHICH world-knowledge is retrievable per route — it never asserts the
+route as a fact (the wall holds). So a Pacifist player can surface the True Lab /
+the dates; a Genocide player surfaces the empty-path lore; and an `undetermined`
+route presumes nothing. Chat passes `SaveTruth.route` into `retrieve()`;
+`GET /api/lore?...&route=` exposes it for audit.
+
+## Eval harness (guard against retrieval regressions)
+`knowledge/eval.json` holds `query → expected doc id(s)` cases (plus `route` and
+`expect_absent` for gating). `tools/lore_eval.py` reports recall@k and can gate on
+a threshold (`--min`). Run it after growing the KB. Verified 12/12 on both the
+keyword and the vector backends.
+
 ## Next (if retrieval quality needs it)
 - Expand the collections (items, more events, area-specific NPCs).
 - Swap to `sentence-transformers` embeddings (preferred) once the env supports it.

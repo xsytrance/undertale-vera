@@ -292,15 +292,18 @@ def speak_judgment(project_id: int, req: JudgmentSpeakRequest, db: Session = Dep
 # ── characters ───────────────────────────────────────────────────────────────
 
 @app.get("/api/lore")
-def lore(q: str = "", character: Optional[str] = None) -> dict[str, Any]:
+def lore(q: str = "", character: Optional[str] = None, route: Optional[str] = None) -> dict[str, Any]:
     """Inspect what the RAG lore layer would retrieve for a query (FREE bucket).
 
-    Exposed so retrieved world-knowledge is auditable — it is never save state.
+    Optional `route` gates which world-knowledge is visible (route-specific and
+    spoiler lore hide until the route is known). Exposed so retrieval is
+    auditable — it is never save state.
     """
-    docs = rag_engine.retrieve(q, character=character) if q else []
+    docs = rag_engine.retrieve(q, character=character, route=route) if q else []
     return {
         "query": q,
         "character": character,
+        "route": route,
         "backend": rag_engine.backend_in_use(),
         "results": docs,
     }
@@ -380,8 +383,11 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
     save_truth = project.save_data or {}
     memory_grounding = _memory_grounding_for(db, project_id, req.character, req.message)
     remembrance = ledger.build_remembrance_grounding(_snapshots_for(db, project_id))
+    # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
+    # which world-knowledge is visible — it never asserts the route as a fact.
+    save_route = (save_truth.get("route") or {}).get("route")
     lore_grounding = rag_engine.format_lore_grounding(
-        rag_engine.retrieve(req.message, character=req.character)
+        rag_engine.retrieve(req.message, character=req.character, route=save_route)
     )
     system_prompt = build_system_prompt(
         req.character, save_truth,

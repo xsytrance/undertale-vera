@@ -178,3 +178,19 @@ the two-bucket wall.
   `events.json` concepts (SAVE points, human SOULs, the True Lab, "stay
   determined"). 37 lore docs total; vector index rebuilt and confirmed semantic.
 - Verified: `pytest -q` → **53 passing**.
+
+## Route-gated lore + retrieval eval (#1 + #4)
+- Route gating (#1): lore docs may carry `routes` / `spoiler`; `rag_engine.doc_allowed`
+  gates visibility by the player's REAL route (from SaveTruth) — a doc shows only on
+  its route, spoilers hide until the route is known, absent = universal. Chat passes
+  `SaveTruth.route` into `retrieve()`; `/api/lore?route=` exposes it. This gates WHICH
+  world-knowledge is visible, never asserting the route as a fact (wall intact).
+  Demonstrable docs added: True Lab + dates (Pacifist), the empty-path resolve
+  (Genocide). knowledge_ingest stores routes/spoiler in vector metadata.
+- Eval harness (#4): `knowledge/eval.json` (query -> expected doc ids; `route` /
+  `expect_absent` for gating) + `tools/lore_eval.py` (recall@k, `--min` gate). Guards
+  against retrieval regressions as the KB grows.
+- Tests: `tests/rag_test.py` route-gating cases; `tests/lore_eval_test.py` runs the
+  eval on the deterministic keyword backend (100%).
+- Verified: `pytest -q` → **58 passing**; `lore_eval` → 12/12 on BOTH the keyword and
+  vector backends (route gating confirmed with real embeddings).

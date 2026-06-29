@@ -1,0 +1,21 @@
+{
+  "_meta": {
+    "note": "Retrieval eval set: query -> expected lore doc id(s). Guards against retrieval regressions as the knowledge base grows. `route` exercises route-gating; `expect_absent` asserts a doc is correctly hidden.",
+    "k": 4
+  },
+  "cases": [
+    {"query": "tell me about waterfall and the glowing echo flowers", "expect": ["loc-waterfall"]},
+    {"query": "who is the head of the royal guard", "character": "Undyne", "expect": ["char-undyne"]},
+    {"query": "the spider running a bake sale in hotland", "expect": ["npc-muffet"]},
+    {"query": "the butterscotch cinnamon pie toriel bakes", "expect": ["item-butterscotch-pie"]},
+    {"query": "what does LOVE and EXP mean", "expect": ["evt-love"]},
+    {"query": "the chaotic cat dog village and its shop", "expect": ["npc-temmie"]},
+    {"query": "act and show mercy and spare instead of fighting", "expect": ["evt-mercy"]},
+
+    {"query": "the hidden true lab and the amalgamates", "route": "Pacifist", "expect": ["evt-true-lab"]},
+    {"query": "the hidden true lab and the amalgamates", "route": "Genocide", "expect_absent": ["evt-true-lab"]},
+    {"query": "the hidden true lab and the amalgamates", "route": "undetermined", "expect_absent": ["evt-true-lab"]},
+    {"query": "the empty dusty path and final resolve", "route": "Genocide", "expect": ["evt-genocide-resolve"]},
+    {"query": "the empty dusty path and final resolve", "route": "Pacifist", "expect_absent": ["evt-genocide-resolve"]}
+  ]
+}

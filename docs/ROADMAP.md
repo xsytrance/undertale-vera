@@ -29,8 +29,10 @@ Characters now draw on a curated knowledge base of Underground lore (characters,
 locations, events) via `rag_engine.py` — full **vector RAG** (ChromaDB + embeddings)
 with a dependency-free keyword fallback, wired into the FREE bucket and walled from
 SaveTruth. See `docs/KNOWLEDGE_SYSTEM.md`. Collections now cover characters, locations, events, items, and supporting NPCs
-(37 docs). A repeatable `tools/corpus_audit.py` audits any save folder. Next:
-optional `sentence-transformers` embeddings and per-character phase gating.
+(37 docs). A repeatable `tools/corpus_audit.py` audits any save folder, and route-gated lore
+(`routes`/`spoiler` per doc) keeps world-knowledge appropriate to the player's
+route. `tools/lore_eval.py` guards retrieval quality (recall@k). Next: optional
+`sentence-transformers` embeddings and finer per-phase gating.
 
 ## Further out
 - The save-upload **frontend UI**, the **save shelf** (switch between read saves),
