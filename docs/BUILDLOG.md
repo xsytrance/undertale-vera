@@ -427,3 +427,23 @@ Area detection relied on [General].RoomName, which the real corpus saves don't c
 - Effect: all 64 corpus saves now resolve a sensible area (was 0); the fixture's
   RoomName still wins over its id. Tests in tests/save_flavor_test.py.
 - Verified: pytest -q -> 135 passing.
+
+## Pivot to Prime/art — route-reactive scenes + the art drop-in contract
+Prepared the codebase to RECEIVE Prime's ComfyUI art with zero rework, and shipped
+a route-reactive backdrop that works NOW (before any art).
+- `scene_resolver.py` (pure, mirrors avatar_resolver): route → generated backdrop
+  at static/assets/scenes/<route>.png, or "" → the frontend keeps its CSS gradient.
+  `available_scenes()` + `GET /api/scenes` expose the route→url map.
+- Frontend route-reactive backdrop: `static/js/scene.js` (`SceneLayer.setRoute`,
+  fetches the art map once), a `#scene-backdrop` layer in index.html, and CSS
+  `.scene-<route>` tints in determination.css (Pacifist warm gold, Genocide crimson,
+  Neutral violet-grey, undetermined obsidian murk) under an obsidian wash for text
+  legibility. Generated scene art fades in over the tint when present. Wired into
+  `renderTruth` beside the route-aware music. Browser-verified: all 4 route tints
+  render, 0 console errors.
+- Generated scenes gitignored (same rule as portraits).
+- Hand-off docs: `docs/ASSET_MANIFEST.md` (exact slugs/sizes/format → drop-in
+  contract) and `docs/PRIME_BRIEF.md` (the magic prompts — per-character portrait
+  prompts, per-route scene prompts, shared style token + negative, LoRA training note).
+- Tests: `tests/scene_resolver_test.py` (resolve/normalize/tiny-file/endpoint).
+- Verified: `pytest -q` → **141 passing**.

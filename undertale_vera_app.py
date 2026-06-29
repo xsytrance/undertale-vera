@@ -34,6 +34,7 @@ import ledger
 import living_memory as lm
 import provenance as provenance_mod
 import rag_engine
+import scene_resolver
 from avatar_resolver import resolve_avatar
 from backend.models import Base, CharacterMemory, Conversation, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
@@ -320,6 +321,13 @@ def get_characters() -> dict[str, Any]:
     for c in chars:
         c["avatar_url"] = resolve_avatar(c)
     return {"characters": chars}
+
+
+@app.get("/api/scenes")
+def get_scenes() -> dict[str, Any]:
+    """Route → backdrop URL for every generated scene on disk (empty until Prime
+    delivers art). The frontend keeps its CSS route-tinted gradient as the fallback."""
+    return {"scenes": scene_resolver.available_scenes()}
 
 
 # ── grounded character chat ──────────────────────────────────────────────────

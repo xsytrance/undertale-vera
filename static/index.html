@@ -9,6 +9,9 @@
   <link rel="stylesheet" href="/css/determination.css" />
 </head>
 <body>
+  <!-- route-reactive backdrop: CSS gradient tint always; generated scene art fades
+       in over it when present (static/assets/scenes/<route>.png, gitignored). -->
+  <div id="scene-backdrop" class="scene-backdrop scene-undetermined" aria-hidden="true"></div>
   <header style="text-align:center; padding:28px 16px 4px;">
     <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
       <span class="soul-sigil" id="header-sigil" aria-hidden="true"></span>
@@ -91,6 +94,7 @@
   </p>
 
   <script src="/js/music.js"></script>
+  <script src="/js/scene.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

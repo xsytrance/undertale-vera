@@ -50,6 +50,35 @@ body {
   letter-spacing: 0.01em;
 }
 
+/* ── route-reactive backdrop ──────────────────────────────────────────────────
+   A fixed, full-bleed layer behind everything. The route-tinted gradient is the
+   guaranteed fallback; generated scene art (.has-art) fades in over it. Kept dim
+   so it sets mood without fighting the parchment ink. */
+.scene-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-size: cover;
+  background-position: center;
+  opacity: 0.9;
+  transition: background-image 0.6s ease, background-color 0.8s ease, opacity 0.8s ease;
+}
+.scene-backdrop::after {              /* obsidian wash to keep text legible over art */
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(1200px 700px at 50% -10%,
+              rgba(21,19,28,0.55), rgba(12,11,16,0.86) 70%);
+}
+/* per-route gradient tints (the always-present fallback) */
+.scene-undetermined { background-image: radial-gradient(900px 600px at 50% 0%, #16131d, #0c0b10 70%); }
+.scene-pacifist     { background-image: radial-gradient(1000px 700px at 50% -5%, #2a2113, #12100b 65%); }
+.scene-neutral      { background-image: radial-gradient(1000px 700px at 50% -5%, #1a1622, #0d0c12 65%); }
+.scene-genocide     { background-image: radial-gradient(1000px 700px at 50% -5%, #2a1116, #100709 60%); }
+/* when real art is loaded, let it carry the image; the ::after wash still applies */
+.scene-backdrop.has-art { opacity: 0.85; }
+
 h1, h2, h3, .display {
   font-family: var(--font-display);
   color: var(--brass-edge);
