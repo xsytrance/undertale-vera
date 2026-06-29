@@ -213,3 +213,93 @@ The two-bucket wall is now enforced AND visible at the reply level.
   matching facts pass, undetermined-route assertions caught, provenance shape, and
   the chat response carries both (incl. a misbehaving-model case the guard catches).
 - Verified: `pytest -q` → **67 passing**; browser-confirmed the overlay renders.
+
+## Sans the save-aware judge — the "path turned" event (SACRED ledger history)
+Sans is canonically aware of saving, loading, and resets. The ledger already
+records every reading; now HE (and only he) can speak to it.
+- `ledger.detect_route_turn(snapshots)` (pure): walks consecutive readings and
+  returns the latest real route CHANGE (`{from, to, visit}`) — e.g. Pacifist →
+  Genocide — or `None` when the route is stable, unknown, or there's one reading.
+  Derived only from recorded routes; never inferred.
+- `ledger.build_sans_awareness(snapshots)` (pure): a SACRED grounding block, Sans-
+  only, surfacing the parser-confirmed reading count and any route turn, framed so
+  he may notice them in his own voice. `""` with fewer than two readings (nothing
+  to have noticed yet) — keeps the single-visit baseline byte-identical.
+- Chat endpoint appends the Sans block to `remembrance` ONLY for `name:sans`; both
+  chat and refresh-save responses now carry `path_turn` for the UI overlay.
+- `static/js/app.js`: a SACRED "↳ path turned: X → Y" chip in the provenance row
+  when a turn is recorded.
+- `tests/sans_awareness_test.py`: pure detect_route_turn (none/stable/detected/
+  latest/unknown-ignored) and build_sans_awareness (empty/visit-count/turn), plus
+  app wiring (refresh surfaces path_turn; Sans chat carries the block, Toriel does
+  not; path_turn rides every chat response).
+- Verified: `pytest -q` → **78 passing**.
+
+## Real CI — the wall as a merge gate (GitHub Actions)
+Every prior PR shipped with `total_count: 0` checks — the suite was an honour
+system. Now it gates merges.
+- `.github/workflows/ci.yml`: on push/PR to `main`, sets up Python 3.11, installs
+  ONLY `requirements.txt` + pytest (the suite mocks the LLM and the RAG layer
+  falls back to a pure keyword retriever, so the heavy `requirements-rag.txt`
+  vector deps are deliberately excluded — fast, deterministic, no network/model).
+  Steps: `py_compile *.py backend/*.py` (syntax) → `pytest -q`. `ANTHROPIC_API_KEY`
+  is empty by design; no chat test needs a live key. Concurrency-cancels superseded
+  runs; least-privilege `contents: read`.
+- README gets a CI status badge.
+- Verified by reproducing CI exactly in a clean venv (core deps only): py_compile
+  OK, **78 passed** — confirms the green path doesn't depend on the dev box's
+  pre-installed chromadb/playwright.
+
+## Canonical-voice adversarial eval — the wall under attack
+A red-team harness that attacks the two-bucket wall directly, then gates on it.
+- `knowledge/adversarial.json`: a corpus pairing each save's SACRED facts with a
+  provocation engineered to bait fabrication, the `bait_reply` a weak/jailbroken
+  model might emit (the guard MUST flag it), and a `grounded_reply` that honours
+  the save (the guard MUST pass it). Spans every fabrication type (route on
+  Pacifist/Genocide/undetermined, LOVE inflation, kill inflation) across the cast.
+  All wording is ours — no Undertale script is reproduced.
+- `tools/voice_eval.py` (pure, dependency-injectable like `lore_eval`): scores two
+  enforceable, offline dimensions per case — (A) GUARD: bait flagged with the right
+  type AND grounded reply clean; (B) PROMPT: the assembled system prompt carries the
+  attacked sacred fact + the anti-invention RULES, and the provocation never leaks
+  into it. `--min` gate; `python -m tools.voice_eval --min 1.0`.
+- **The eval earned its keep immediately**: it surfaced a real guard evasion —
+  "your LOVE has climbed to 20" slipped past the adjacent-only LOVE regex. Closed
+  with a tightly-bounded connector pattern (`_LOVE_RE3`: a `to/now/reached/hit/at`
+  must sit right before the number, no digit/sentence-break intervening) so the
+  clear fabrication is caught WITHOUT false-flagging "LOVE is 1, but room 20…".
+- Tests: `tests/voice_eval_test.py` (100% gate + a planted-lie negative control
+  proving the harness has teeth) and two new `hallucination_guard_test` cases (the
+  evasion is caught; the separated number is not).
+- CI runs the adversarial + lore gates as their own steps (both 100% on the
+  keyword backend, verified in a clean venv).
+- Verified: `pytest -q` → **85 passing**; `voice_eval --min 1.0` → 8/8.
+
+## Data-driven parser expansion — the real corpus as ground truth
+Promoted three file0 indices from `unknown` → documented, justified by evidence
+from a real 64-save corpus (re-uploaded by the user), never by guessing.
+- `tools/parser_expand.py`: the sanctioned expansion engine. For each documented
+  `[General]` key it scans every file0 index across the corpus and proposes a
+  mapping ONLY at 100% agreement over a meaningful sample (whitespace/quote/float
+  tolerant compare). On the 64-save corpus it PROMOTED `kills↔file0[11]`,
+  `fun↔file0[35]`, `room↔file0[547]` (all 64/64), reconfirmed `love↔file0[1]`
+  (64/64), and correctly REFUSED `time` (58% — it drifts between the file0 snapshot
+  and the ini write). One counterexample = no claim.
+- `save_parser.py`: indices 11/35/547 added to `FILE0_KNOWN_FIELDS` (confidence
+  "high"), decoded into new `kills`/`fun`/`room` fields with range validation
+  (absent/implausible → None, no warning — same honest-silence policy as max_hp).
+- Cross-source corroboration (`save_parser.corroborate`): for fields in BOTH
+  file0 and the ini (love/kills/room/fun), the two independent reads are checked —
+  AGREE → confidence promoted to "confirmed"; DISAGREE → keep the file0 (save-slot)
+  value, drop to "low", warn (likely edited save). Never silently picks/averages.
+  Validated across the corpus: 256/256 field-checks agree, zero conflicts.
+- `save_truth.py`: additive `corroboration` block + kills/fun/room in
+  `parser_confidence` (schema v1 unchanged; existing assertions intact).
+- Synthetic genocide/neutral fixtures made internally consistent (file0[11] now
+  matches their ini Kills) so they model real, un-edited saves.
+- Tests: `tests/parser_expand_test.py` (engine promotes a corroborated index,
+  refuses noisy/under-sampled ones) and `tests/corroboration_test.py` (new indices
+  decode; agreement→confirmed; disagreement→edited-save warning; file0-only→no
+  promotion; implausible→null). `docs/SAVE_FORMAT.md` documents all of it.
+- Verified: `pytest -q` → **95 passing**; engine + corroboration re-run on the
+  live 64-save corpus.

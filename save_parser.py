@@ -33,16 +33,37 @@ CONFIDENCE_VALUES = {"confirmed", "high", "medium", "low", "estimated", "unknown
 # Only indices we are confident are documented and version-stable get a name.
 # Index → (field_name, confidence). HP/level can shift slightly between editor
 # tools, so they carry a lower confidence and are range-validated below.
+#
+# Indices 11/35/547 were promoted from "unknown" by tools/parser_expand.py, which
+# corroborated each against a documented undertale.ini [General] key across a real
+# 64-save corpus (Pacifist + Genocide) at 100% agreement — evidence, not a guess.
+# They carry "high" (strong corpus corroboration; cross-source agreement at parse
+# time promotes them to "confirmed"). file0[1]↔Love also reconfirmed 64/64.
 FILE0_KNOWN_FIELDS: dict[int, tuple[str, str]] = {
     0: ("name", "confirmed"),   # the fallen human's name (the player-entered name)
     1: ("love", "confirmed"),   # LV — the "LOVE" stat (Level Of ViolencE)
     2: ("max_hp", "medium"),    # max HP; default 20 at LV 1, grows with LOVE
+    11: ("kills", "high"),      # kill counter; mirrors [General].Kills (per-room in canon)
+    35: ("fun", "high"),        # the "Fun value" RNG flag; mirrors [General].Fun (1–100)
+    547: ("room", "high"),      # current room id; mirrors [General].Room
 }
 
 # Plausible ranges used purely to reject obviously-wrong reads (→ None), never to
 # invent a value. LOVE caps at 20 in canon; HP can climb but stays modest.
 LOVE_RANGE = (1, 99)
 HP_RANGE = (1, 999)
+KILLS_RANGE = (0, 999999)
+FUN_RANGE = (0, 100)
+ROOM_RANGE = (0, 100000)
+
+# file0 fields that ALSO appear in undertale.ini [General] — checked against each
+# other at parse time (cross-source corroboration). (parser_attr, ini_key).
+CORROBORATED_FIELDS: tuple[tuple[str, str], ...] = (
+    ("love", "love"),
+    ("kills", "kills"),
+    ("room", "room"),
+    ("fun", "fun"),
+)
 
 
 @dataclass
@@ -53,6 +74,9 @@ class ParsedUndertaleSave:
     name: Optional[str] = None
     love: Optional[int] = None
     max_hp: Optional[int] = None
+    kills: Optional[int] = None
+    fun: Optional[int] = None
+    room: Optional[int] = None
 
     # Raw preserved structures — meaning NOT assigned, available for audit.
     file0_lines: list[str] = field(default_factory=list)
@@ -60,6 +84,11 @@ class ParsedUndertaleSave:
 
     # Per-field confidence so downstream code knows what it can trust.
     confidence: dict[str, str] = field(default_factory=dict)
+
+    # Cross-source agreement: {field: {file0, ini, agree}} for fields recorded in
+    # BOTH file0 and undertale.ini. The wall at the parser level — two independent
+    # recordings either confirm each other or expose an edited save.
+    corroboration: dict[str, Any] = field(default_factory=dict)
 
     # Non-fatal observations ("structure unexpected" → report, don't crash).
     warnings: list[str] = field(default_factory=list)
@@ -124,6 +153,13 @@ def parse_file0(text: str, save: ParsedUndertaleSave) -> None:
             v = _coerce_int(raw, *HP_RANGE)
             save.max_hp = v
             save.confidence["max_hp"] = conf if v is not None else "unknown"
+        elif fieldname in ("kills", "fun", "room"):
+            # Corpus-corroborated mirrors of [General] keys. Absent/implausible →
+            # None with no warning (same honest-silence policy as max_hp).
+            ranges = {"kills": KILLS_RANGE, "fun": FUN_RANGE, "room": ROOM_RANGE}
+            v = _coerce_int(raw, *ranges[fieldname])
+            setattr(save, fieldname, v)
+            save.confidence[fieldname] = conf if v is not None else "unknown"
 
 
 def parse_undertale_ini(text: str, save: ParsedUndertaleSave) -> None:
@@ -151,6 +187,36 @@ def parse_undertale_ini(text: str, save: ParsedUndertaleSave) -> None:
         key, _, value = line.partition("=")
         # Undertale stores INI values wrapped in double quotes.
         save.ini_sections[current][key.strip().lower()] = value.strip().strip('"')
+
+
+def corroborate(save: ParsedUndertaleSave) -> None:
+    """Cross-check file0-decoded fields against undertale.ini, in place.
+
+    For every field recorded in BOTH sources, compare the two independent reads:
+      - AGREE   → the strongest evidence we can have; promote confidence to
+        "confirmed" and record the agreement.
+      - DISAGREE→ the save is internally inconsistent (commonly an edited save).
+        Keep the file0 (save-slot) value, downgrade confidence to "low", and emit
+        a warning. We never silently pick a winner or average the two.
+    Fields present in only one source are left as-is (nothing to corroborate).
+    """
+    for attr, ini_key in CORROBORATED_FIELDS:
+        f0_val = getattr(save, attr, None)
+        ini_raw = save.ini_get("general", ini_key)
+        ini_val = _coerce_int(ini_raw, -(10 ** 9), 10 ** 9) if ini_raw is not None else None
+        if f0_val is None or ini_val is None:
+            continue
+        agree = f0_val == ini_val
+        save.corroboration[attr] = {"file0": f0_val, "ini": ini_val, "agree": agree}
+        if agree:
+            save.confidence[attr] = "confirmed"
+        else:
+            save.confidence[attr] = "low"
+            save.warnings.append(
+                f"{attr} disagrees across sources: file0={f0_val} vs "
+                f"undertale.ini={ini_val}. Keeping the file0 (save-slot) value and "
+                "flagging the conflict (often an edited save)."
+            )
 
 
 def _hash_and_size(path: Optional[str]) -> tuple[Optional[int], Optional[str]]:
@@ -196,6 +262,11 @@ def parse_undertale_save(
         parse_file0(file0_text, save)
     if ini_text is not None:
         parse_undertale_ini(ini_text, save)
+
+    # With both sources present, corroborate the overlapping fields against each
+    # other (parser-level wall: confirm agreement / expose edited saves).
+    if file0_text is not None and ini_text is not None:
+        corroborate(save)
 
     if file0_text is None and ini_text is None:
         save.warnings.append(

@@ -1,5 +1,7 @@
 # undertale-vera
 
+[![CI](https://github.com/xsytrance/undertale-vera/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/xsytrance/undertale-vera/actions/workflows/ci.yml)
+
 A save-aware companion app for **Undertale** — in-game characters answer as
 themselves, grounded in the player's **actual** save state. A new MultiVera
 instantiation mirroring `fft-psx-vera`'s architecture.

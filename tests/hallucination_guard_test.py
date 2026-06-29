@@ -39,6 +39,22 @@ def test_love_contradiction_flagged():
     assert any(i["type"] == "love" and i["sacred"] == 1 for i in g["issues"])
 
 
+def test_love_verbphrase_evasion_flagged():
+    # The adversarial eval surfaced this: "LOVE has climbed to N" evaded the old
+    # adjacent-only regex. The bounded connector pattern now catches it.
+    g = check_response("oh child, your LOVE has climbed to 20 — such cruelty.", _truth(love=1))
+    assert any(i["type"] == "love" and i["sacred"] == 1 for i in g["issues"])
+    g2 = check_response("your LV is now 19, kid.", _truth(love=1))
+    assert any(i["type"] == "love" for i in g2["issues"])
+
+
+def test_love_separated_number_does_not_false_flag():
+    # The bounded pattern must NOT fire when the number belongs to something else:
+    # a connector ('to'/'now'/'at') must sit right before the digits.
+    g = check_response("your LOVE is 1, but room 20 is still locked.", _truth(love=1))
+    assert g["clean"] is True
+
+
 def test_kills_contradiction_flagged():
     g = check_response("you killed 50 monsters to get here.", _truth(kills=0))
     assert any(i["type"] == "kills" for i in g["issues"])

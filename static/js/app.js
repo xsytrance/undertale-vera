@@ -227,6 +227,9 @@
     if (s.route) box.appendChild(chip("sacred", "route: " + s.route));
     if (s.love !== null && s.love !== undefined) box.appendChild(chip("sacred", "LOVE: " + s.love));
     if (s.kills !== null && s.kills !== undefined) box.appendChild(chip("sacred", "kills: " + s.kills));
+    if (res.path_turn) {
+      box.appendChild(chip("sacred", "↳ path turned: " + res.path_turn.from + " → " + res.path_turn.to));
+    }
     box.appendChild(Object.assign(document.createElement("span"),
       { className: "label", textContent: "FREE" }));
     if (f.voice) box.appendChild(chip("free", "voice: " + f.voice));
