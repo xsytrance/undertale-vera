@@ -46,6 +46,11 @@ _ROUTE_ASSERTIONS: dict[str, str] = {
 
 _LOVE_RE = re.compile(r"\b(?:love|lv|level)\s*(?:of|is|=|:|at)?\s*(\d{1,3})\b")
 _LOVE_RE2 = re.compile(r"\b(\d{1,3})\s*(?:love|lv)\b")
+# Verb-phrase evasions: "LOVE has climbed to 20", "LV is now 19", "LOVE reached 20".
+# Bounded tight — a connector (to/now/reached/hit/at) must sit immediately before
+# the number, and no digit/sentence-break may intervene — so it catches the clear
+# fabrication without flagging "your LOVE is 1, but room 20 is locked".
+_LOVE_RE3 = re.compile(r"\b(?:love|lv)\b[^.!?\d]{0,24}?\b(?:to|now|reached|hit|at)\s+(\d{1,3})\b")
 _KILLS_RE = re.compile(r"\b(?:killed)\s+(\d{1,4})\b")
 _KILLS_RE2 = re.compile(r"\b(\d{1,4})\s*(?:kills?|monsters?)\b")
 
@@ -80,7 +85,8 @@ def check_response(reply: str, save_truth: dict[str, Any]) -> dict[str, Any]:
 
     # ── LOVE ─────────────────────────────────────────────────────────────────
     if isinstance(love, int):
-        for m in list(_LOVE_RE.finditer(norm)) + list(_LOVE_RE2.finditer(norm)):
+        for m in (list(_LOVE_RE.finditer(norm)) + list(_LOVE_RE2.finditer(norm))
+                  + list(_LOVE_RE3.finditer(norm))):
             n = int(m.group(1))
             if n != love:
                 issues.append(_issue("love", m.group(0), love,

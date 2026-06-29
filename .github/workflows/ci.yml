@@ -48,3 +48,12 @@ jobs:
         env:
           ANTHROPIC_API_KEY: ""
         run: pytest -q
+
+      - name: Adversarial wall gate
+        # Red-teams the two-bucket wall: every baited fabrication must be caught
+        # and no grounded reply false-flagged. Must hold at 100%.
+        run: python -m tools.voice_eval --min 1.0
+
+      - name: Lore retrieval gate
+        # recall@k over the lore corpus on the deterministic keyword backend.
+        run: python -m tools.lore_eval --min 1.0

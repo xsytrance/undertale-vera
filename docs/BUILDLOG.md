@@ -249,3 +249,28 @@ system. Now it gates merges.
 - Verified by reproducing CI exactly in a clean venv (core deps only): py_compile
   OK, **78 passed** — confirms the green path doesn't depend on the dev box's
   pre-installed chromadb/playwright.
+
+## Canonical-voice adversarial eval — the wall under attack
+A red-team harness that attacks the two-bucket wall directly, then gates on it.
+- `knowledge/adversarial.json`: a corpus pairing each save's SACRED facts with a
+  provocation engineered to bait fabrication, the `bait_reply` a weak/jailbroken
+  model might emit (the guard MUST flag it), and a `grounded_reply` that honours
+  the save (the guard MUST pass it). Spans every fabrication type (route on
+  Pacifist/Genocide/undetermined, LOVE inflation, kill inflation) across the cast.
+  All wording is ours — no Undertale script is reproduced.
+- `tools/voice_eval.py` (pure, dependency-injectable like `lore_eval`): scores two
+  enforceable, offline dimensions per case — (A) GUARD: bait flagged with the right
+  type AND grounded reply clean; (B) PROMPT: the assembled system prompt carries the
+  attacked sacred fact + the anti-invention RULES, and the provocation never leaks
+  into it. `--min` gate; `python -m tools.voice_eval --min 1.0`.
+- **The eval earned its keep immediately**: it surfaced a real guard evasion —
+  "your LOVE has climbed to 20" slipped past the adjacent-only LOVE regex. Closed
+  with a tightly-bounded connector pattern (`_LOVE_RE3`: a `to/now/reached/hit/at`
+  must sit right before the number, no digit/sentence-break intervening) so the
+  clear fabrication is caught WITHOUT false-flagging "LOVE is 1, but room 20…".
+- Tests: `tests/voice_eval_test.py` (100% gate + a planted-lie negative control
+  proving the harness has teeth) and two new `hallucination_guard_test` cases (the
+  evasion is caught; the separated number is not).
+- CI runs the adversarial + lore gates as their own steps (both 100% on the
+  keyword backend, verified in a clean venv).
+- Verified: `pytest -q` → **85 passing**; `voice_eval --min 1.0` → 8/8.
