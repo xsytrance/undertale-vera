@@ -51,9 +51,23 @@ body {
 }
 
 /* ── route-reactive backdrop ──────────────────────────────────────────────────
-   A fixed, full-bleed layer behind everything. The route-tinted gradient is the
-   guaranteed fallback; generated scene art (.has-art) fades in over it. Kept dim
-   so it sets mood without fighting the parchment ink. */
+   Layers (deepest first): the WebGL shader field (.scene-shader), the CSS route
+   tint (.scene-backdrop, the fallback), then Prime's painted art (.has-art).
+   Kept dim so it sets mood without fighting the parchment ink. */
+.scene-shader {
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  width: 100vw;
+  height: 100vh;
+  display: block;
+  pointer-events: none;
+}
+/* when the living field is running, drop the gradient so the shader shows through
+   (the obsidian wash + any Prime art still ride on .scene-backdrop above it) */
+body.shader-on .scene-backdrop { background-image: none !important; }
+body.shader-on .scene-backdrop:not(.has-art) { background-color: transparent; }
+
 .scene-backdrop {
   position: fixed;
   inset: 0;

@@ -88,7 +88,11 @@
     // route-aware music: drive the bed from the live route (if enabled).
     if (window.MusicLayer && $("music-toggle").checked) window.MusicLayer.setRoute(route);
     // route-reactive backdrop: tint (always) + generated scene art (when present).
-    if (window.SceneLayer) window.SceneLayer.setRoute(route);
+    if (window.SceneLayer) {
+      window.SceneLayer.setRoute(route);
+      // a Gaster-tier Fun value tears the field for a beat — the anomaly, made visible.
+      window.SceneLayer.anomaly(play.fun);
+    }
     // tint the header sigil red on the Genocide beat.
     $("header-sigil").className = "soul-sigil" + (route === "Genocide" ? " determined" : "");
   }

@@ -9,8 +9,11 @@
   <link rel="stylesheet" href="/css/determination.css" />
 </head>
 <body>
-  <!-- route-reactive backdrop: CSS gradient tint always; generated scene art fades
-       in over it when present (static/assets/scenes/<route>.png, gitignored). -->
+  <!-- route-reactive backdrop. Three layers, deepest first:
+       1. #scene-shader  — living WebGL ember/haze field, graded by route (if supported)
+       2. #scene-backdrop — CSS gradient tint (fallback) + generated scene art when present
+       The shader sits behind; when it's active the gradient is suppressed. -->
+  <canvas id="scene-shader" class="scene-shader" aria-hidden="true"></canvas>
   <div id="scene-backdrop" class="scene-backdrop scene-undetermined" aria-hidden="true"></div>
   <header style="text-align:center; padding:28px 16px 4px;">
     <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
@@ -94,6 +97,7 @@
   </p>
 
   <script src="/js/music.js"></script>
+  <script src="/js/scene_shader.js"></script>
   <script src="/js/scene.js"></script>
   <script src="/js/app.js"></script>
 </body>

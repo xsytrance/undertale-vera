@@ -447,3 +447,22 @@ a route-reactive backdrop that works NOW (before any art).
   prompts, per-route scene prompts, shared style token + negative, LoRA training note).
 - Tests: `tests/scene_resolver_test.py` (resolve/normalize/tiny-file/endpoint).
 - Verified: `pytest -q` → **141 passing**.
+
+## The living backdrop — a WebGL route-reactive shader field (prototype)
+The backdrop now BREATHES. A fullscreen GLSL field sits behind everything, graded
+by the save's route, layering under the static-art system already in place.
+- `static/js/scene_shader.js`: a pure-vanilla WebGL1 fragment shader — drifting
+  fbm ember/haze + rising flecks, per-route palette (Pacifist warm gold, Neutral
+  muted violet, Genocide ashen crimson, undetermined cold murk), scanlines, RGB
+  split, vignette. Smoothly lerps between routes. A `pulse()` method tears the
+  field for a beat — the hook for the Fun-value anomaly.
+- `scene.js` boots it (adds `body.shader-on` on success, which suppresses the CSS
+  gradient so the field shows; Prime's painted scene art still rides over it). The
+  CSS gradient remains the guaranteed fallback when WebGL is unavailable.
+- `app.js`: on save load, a Gaster-tier Fun value (61–63/65/66/90+) fires
+  `SceneLayer.anomaly()` — a short glitch flurry, the anomaly made visible.
+- Degrades cleanly: no WebGL → `supported=false` → gradient fallback (the existing,
+  tested path). Browser-verified: WebGL active, `shader-on`, 0 console errors, all
+  routes render, Genocide visibly corrupts.
+- Composes with Prime's art: the shader is the LIVE underlayer; static scenes
+  (when delivered) paint over it at reduced opacity.

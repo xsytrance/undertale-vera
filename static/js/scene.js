@@ -1,18 +1,27 @@
-/* SceneLayer — the route-reactive backdrop.
+/* SceneLayer — the route-reactive backdrop coordinator.
  *
- * Two layers, both honest about what's available:
- *   1. A CSS route-tinted gradient (.scene-<route>) — ALWAYS present, so the
- *      backdrop reacts to the route the moment a save is read, before any art.
- *   2. Generated scene art (static/assets/scenes/<route>.png, gitignored) — when
- *      Prime's ComfyUI pipeline has produced it, it fades in OVER the gradient.
+ * Three honest layers, deepest first:
+ *   1. ShaderField (WebGL)  — a living ember/haze field graded by route, with a
+ *      glitch `pulse()` for the Fun-value anomaly. Active only if WebGL is supported.
+ *   2. CSS route tint (.scene-<route>) — the guaranteed fallback. Suppressed by the
+ *      `shader-on` body class when the shader is running.
+ *   3. Generated scene art (static/assets/scenes/<route>.png, gitignored) — Prime's
+ *      painted backdrop, faded in OVER the field when present (/api/scenes).
  *
- * The art map is fetched once from /api/scenes; missing routes simply keep the
- * gradient. Never an error, never a broken image. */
+ * Never an error, never a broken image: missing WebGL → gradient; missing art →
+ * shader/gradient. */
 (function () {
   "use strict";
   var el = null;
-  var sceneMap = {};            // {route: url} of generated art that exists on disk
+  var sceneMap = {};
   var ROUTES = ["pacifist", "neutral", "genocide", "undetermined"];
+  // Fun values that brush a Gaster-tier event (see save_flavor.FUN_EVENTS) — the
+  // backdrop tears for a beat when a save sits on one.
+  function isAnomalousFun(fun) {
+    var f = parseInt(fun, 10);
+    if (isNaN(f)) return false;
+    return (f >= 61 && f <= 63) || f === 65 || f === 66 || (f >= 90 && f <= 100);
+  }
 
   function backdrop() {
     if (!el) el = document.getElementById("scene-backdrop");
@@ -24,29 +33,43 @@
     if (!b) return;
     var key = (route || "undetermined").toLowerCase();
     if (ROUTES.indexOf(key) === -1) key = "undetermined";
-    // 1. Route-tinted gradient class (guaranteed fallback).
     b.className = "scene-backdrop scene-" + key;
-    // 2. Generated art over the gradient, when we have it for this route.
+    // drive the living field
+    if (window.ShaderField && window.ShaderField.supported) window.ShaderField.setRoute(key);
+    // Prime's painted scene art over the field, when we have it
     var url = sceneMap[key];
-    if (url) {
-      b.style.backgroundImage = "url('" + url + "')";
-      b.classList.add("has-art");
-    } else {
-      b.style.backgroundImage = "";
-      b.classList.remove("has-art");
+    if (url) { b.style.backgroundImage = "url('" + url + "')"; b.classList.add("has-art"); }
+    else { b.style.backgroundImage = ""; b.classList.remove("has-art"); }
+  }
+
+  // Tear the field for a beat — the Fun-value anomaly made visible. Either pass a
+  // raw fun value (gated to Gaster-tier) or call with no args to force a pulse.
+  function anomaly(fun) {
+    if (!window.ShaderField || !window.ShaderField.supported) return;
+    if (arguments.length === 0 || isAnomalousFun(fun)) {
+      window.ShaderField.pulse(1.0);
+      // a short flurry so it reads as a glitch, not a single frame
+      var n = 0, id = setInterval(function () {
+        window.ShaderField.pulse(0.8); if (++n > 6) clearInterval(id);
+      }, 90);
     }
   }
 
   function init() {
-    // Fetch the available-art map once; failure just leaves gradients in place.
+    // boot the WebGL field; on success suppress the CSS gradient
+    var canvas = document.getElementById("scene-shader");
+    if (canvas && window.ShaderField && window.ShaderField.init(canvas)) {
+      document.body.classList.add("shader-on");
+    }
+    // fetch Prime's available art map once; failure just leaves the field/gradient
     try {
       fetch("/api/scenes").then(function (r) { return r.json(); }).then(function (d) {
         sceneMap = (d && d.scenes) || {};
-      }).catch(function () { /* gradients only — fine */ });
-    } catch (e) { /* no fetch — gradients only */ }
+      }).catch(function () {});
+    } catch (e) {}
   }
 
-  window.SceneLayer = { setRoute: setRoute, init: init };
+  window.SceneLayer = { setRoute: setRoute, anomaly: anomaly, init: init };
   if (document.readyState !== "loading") init();
   else document.addEventListener("DOMContentLoaded", init);
 })();
