@@ -266,49 +266,156 @@
   // stance → CSS class for the affinity chip colour
   var STANCE_CLASS = { warm: "ok", wary: "free", grieving: "warn", hostile: "warn", unreadable: "free" };
 
+  // ── portraits (bring-your-own; click a card's photo to change it) ─────────
+  var portraitBust = 0;   // bumped on change so the browser re-fetches the image
+  function charByName(name) {
+    var l = state.characters || [];
+    for (var i = 0; i < l.length; i++) if (l[i].name === name) return l[i];
+    return null;
+  }
+  function portraitUrl(name) {
+    var c = charByName(name); var u = c && c.avatar_url;
+    if (!u) return "";
+    return portraitBust ? (u + (u.indexOf("?") < 0 ? "?" : "&") + "v=" + portraitBust) : u;
+  }
+  function portraitTag(name) {
+    var u = portraitUrl(name);
+    return u
+      ? '<img class="relic-portrait" src="' + u + '" alt="' + name + '" />'
+      : '<div class="relic-portrait empty"></div>';
+  }
+
   function loadRoster() {
     api("/api/characters").then(function (res) {
       state.characters = res.characters;
-      var el = $("roster"); el.innerHTML = "";
-      var strip = $("speaker-strip"); if (strip) strip.innerHTML = "";
-      res.characters.forEach(function (c) {
-        var portrait = c.avatar_url
-          ? '<img class="relic-portrait" src="' + c.avatar_url + '" alt="' + c.name + '" />'
-          : '<div class="relic-portrait empty"></div>';
-        // left-rail roster card
-        var card = document.createElement("div");
-        card.className = "char-card";
-        card.dataset.name = c.name;
-        card.innerHTML = portrait + '<div class="name">' + c.name + "</div>" +
-          '<div class="affinity" data-for="' + c.name + '"></div>';
-        card.onclick = function () { selectCharacter(c); };
-        el.appendChild(card);
-        // mobile speaker strip face
-        if (strip) {
-          var face = document.createElement("div");
-          face.className = "face"; face.dataset.name = c.name;
-          face.innerHTML = portrait + "<div>" + c.name + "</div>";
-          face.onclick = function () { selectCharacter(c); };
-          strip.appendChild(face);
-        }
-      });
+      renderRoster();
       loadAffinities();   // decorate cards with how each regards you
     });
+  }
+
+  // Render roster + speaker strip from cached state.characters (no refetch), so a
+  // portrait change repaints instantly.
+  function renderRoster() {
+    var el = $("roster"); if (el) el.innerHTML = "";
+    var strip = $("speaker-strip"); if (strip) strip.innerHTML = "";
+    (state.characters || []).forEach(function (c) {
+      var hasImg = !!(c.avatar_url);
+      // left-rail roster card — the portrait carries ✎ (change) / ✕ (clear) badges
+      var card = document.createElement("div");
+      card.className = "char-card";
+      card.dataset.name = c.name;
+      card.classList.toggle("selected", c.name === state.character);
+      card.innerHTML =
+        '<div class="portrait-wrap" title="Photo options">' + portraitTag(c.name) +
+          '<span class="pbadge" aria-hidden="true">⋯</span></div>' +
+        '<div class="name">' + c.name + "</div>" +
+        '<div class="affinity" data-for="' + c.name + '"></div>';
+      card.onclick = function () { selectCharacter(c); };
+      var wrap = card.querySelector(".portrait-wrap");
+      wrap.onclick = function (e) { e.stopPropagation(); openPortraitMenu(c.name, wrap); };
+      if (el) el.appendChild(card);
+      // mobile speaker strip face (display only)
+      if (strip) {
+        var face = document.createElement("div");
+        face.className = "face"; face.dataset.name = c.name;
+        face.classList.toggle("selected", c.name === state.character);
+        face.innerHTML = portraitTag(c.name) + "<div>" + c.name + "</div>";
+        face.onclick = function () { selectCharacter(c); };
+        strip.appendChild(face);
+      }
+    });
+  }
+
+  // ── change / clear a character's portrait (your own image; downscaled) ────
+  function downscaleToPng(file, max, cb) {
+    var img = new Image();
+    img.onload = function () {
+      var s = Math.min(1, max / Math.max(img.width, img.height));
+      var w = Math.max(1, Math.round(img.width * s)), h = Math.max(1, Math.round(img.height * s));
+      var cv = document.createElement("canvas"); cv.width = w; cv.height = h;
+      cv.getContext("2d").drawImage(img, 0, 0, w, h);
+      cv.toBlob(function (blob) { cb(blob); }, "image/png");
+      URL.revokeObjectURL(img.src);
+    };
+    img.onerror = function () { alert("That file isn't a readable image."); };
+    img.src = URL.createObjectURL(file);
+  }
+  function applyPortrait(name, avatarUrl) {
+    var c = charByName(name); if (c) c.avatar_url = avatarUrl;
+    portraitBust = (portraitBust || 0) + 1;
+    renderRoster(); renderAffinities();
+    if (state.character) renderTranscript();
+  }
+  function changePortrait(name) {
+    var inp = document.createElement("input");
+    inp.type = "file"; inp.accept = "image/*";
+    inp.onchange = function () {
+      var f = inp.files && inp.files[0]; if (!f) return;
+      downscaleToPng(f, 192, function (blob) {
+        var fd = new FormData(); fd.append("image", blob, name.toLowerCase() + ".png");
+        api("/api/characters/" + name.toLowerCase() + "/portrait", { method: "POST", body: fd })
+          .then(function (res) { applyPortrait(name, res.avatar_url); })
+          .catch(function (e) { alert("Couldn't set image: " + e.message); });
+      });
+    };
+    inp.click();
+  }
+  function resetPortrait(name) {
+    api("/api/characters/" + name.toLowerCase() + "/portrait", { method: "DELETE" })
+      .then(function (res) { applyPortrait(name, res.avatar_url); })
+      .catch(function () {});
+  }
+
+  // a small options menu on the portrait: View larger · Change · Remove
+  function closePortraitMenu() {
+    var m = $("portrait-menu"); if (m) m.parentNode.removeChild(m);
+    document.removeEventListener("click", closePortraitMenu, true);
+  }
+  function openPortraitMenu(name, anchor) {
+    closePortraitMenu();
+    var c = charByName(name); var hasImg = !!(c && c.avatar_url);
+    var m = document.createElement("div"); m.id = "portrait-menu"; m.className = "portrait-menu";
+    var items = [];
+    if (hasImg) items.push(["🔍 View larger", function () { openLightbox(name); }]);
+    items.push([hasImg ? "✎ Change image" : "✎ Add image", function () { changePortrait(name); }]);
+    if (hasImg) items.push(["✕ Remove image", function () { resetPortrait(name); }]);
+    items.forEach(function (it) {
+      var b = document.createElement("button"); b.className = "pm-item"; b.textContent = it[0];
+      b.onclick = function (e) { e.stopPropagation(); closePortraitMenu(); it[1](); };
+      m.appendChild(b);
+    });
+    document.body.appendChild(m);
+    var r = anchor.getBoundingClientRect();
+    m.style.left = Math.max(6, Math.min(r.left, window.innerWidth - m.offsetWidth - 6)) + "px";
+    m.style.top = Math.min(r.bottom + 4, window.innerHeight - m.offsetHeight - 6) + "px";
+    setTimeout(function () { document.addEventListener("click", closePortraitMenu, true); }, 0);
+  }
+  function openLightbox(name) {
+    var u = portraitUrl(name); if (!u) return;
+    var ov = document.createElement("div"); ov.className = "lightbox";
+    var img = document.createElement("img"); img.src = u; img.alt = name;
+    var cap = document.createElement("div"); cap.className = "lb-name"; cap.textContent = name;
+    ov.appendChild(img); ov.appendChild(cap);
+    ov.onclick = function () { ov.parentNode.removeChild(ov); };
+    document.body.appendChild(ov);
   }
 
   // How the Underground regards you — a stance chip per roster card (SACRED-derived).
   function loadAffinities() {
     if (!state.projectId) return;
     api("/api/projects/" + state.projectId + "/affinities").then(function (res) {
-      var aff = res.affinities || {};
-      state.affinities = aff;   // reused by the chat header
-      Array.prototype.forEach.call(document.querySelectorAll("#roster .affinity"), function (slot) {
-        var a = aff[slot.dataset.for];
-        if (!a) { slot.innerHTML = ""; return; }
-        slot.innerHTML = '<span class="chip ' + (STANCE_CLASS[a.stance] || "free") +
-          '" title="' + a.basis + '">' + a.stance + "</span>";
-      });
+      state.affinities = res.affinities || {};
+      renderAffinities();
     }).catch(function () {});
+  }
+  function renderAffinities() {
+    var aff = state.affinities || {};
+    Array.prototype.forEach.call(document.querySelectorAll("#roster .affinity"), function (slot) {
+      var a = aff[slot.dataset.for];
+      if (!a) { slot.innerHTML = ""; return; }
+      slot.innerHTML = '<span class="chip ' + (STANCE_CLASS[a.stance] || "free") +
+        '" title="' + a.basis + '">' + a.stance + "</span>";
+    });
   }
 
   function selectCharacter(c) {
@@ -322,8 +429,11 @@
       ? ' <span class="chip ' + (STANCE_CLASS[a.stance] || "free") + '" title="' + a.basis +
         '" style="font-size:0.64rem; vertical-align:middle;">regards you: ' + a.stance + "</span>"
       : "");
+    var pu = portraitUrl(c.name);
     var p = $("chat-portrait");
-    if (c.avatar_url) { p.outerHTML = '<img class="relic-portrait" id="chat-portrait" src="' + c.avatar_url + '" />'; }
+    if (p) p.outerHTML = pu
+      ? '<img class="relic-portrait" id="chat-portrait" src="' + pu + '" />'
+      : '<div class="relic-portrait empty" id="chat-portrait"></div>';
     showView("chat");
     renderTranscript();   // show what we have immediately (placeholder or local history)
     // Load the persisted transcript so the conversation survives a reload. Only
@@ -343,13 +453,7 @@
   }
 
   // ── chat ──────────────────────────────────────────────────────────────────
-  function avatarFor(name) {
-    var list = state.characters || [];
-    for (var i = 0; i < list.length; i++) {
-      if (list[i].name === name) return list[i].avatar_url || "";
-    }
-    return "";
-  }
+  function avatarFor(name) { return portraitUrl(name); }
 
   function renderTranscript() {
     var t = $("transcript"); t.innerHTML = "";

@@ -45,7 +45,7 @@ import living_memory as lm
 import provenance as provenance_mod
 import rag_engine
 import scene_resolver
-from avatar_resolver import resolve_avatar
+from avatar_resolver import resolve_avatar, PORTRAIT_DIR, _slug as _portrait_slug
 from backend.models import Base, CharacterMemory, Conversation, JournalEntry, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
 from llm_client import LLMUnavailable, generate_reply
@@ -576,6 +576,48 @@ def get_characters() -> dict[str, Any]:
     for c in chars:
         c["avatar_url"] = resolve_avatar(c)
     return {"characters": chars}
+
+
+@app.post("/api/characters/{character}/portrait")
+async def set_portrait(character: str, image: UploadFile = File(...)) -> dict[str, Any]:
+    """Bring-your-own-art: store an image YOU supply as a character's portrait.
+
+    Writes to the gitignored portraits folder the resolver already serves
+    (static/assets/portraits/<slug>.png), so it persists and shows on every device
+    you reach the app from. Not a save-file mutation — purely a local UI asset.
+    The slug comes only from the known character registry, so no arbitrary paths.
+    """
+    char = get_character(character)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"unknown character {character!r}")
+    slug = _portrait_slug(char.get("name") or character)
+    if not slug:
+        raise HTTPException(status_code=400, detail="unusable character name")
+    data = await image.read()
+    if not data or len(data) < 100:
+        raise HTTPException(status_code=400, detail="image missing or too small")
+    if len(data) > 4_000_000:
+        raise HTTPException(status_code=400, detail="image too large (max ~4MB)")
+    os.makedirs(PORTRAIT_DIR, exist_ok=True)
+    with open(os.path.join(PORTRAIT_DIR, f"{slug}.png"), "wb") as f:
+        f.write(data)
+    return {"character": char["name"], "avatar_url": resolve_avatar(char)}
+
+
+@app.delete("/api/characters/{character}/portrait")
+def clear_portrait(character: str) -> dict[str, Any]:
+    """Remove a supplied portrait, reverting the character to the default crest."""
+    char = get_character(character)
+    if not char:
+        raise HTTPException(status_code=404, detail=f"unknown character {character!r}")
+    slug = _portrait_slug(char.get("name") or character)
+    path = os.path.join(PORTRAIT_DIR, f"{slug}.png")
+    try:
+        if os.path.isfile(path):
+            os.remove(path)
+    except OSError:
+        pass
+    return {"character": char["name"], "avatar_url": resolve_avatar(char)}
 
 
 @app.get("/api/scenes")
