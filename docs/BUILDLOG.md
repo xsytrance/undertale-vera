@@ -479,3 +479,10 @@ app-shell panels are now translucent obsidian + a 3px backdrop blur, so the rout
 backdrop bleeds THROUGH them for depth while parchment text stays readable. Verified
 across all four routes behind real text (title + facts panel + chips). Scene art
 itself stays gitignored (delivered out-of-band); only the CSS is committed.
+
+## The scene breathes — slow Ken Burns drift
+The route backdrop now drifts slowly (a 52s scale+translate Ken Burns loop, with
+overscan so no edge ever shows), so the approved scene art feels alive and its
+centred composition wanders gently into view around the frosted panels. Pure CSS,
+honours `prefers-reduced-motion`. Browser-verified: animation applies, the texture
+visibly shifts between frames, text stays legible, 0 console errors.
