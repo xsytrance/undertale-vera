@@ -72,11 +72,12 @@ def test_inscribe_falls_back_without_model(monkeypatch):
 def test_journal_is_add_only_and_chronological(monkeypatch):
     monkeypatch.setattr(appmod, "generate_reply", lambda sp, um, **k: {"text": "an entry.", "model": "m"})
     pid = _upload("file0_pacifist", "undertale_pacifist.ini")
+    base = len(client.get(f"/api/projects/{pid}/journal").json()["entries"])   # auto-filled milestones
     client.post(f"/api/projects/{pid}/journal/inscribe", json={"character": "sans"})
     client.post(f"/api/projects/{pid}/journal/inscribe", json={"character": "toriel"})
     j = client.get(f"/api/projects/{pid}/journal").json()
-    assert [e["counter"] for e in j["entries"]] == [1, 2]          # append-only, ordered
-    assert [e["author"] for e in j["entries"]] == ["Sans", "Toriel"]
+    assert [e["counter"] for e in j["entries"]] == list(range(1, base + 3))   # append-only, sequential
+    assert [e["author"] for e in j["entries"][-2:]] == ["Sans", "Toriel"]     # the two manual inscriptions
     assert "# The Keepsake Journal" in j["markdown"]
 
 

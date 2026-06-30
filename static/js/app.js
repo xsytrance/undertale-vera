@@ -93,8 +93,34 @@
     if (window.SceneLayer) window.SceneLayer.setRoute(route);
     // tint the header sigil red on the Genocide beat.
     $("header-sigil").className = "soul-sigil" + (route === "Genocide" ? " determined" : "");
+    // New Game+: does anything here know you from another save you've shown?
+    loadRecognition();
   }
   function row(k, v) { return '<div class="k">' + k + "</div><div>" + v + "</div>"; }
+
+  // New Game+ / cross-save recognition: a quiet beat when this save has siblings.
+  // Honours the Options "Save/reset talk" dial — off means stay in the fiction.
+  function loadRecognition() {
+    var box = $("recognition-box");
+    if (!box) return;
+    if (!state.projectId) { box.classList.add("hidden"); return; }
+    var metaOff = (((state.settings || {}).options || {}).meta === "off");
+    if (metaOff) { box.classList.add("hidden"); return; }
+    api("/api/projects/" + state.projectId + "/recognition").then(function (res) {
+      if (!res || !res.present) { box.classList.add("hidden"); return; }
+      var n = res.count || 0;
+      var faces = (res.priors || []).slice(0, 3).map(function (p) {
+        var nm = p.name || "a nameless run";
+        return nm + (p.route ? (" · " + p.route) : "");
+      }).join("  ·  ");
+      box.innerHTML =
+        '<span class="rec-mark">🌼</span> <strong>You\'ve been here before.</strong> ' +
+        n + " other save" + (n === 1 ? "" : "s") + " shown — " +
+        '<span class="muted">' + faces + "</span>. " +
+        "<em>Flowey never forgets a run. Ask him.</em>";
+      box.classList.remove("hidden");
+    }).catch(function () { box.classList.add("hidden"); });
+  }
 
   // ── save shelf (switch between read saves) ───────────────────────────────
   function loadShelf() {
@@ -234,12 +260,15 @@
   }
 
   function typewriter(span, text) {
+    var ms = (state.settings && state.settings.hud.typewriterMs);
+    if (ms == null) ms = 18;
+    if (!ms) { span.textContent = text; return; }   // instant
     span.textContent = ""; span.parentNode.classList.add("ink-reveal");
     var i = 0;
     var timer = setInterval(function () {
       span.textContent = text.slice(0, ++i);
       if (i >= text.length) { clearInterval(timer); span.parentNode.classList.remove("ink-reveal"); }
-    }, 18);
+    }, ms);
   }
 
   function sendMessage() {
@@ -248,7 +277,8 @@
     var hist = state.history[state.character];
     hist.push({ role: "user", content: msg });
     renderTranscript(); input.value = "";
-    var body = { character: state.character, message: msg, history: hist.slice(0, -1) };
+    var body = { character: state.character, message: msg, history: hist.slice(0, -1),
+                 options: (state.settings || {}).options };
     api("/api/projects/" + state.projectId + "/chat", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     }).then(function (res) {
@@ -480,6 +510,29 @@
     });
   }
 
+  // ── The Council (the whole Underground reacts at once) ─────────────────────
+  function showCouncil() {
+    if (!state.projectId) return;
+    api("/api/projects/" + state.projectId + "/council").then(function (res) {
+      var box = $("council-list"); box.innerHTML = "";
+      (res.council || []).forEach(function (e) {
+        var av = avatarFor(e.character);
+        var row = document.createElement("div");
+        row.className = "council-voice";
+        row.innerHTML =
+          (av ? '<img class="bubble-avatar" src="' + av + '" alt="" />'
+              : '<div class="bubble-avatar empty"></div>') +
+          '<div class="cv-body"><div class="cv-head">' + e.character +
+          ' <span class="chip ' + (STANCE_CLASS[e.stance] || "free") + '">' + e.stance + "</span></div>" +
+          '<div class="cv-line"></div></div>';
+        row.querySelector(".cv-line").textContent = e.line;
+        box.appendChild(row);
+      });
+      $("council-panel").classList.remove("hidden");
+      $("council-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   // ── Proactive contact (they reach out to you) ──────────────────────────────
   var reachTimer = null;
   function setReachOut(on) {
@@ -502,7 +555,57 @@
     t._timer = setTimeout(function () { t.classList.add("hidden"); }, 14000);
   }
 
+  // ── Options menu (response dials + HUD density; persisted) ─────────────────
+  var SETTINGS_DEFAULT = {
+    options: { verbosity: "normal", intensity: "normal", lore: "normal", meta: "subtle" },
+    hud: { provenance: true, affinity: true, remembrance: true, motion: true, typewriterMs: 18 },
+  };
+  function loadSettings() {
+    try {
+      var saved = JSON.parse(localStorage.getItem("uv_settings") || "{}");
+      return {
+        options: Object.assign({}, SETTINGS_DEFAULT.options, saved.options || {}),
+        hud: Object.assign({}, SETTINGS_DEFAULT.hud, saved.hud || {}),
+      };
+    } catch (e) { return JSON.parse(JSON.stringify(SETTINGS_DEFAULT)); }
+  }
+  function applyHud() {
+    var h = state.settings.hud, b = document.body;
+    b.classList.toggle("hud-no-provenance", !h.provenance);
+    b.classList.toggle("hud-no-affinity", !h.affinity);
+    b.classList.toggle("hud-no-remembrance", !h.remembrance);
+    b.classList.toggle("hud-no-motion", !h.motion);
+  }
+  function syncSettingsControls() {
+    var o = state.settings.options, h = state.settings.hud;
+    $("opt-verbosity").value = o.verbosity; $("opt-intensity").value = o.intensity;
+    $("opt-lore").value = o.lore; $("opt-meta").value = o.meta;
+    $("hud-provenance").checked = h.provenance; $("hud-affinity").checked = h.affinity;
+    $("hud-remembrance").checked = h.remembrance; $("hud-motion").checked = h.motion;
+    $("hud-typewriter").value = String(h.typewriterMs);
+  }
+  function readSettingsControls() {
+    state.settings.options = {
+      verbosity: $("opt-verbosity").value, intensity: $("opt-intensity").value,
+      lore: $("opt-lore").value, meta: $("opt-meta").value,
+    };
+    state.settings.hud = {
+      provenance: $("hud-provenance").checked, affinity: $("hud-affinity").checked,
+      remembrance: $("hud-remembrance").checked, motion: $("hud-motion").checked,
+      typewriterMs: parseInt($("hud-typewriter").value, 10) || 0,
+    };
+    try { localStorage.setItem("uv_settings", JSON.stringify(state.settings)); } catch (e) {}
+    applyHud();
+    loadRecognition();  // the "Save/reset talk" dial gates the recognition beat
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
+    state.settings = loadSettings();
+    syncSettingsControls();
+    applyHud();
+    $("settings-btn").onclick = function () { $("settings-panel").classList.toggle("hidden"); };
+    $("settings-close").onclick = function () { $("settings-panel").classList.add("hidden"); };
+    $("settings-panel").addEventListener("change", readSettingsControls);
     if (window.MusicLayer) window.MusicLayer.init();
     loadShelf();
     $("upload-btn").onclick = uploadSave;
@@ -520,6 +623,8 @@
     $("journal-close-btn").onclick = function () { $("journal-panel").classList.add("hidden"); };
     $("timeline-btn").onclick = showTimeline;
     $("timeline-close-btn").onclick = function () { $("timeline-panel").classList.add("hidden"); };
+    $("council-btn").onclick = showCouncil;
+    $("council-close-btn").onclick = function () { $("council-panel").classList.add("hidden"); };
     $("reachout-toggle").onchange = function () { setReachOut(this.checked); };
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;

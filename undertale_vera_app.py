@@ -28,8 +28,12 @@ from sqlalchemy.orm import Session, sessionmaker
 
 import affinity as affinity_mod
 import character_disposition
+import chat_style
 import chronicle as chronicle_mod
+import council
+import crossave
 import journal
+import milestones
 import proactive
 import relationships
 import save_flavor
@@ -125,6 +129,23 @@ def _snapshots_for(db: Session, project_id: int) -> list[dict[str, Any]]:
     ]
 
 
+def _prior_save_summaries(db: Session, current_project_id: int) -> list[dict[str, Any]]:
+    """Snapshot-fields of every OTHER save (project) the player has shown.
+
+    Cross-save recognition material (Bucket A, SACRED): each entry is the current
+    SaveTruth of a different project, reduced to the same honest fields the ledger
+    uses. Ordered oldest-first by project id. In this single-player install all
+    projects are the same hand on the keys.
+    """
+    rows = (
+        db.query(Project)
+        .filter(Project.id != current_project_id)
+        .order_by(Project.id.asc())
+        .all()
+    )
+    return [ledger.snapshot_fields_from_truth(r.save_data or {}) for r in rows]
+
+
 # ── health ───────────────────────────────────────────────────────────────────
 
 @app.get("/api/health")
@@ -161,6 +182,7 @@ async def upload_save(
 
     # First remembrance-ledger entry (the save begins to remember).
     _record_snapshot(db, project.id, truth)
+    _autofill_journal(db, project.id, truth, _snapshots_for(db, project.id))
 
     return {"project_id": project.id, "save_truth": truth, "validation": validation}
 
@@ -191,6 +213,7 @@ async def refresh_save(
     project.save_data = truth
     db.commit()
     snap = _record_snapshot(db, project_id, truth)
+    _autofill_journal(db, project_id, truth, _snapshots_for(db, project_id))
 
     return {
         "project_id": project_id,
@@ -386,6 +409,55 @@ def get_affinities(project_id: int, db: Session = Depends(get_db)) -> dict[str, 
     return {"project_id": project_id, "affinities": affinity_mod.all_affinities(project.save_data or {})}
 
 
+@app.get("/api/projects/{project_id}/council")
+def get_council(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The Council: the whole Underground's reaction to the run, side by side (deterministic)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    return {"project_id": project_id, "council": council.build_council(project.save_data or {})}
+
+
+@app.get("/api/projects/{project_id}/recognition")
+def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """New Game+: does anything here know you from ANOTHER save you've shown?
+
+    Deterministic (no model). Surfaces the SACRED facts of your other saves and the
+    save-aware characters' (Flowey / Sans) knowing recognition lines. `present` is
+    false on a first/only save — nothing has seen you before yet.
+    """
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    current = ledger.snapshot_fields_from_truth(project.save_data or {})
+    priors = _prior_save_summaries(db, project_id)
+    return {
+        "project_id": project_id,
+        "present": bool(priors),
+        "count": len(priors),
+        "priors": priors,
+        "flowey": crossave.build_recognition_grounding(current, priors, voice="flowey"),
+        "sans": crossave.build_recognition_grounding(current, priors, voice="sans"),
+    }
+
+
+def _autofill_journal(db: Session, project_id: int, save_truth: dict[str, Any],
+                      snapshots: list[dict[str, Any]]) -> None:
+    """Append milestone journal entries the save just earned (ADD-only, de-duped by kind)."""
+    existing = {
+        r.kind for r in db.query(JournalEntry).filter(JournalEntry.project_id == project_id).all()
+    }
+    fresh = [m for m in milestones.detect_milestones(save_truth, snapshots) if m["kind"] not in existing]
+    if not fresh:
+        return
+    prior = db.query(JournalEntry).filter(JournalEntry.project_id == project_id).count()
+    route = (save_truth.get("route") or {}).get("route")
+    for i, m in enumerate(fresh, start=1):
+        db.add(JournalEntry(project_id=project_id, counter=prior + i, author=m["author"],
+                            kind=m["kind"], text=m["text"], route_context=route))
+    db.commit()
+
+
 @app.get("/api/projects/{project_id}/chronicle")
 def get_chronicle(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """The Chronicle: the save's whole story as shareable Markdown (SACRED, facts-only)."""
@@ -486,6 +558,7 @@ class ChatRequest(BaseModel):
     character: str
     message: str
     history: Optional[list[dict[str, str]]] = None
+    options: Optional[dict[str, Any]] = None   # FREE style dials (verbosity/intensity/lore/meta)
 
 
 def _get_or_create_conversation(db: Session, project_id: int, character: str) -> Conversation:
@@ -563,11 +636,28 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         reset_block = ledger.build_reset_awareness(snapshots)
         if reset_block:
             remembrance = (remembrance + "\n\n" + reset_block).strip()
+    # New Game+: the save/reset-aware pair also recognise the player ACROSS saves —
+    # a different file shown before, a different face. SACRED (other projects' real
+    # fields). Muted when the player sets the Options 'Save/reset talk' dial to off.
+    if (req.options or {}).get("meta") != "off" and normalize_key(req.character) in (
+        "name:sans", "name:flowey"
+    ):
+        voice = "flowey" if normalize_key(req.character) == "name:flowey" else "sans"
+        rec_block = crossave.build_recognition_grounding(
+            ledger.snapshot_fields_from_truth(save_truth),
+            _prior_save_summaries(db, project_id),
+            voice=voice,
+        )
+        if rec_block:
+            remembrance = (remembrance + "\n\n" + rec_block).strip()
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")
-    lore_docs = rag_engine.retrieve(req.message, character=req.character, route=save_route)
+    # FREE style dials: lore depth controls retrieval (None → skip the lore layer).
+    k = chat_style.lore_k(req.options or {})
+    lore_docs = rag_engine.retrieve(req.message, character=req.character, route=save_route, k=k) if k else []
     lore_grounding = rag_engine.format_lore_grounding(lore_docs)
+    style_grounding = chat_style.build_style_directives(req.options or {})
     # SACRED: who the save records as killed/spared/befriended (parser-derived).
     disposition_grounding = character_disposition.grounding_from_truth(save_truth)
     # SACRED: the fate of those THIS speaker cares about (relational awareness).
@@ -587,6 +677,7 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         relational_grounding=relational_grounding,
         texture_grounding=texture_grounding,
         anomaly_grounding=anomaly_grounding,
+        style_grounding=style_grounding,
     )
 
     grounding_source = "llm"

@@ -279,6 +279,17 @@ input[type="file"], input[type="text"] {
 .gap { color: var(--ink-dim); font-style: italic; }
 .remembrance { border-left: 2px solid var(--ember); padding-left: 12px; margin-top: 10px; color: var(--ink); }
 
+/* New Game+ recognition beat — a save that knows you from another file */
+.recognition {
+  margin-top: 10px; padding: 10px 12px;
+  border: 1px solid var(--plate-frame); border-left: 2px solid #78c878;
+  border-radius: 6px; background: rgba(120, 200, 120, 0.06);
+  color: var(--ink); font-size: 0.92rem; line-height: 1.5;
+}
+.recognition .rec-mark { font-size: 1.05rem; }
+.recognition strong { color: #9bd99b; font-family: var(--font-display); }
+.recognition em { color: var(--ink-dim); }
+
 /* provenance overlay — the wall, made visible per reply */
 .provenance {
   margin-top: 8px; padding-top: 8px;
@@ -358,3 +369,43 @@ input[type="file"], input[type="text"] {
 .reach-toast strong { color: var(--ember); font-family: var(--font-display); }
 .reach-toast span { display: block; margin-top: 4px; color: var(--ink); }
 @keyframes toast-in { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ── The Council (whole-cast reaction) ────────────────────────────────────── */
+.council { display: flex; flex-direction: column; gap: 12px; }
+.council-voice { display: flex; gap: 12px; align-items: flex-start;
+  padding: 8px 10px; border-radius: 8px; background: rgba(21,19,28,0.5);
+  border-left: 3px solid var(--brass); }
+.council-voice .cv-head { font-family: var(--font-display); color: var(--ember); margin-bottom: 3px; }
+.council-voice .cv-line { font-family: var(--font-body); line-height: 1.45; color: var(--ink); }
+
+/* ── compact Options menu (one gear, its own panel) ───────────────────────── */
+.settings-gear {
+  position: fixed; top: 14px; right: 16px; z-index: 60;
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid var(--brass); background: var(--obsidian-panel);
+  color: var(--ember); font-size: 1.2rem; cursor: pointer; line-height: 1;
+  transition: box-shadow 0.15s, transform 0.3s;
+}
+.settings-gear:hover { box-shadow: 0 0 16px rgba(184,147,63,0.4); transform: rotate(45deg); }
+.settings {
+  position: fixed; top: 62px; right: 16px; z-index: 60; width: 300px; max-width: 92vw;
+  background: linear-gradient(180deg, var(--obsidian-panel), var(--plate-inner));
+  border: 1px solid var(--brass); border-radius: 12px; padding: 14px;
+  box-shadow: 0 14px 44px rgba(0,0,0,0.7);
+}
+.settings-head { display: flex; justify-content: space-between; align-items: center;
+  font-family: var(--font-display); color: var(--brass-edge); margin-bottom: 6px; }
+.settings-sec { margin-top: 10px; border-top: 1px solid var(--plate-frame); padding-top: 8px; }
+.settings-sec h3 { margin: 2px 0 6px; font-size: 0.9rem; color: var(--ember); }
+.settings-sec label { display: flex; justify-content: space-between; align-items: center;
+  gap: 8px; font-size: 0.85rem; color: var(--ink-dim); margin: 7px 0; }
+.settings-sec select {
+  background: var(--plate-inner); color: var(--ink); border: 1px solid var(--plate-frame);
+  border-radius: 6px; padding: 3px 8px; font-family: var(--font-mono); font-size: 0.78rem;
+}
+
+/* ── HUD density (driven by body classes from the Options menu) ───────────── */
+.hud-no-provenance .provenance { display: none; }
+.hud-no-affinity .char-card .affinity { display: none; }
+.hud-no-remembrance #remembrance-box { display: none !important; }
+.hud-no-motion .scene-backdrop { animation: none !important; transform: none !important; }
