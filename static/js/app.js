@@ -158,6 +158,7 @@
     if (!state.projectId) return;
     api("/api/projects/" + state.projectId + "/affinities").then(function (res) {
       var aff = res.affinities || {};
+      state.affinities = aff;   // reused by the chat header
       Array.prototype.forEach.call(document.querySelectorAll("#roster .affinity"), function (slot) {
         var a = aff[slot.dataset.for];
         if (!a) { slot.innerHTML = ""; return; }
@@ -173,7 +174,11 @@
     Array.prototype.forEach.call(document.querySelectorAll("#roster .char-card"), function (el) {
       el.classList.toggle("selected", el.dataset.name === c.name);
     });
-    $("chat-name").textContent = c.name;
+    var a = (state.affinities || {})[c.name];
+    $("chat-name").innerHTML = c.name + (a
+      ? ' <span class="chip ' + (STANCE_CLASS[a.stance] || "free") + '" title="' + a.basis +
+        '" style="font-size:0.64rem; vertical-align:middle;">regards you: ' + a.stance + "</span>"
+      : "");
     var p = $("chat-portrait");
     if (c.avatar_url) { p.outerHTML = '<img class="relic-portrait" id="chat-portrait" src="' + c.avatar_url + '" />'; }
     $("chat-panel").classList.remove("hidden");
