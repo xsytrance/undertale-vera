@@ -29,6 +29,8 @@ from sqlalchemy.orm import Session, sessionmaker
 import affinity as affinity_mod
 import character_disposition
 import chronicle as chronicle_mod
+import journal
+import proactive
 import relationships
 import save_flavor
 import hallucination_guard
@@ -39,7 +41,7 @@ import provenance as provenance_mod
 import rag_engine
 import scene_resolver
 from avatar_resolver import resolve_avatar
-from backend.models import Base, CharacterMemory, Conversation, Project, SaveSnapshot
+from backend.models import Base, CharacterMemory, Conversation, JournalEntry, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
 from llm_client import LLMUnavailable, generate_reply
 from prompt_builder import build_system_prompt
@@ -248,6 +250,131 @@ def get_judgment(project_id: int, db: Session = Depends(get_db)) -> dict[str, An
         raise HTTPException(status_code=404, detail="project not found")
     snaps = _snapshots_for(db, project_id)
     return {"project_id": project_id, "judgment": judgment_mod.build_judgment(project.save_data or {}, snaps)}
+
+
+# ── the Keepsake Journal (ADD-only; the book you carry between worlds) ────────
+
+def _journal_entries(db: Session, project_id: int) -> list[dict[str, Any]]:
+    rows = (
+        db.query(JournalEntry)
+        .filter(JournalEntry.project_id == project_id)
+        .order_by(JournalEntry.counter.asc(), JournalEntry.id.asc())
+        .all()
+    )
+    return [
+        {"counter": r.counter, "author": r.author, "kind": r.kind,
+         "text": r.text, "route_context": r.route_context,
+         "created_at": r.created_at.isoformat() if r.created_at else None}
+        for r in rows
+    ]
+
+
+@app.get("/api/projects/{project_id}/journal")
+def get_journal(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The Keepsake Journal: every inscription, plus a portable markdown export."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    entries = _journal_entries(db, project_id)
+    return {"project_id": project_id, "entries": entries,
+            "markdown": journal.build_journal_markdown(entries, project.name or "this save")}
+
+
+class InscribeRequest(BaseModel):
+    character: str
+
+
+@app.post("/api/projects/{project_id}/journal/inscribe")
+def inscribe_journal(project_id: int, req: InscribeRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """A character writes a grounded entry in the journal (FREE voice over SACRED facts)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    if not get_character(req.character):
+        raise HTTPException(status_code=404, detail=f"unknown character {req.character!r}")
+
+    save_truth = project.save_data or {}
+    # Ground the entry exactly like chat: sacred facts + who-you-met + the speaker's
+    # relational stake. The journal entry is their voice over those facts.
+    system_prompt = build_system_prompt(
+        req.character, save_truth,
+        disposition_grounding=character_disposition.grounding_from_truth(save_truth),
+        relational_grounding=relationships.build_relational_grounding(req.character, save_truth),
+    )
+    instruction = journal.inscription_instruction(save_truth)
+    try:
+        result = generate_reply(system_prompt, instruction, history=[])
+        text = (result.get("text") or "").strip()
+    except LLMUnavailable:
+        text = ""
+    if not text:
+        text = journal.fallback_inscription(req.character, save_truth)
+
+    guard = hallucination_guard.check_response(text, save_truth)
+    author = get_character(req.character)["name"]
+    prior = db.query(JournalEntry).filter(JournalEntry.project_id == project_id).count()
+    entry = JournalEntry(
+        project_id=project_id, counter=prior + 1, author=author, kind="inscription",
+        text=text, route_context=(save_truth.get("route") or {}).get("route"),
+    )
+    db.add(entry)
+    db.commit()
+    db.refresh(entry)
+    return {
+        "entry": {"counter": entry.counter, "author": entry.author, "kind": entry.kind,
+                  "text": entry.text, "route_context": entry.route_context},
+        "guard": guard,
+    }
+
+
+# ── proactive contact (the characters reach out to YOU, unprompted) ───────────
+
+class ReachOutRequest(BaseModel):
+    character: Optional[str] = None   # omit → the app picks who has the most at stake
+
+
+@app.post("/api/projects/{project_id}/reach-out")
+def reach_out(project_id: int, req: ReachOutRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """A character messages the human first — grounded, in voice. Persisted to the chat."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    save_truth = project.save_data or {}
+
+    if req.character:
+        if not get_character(req.character):
+            raise HTTPException(status_code=404, detail=f"unknown character {req.character!r}")
+        character = get_character(req.character)["name"]
+        basis = None
+    else:
+        pick = proactive.pick_reacher(save_truth)
+        if not pick:
+            raise HTTPException(status_code=404, detail="no character available")
+        character, basis = pick["character"], pick["basis"]
+
+    system_prompt = build_system_prompt(
+        character, save_truth,
+        disposition_grounding=character_disposition.grounding_from_truth(save_truth),
+        relational_grounding=relationships.build_relational_grounding(character, save_truth),
+    )
+    instruction = proactive.reach_out_instruction(save_truth)
+    try:
+        result = generate_reply(system_prompt, instruction, history=[])
+        text = (result.get("text") or "").strip()
+    except LLMUnavailable:
+        text = ""
+    if not text:
+        text = proactive.fallback_reach_out(character, save_truth)
+
+    # Persist as an assistant-only turn so it surfaces when the human opens the chat.
+    row = _get_or_create_conversation(db, project_id, character)
+    msgs = list(row.messages or [])
+    msgs.append({"role": "assistant", "content": text, "at": _now_iso(), "unprompted": True})
+    row.messages = msgs[-200:]
+    db.commit()
+
+    guard = hallucination_guard.check_response(text, save_truth)
+    return {"character": character, "message": text, "basis": basis, "guard": guard}
 
 
 @app.get("/api/projects/{project_id}/affinities")
