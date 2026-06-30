@@ -533,12 +533,22 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
   flex: 1; min-width: 0; font-family: var(--font-body); font-size: 1rem; color: var(--ink);
   background: var(--obsidian); border: 1px solid var(--plate-frame); border-radius: 8px; padding: 10px 12px;
 }
-/* in the Console shell the chat fills the stage — no narrow 760px cap, so the
-   wide pixel font has room and bubbles stop wrapping every few words */
-.view-chat .dialogue-vessel { flex: 1; min-height: 0; max-width: none; width: 100%; margin: 0; }
-.view-chat .transcript { overflow: auto; }
-.view-chat .msg { max-width: 96%; }
+/* in the Console shell the chat fills the stage — no narrow 760px cap, and the
+   fixed 96px portrait column is dropped (it stole width from every line and the
+   per-message avatars already show who's speaking). The vessel becomes a simple
+   vertical flex so the transcript uses 100% of the stage width. */
+.view-chat .dialogue-vessel {
+  display: flex; flex-direction: column;
+  flex: 1; min-height: 0; max-width: none; width: 100%; margin: 0;
+}
+.view-chat #chat-portrait { display: none; }
+.view-chat .dialogue-body { display: flex; flex-direction: column; min-height: 0; flex: 1; padding: 4px 8px; }
+.view-chat .transcript { flex: 1; overflow: auto; }
+/* bubbles fill the available row width before wrapping (percentage, not px) */
+.view-chat .msg { max-width: 100%; }
+.view-chat .msg.them { width: 100%; }
 .view-chat .bubble { max-width: 100%; }
+.view-chat .bubble.them { flex: 1; }
 
 /* speaker strip (mobile) + bottom nav (mobile) hidden on desktop */
 .speaker-strip, .bottom-nav, .scrim { display: none; }
