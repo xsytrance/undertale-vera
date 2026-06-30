@@ -24,22 +24,43 @@ set (obsidian + ember/brass, faceted-gem motif). Targets from our earlier unbloc
 Hold out a few images; stop when the obsidian/brass rim-light reads without frying detail.
 
 ## B. Character portraits (512×512, transparent, bust framing)
-Positive = `<style token>, pixel art character portrait, bust framing, shoulders up,
-expressive face, looking at viewer,` + the per-character clause:
+Use the SAME proven pipeline as the approved scenes: **pixel-art-xl LoRA (~1.0–1.2)
+on Illustrious-XL** + true-pixel post — NOT the custom LoRA (paused; see notes).
 
-- **sans.png** — `a short skeleton with a perpetual easy grin, half-lidded eye sockets,
-  blue hoodie, dry and unbothered, a glint of hidden weight behind the smile`
-- **toriel.png** — `a tall gentle horned goat-mother monster, soft warm eyes, flowing
-  robe with a quiet sigil, protective and kind, faint motherly smile`
-- **papyrus.png** — `a tall enthusiastic skeleton, theatrical confident grin, jaunty
-  pose, polished bravado, boundless earnest energy`
-- **flowey.png** — `a small sentient golden flower with an expressive face, sweet smile
-  edged with something sharp, vivid and unsettling, saccharine menace`
-- **undyne.png** — `a fierce finned warrior monster with a fiery glare, sharp toothy
-  grin, blazing determination, all-in intensity`
+⚠️ Drift fix: the earlier portrait attempts wandered into abstract texture because the
+prompts were long flowery sentences. Keep prompts **short, tag-style, subject-and-
+framing FIRST**, with emphasis weights on the framing so the model can't drift. Plain
+dark background (helps the BiRefNet cutout).
 
-Run each at a few seeds; pick the cleanest read. BiRefNet must leave clean alpha (no
-halo). Deliver unframed — the app supplies the relic frame.
+Positive = this exact prefix + ONE per-character clause (keep it terse):
+`(character portrait:1.3), (bust shot, head and shoulders:1.2), single character,
+centered, facing viewer, {SUBJECT}, pixel art, pixelart, 16-bit, crisp pixel shading,
+limited palette, dramatic warm ember rim light, museum-lit, plain dark obsidian
+background, vignette, masterpiece`
+
+- **sans.png** — `{SUBJECT} = a short stout skeleton, wide easy grin, half-lidded eye sockets, hood up on a worn blue jacket, calm`
+- **toriel.png** — `{SUBJECT} = a tall gentle horned goat-woman, soft warm eyes, long ears, dark flowing robe with a small ember gem, serene`
+- **papyrus.png** — `{SUBJECT} = a tall lanky skeleton, big confident toothy grin, chin up in a heroic pose, bold`
+- **flowey.png** — `{SUBJECT} = a small golden flower with a cartoonish face, sweet smile with a sly sharp edge, glossy petals`
+- **undyne.png** — `{SUBJECT} = a fierce blue-skinned finned warrior, one eye, sharp-toothed grin, red ponytail, blazing`
+
+Negative (portraits): `full body, multiple characters, two heads, text, watermark,
+signature, logo, ui, frame, border, busy background, scenery, landscape, blurry,
+lowres, jpeg artifacts, extra limbs, deformed hands, fused fingers, photorealistic,
+3d render`
+
+Pipeline: gen 1024×1024 (dpmpp_2m / karras, cfg ~5.5, ~28–30 steps) → true-pixel post
+(downscale **nearest** to ~144 px long edge → palette-quantize ~28 colors → upscale
+**nearest** to 512) → **BiRefNet** background removal → transparent 512×512 PNG.
+
+Run **4–6 seeds each, CURATE the single best** per character (clean face, clear
+silhouette, on-style — don't ship a drifted one). BiRefNet must leave clean alpha (no
+halo; raise the matte threshold if it does). Deliver unframed — the app supplies the
+relic frame. Send a 5-up grid before finalizing. If a gen still drifts to texture,
+bump `(character portrait:1.4)` and drop a couple of steps.
+
+These are **our own reinterpretations** in the Determination Chronicle accent — original
+character designs, never traced from or a copy of Undertale's sprites.
 
 ## C. Route-reactive scenes (1920×1080, landscape, NO characters/text)
 Positive = `<style token>, atmospheric environment, wide establishing shot, cinematic,
