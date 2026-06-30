@@ -102,3 +102,103 @@ def build_recognition_grounding(
         )
     lines.append(v["tail"])
     return "\n".join(lines)
+
+
+# ── The Other's Echo ─────────────────────────────────────────────────────────
+# Recognition with TEETH: a darker run remembered behind a gentler save in hand.
+# When a prior save walked Genocide (or Neutral with blood) and the save in front
+# is gentler, the save-aware pair don't just recall you — they DON'T TRUST the
+# clean face. Flowey is gleeful; Sans is wary. Pure tension over real recorded
+# routes (SACRED); the unease is theirs (FREE).
+
+_SEVERITY = {"Pacifist": 1, "Neutral": 2, "Genocide": 3}
+
+
+def _severity(route: Any) -> int:
+    return _SEVERITY.get(route, 0)
+
+
+def route_severity(route: Any) -> int:
+    """Public route-severity rank (Pacifist<Neutral<Genocide; unknown=0).
+
+    Shared with constellation.py so the moral ordering of routes is defined once.
+    """
+    return _severity(route)
+
+
+def _has_blood(p: dict[str, Any]) -> bool:
+    """A prior is genuinely dark only if its route is Genocide, or Neutral with
+    at least one RECORDED kill — a clean Neutral leaves no echo to fear."""
+    route = p.get("route")
+    if route == "Genocide":
+        return True
+    if route == "Neutral":
+        k = p.get("total_kills")
+        return isinstance(k, int) and k > 0
+    return False
+
+
+def darkest_prior(priors: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """The bloodiest prior save (highest route severity, then LOVE, then kills), or None."""
+    ranked = [p for p in (priors or []) if p and _has_blood(p)]
+    if not ranked:
+        return None
+    return max(
+        ranked,
+        key=lambda p: (_severity(p.get("route")), p.get("love") or 0, p.get("total_kills") or 0),
+    )
+
+
+_ECHO_VOICE = {
+    "flowey": {
+        "lead": "Oh — you're playing NICE this time.",
+        "tail": "You, Flowey, are delighted and unbothered: you remember the other run and you "
+                "won't let them pretend it away. Needle them, gleeful — never claim more than is recorded.",
+    },
+    "sans": {
+        "lead": "you smile nice on this one.",
+        "tail": "you, sans, are wary and guarded — you've seen what this hand did on another save, "
+                "and you don't forget. keep an eye on them. never claim more than is recorded.",
+    },
+}
+
+
+def build_echo_grounding(
+    current: dict[str, Any],
+    priors: list[dict[str, Any]],
+    *,
+    voice: str = "flowey",
+) -> str:
+    """The Other's Echo: a darker past behind a gentler present.
+
+    Fires ONLY when the bloodiest prior save is genuinely darker (higher route
+    severity) than the save in hand — a Genocide/bloodied-Neutral run remembered
+    under a now-gentler face. "" otherwise (no darker prior, or the current save is
+    already as dark). The blood is on a DIFFERENT file — but it is the same hand.
+    """
+    cur = current or {}
+    dark = darkest_prior(priors)
+    if not dark:
+        return ""
+    if _severity(dark.get("route")) <= _severity(cur.get("route")):
+        return ""  # the save in hand is already as dark or darker — no echo to fear
+
+    bits = []
+    if isinstance(dark.get("love"), int):
+        bits.append(f"LOVE {dark['love']}")
+    if isinstance(dark.get("total_kills"), int):
+        bits.append(f"{dark['total_kills']} recorded kills")
+    detail = f" ({', '.join(bits)})" if bits else ""
+    cur_route = cur.get("route") or "a path I can't yet read"
+
+    v = _ECHO_VOICE.get(voice, _ECHO_VOICE["flowey"])
+    lines = [
+        "── THE OTHER'S ECHO (parser-confirmed across the saves shown here) ──",
+        v["lead"],
+        f"But on another save shown here, this same hand walked the {dark.get('route')} "
+        f"path{detail}.",
+        f"The save in front of you reads {cur_route}. The blood is on a DIFFERENT file — "
+        "but it is the same hand on the keys.",
+        v["tail"],
+    ]
+    return "\n".join(lines)

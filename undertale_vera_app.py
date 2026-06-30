@@ -30,6 +30,7 @@ import affinity as affinity_mod
 import character_disposition
 import chat_style
 import chronicle as chronicle_mod
+import constellation as constellation_mod
 import council
 import crossave
 import journal
@@ -431,6 +432,8 @@ def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str,
         raise HTTPException(status_code=404, detail="project not found")
     current = ledger.snapshot_fields_from_truth(project.save_data or {})
     priors = _prior_save_summaries(db, project_id)
+    echo_flowey = crossave.build_echo_grounding(current, priors, voice="flowey")
+    echo_sans = crossave.build_echo_grounding(current, priors, voice="sans")
     return {
         "project_id": project_id,
         "present": bool(priors),
@@ -438,6 +441,36 @@ def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str,
         "priors": priors,
         "flowey": crossave.build_recognition_grounding(current, priors, voice="flowey"),
         "sans": crossave.build_recognition_grounding(current, priors, voice="sans"),
+        # The Other's Echo: a darker prior run behind a gentler save in hand.
+        "echo_present": bool(echo_flowey),
+        "echo": {"flowey": echo_flowey, "sans": echo_sans},
+        "darkest": crossave.darkest_prior(priors),
+    }
+
+
+@app.get("/api/constellation")
+def get_constellation(db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The Constellation of You: the whole shape of the player across ALL saves shown.
+
+    Aggregate (not pairwise): the route tally, kindest/darkest runs, peak LOVE, and
+    Sans's FREE verdict over the SACRED tallies. Deterministic (no model). `present`
+    is false until at least two saves have been shown — one save is not yet a shape.
+    """
+    saves = [
+        ledger.snapshot_fields_from_truth(p.save_data or {})
+        for p in db.query(Project).order_by(Project.id.asc()).all()
+    ]
+    agg = constellation_mod.aggregate(saves)
+    return {
+        "present": agg["count"] >= 2,
+        "count": agg["count"],
+        "aggregate": agg,
+        "verdict": constellation_mod.build_verdict(agg, voice="sans"),
+        # The Divergence: the fork between the gentlest and cruelest runs, when both exist.
+        "divergence": (
+            constellation_mod.build_divergence(agg.get("kindest"), agg.get("darkest"))
+            if agg.get("full_spectrum") else ""
+        ),
     }
 
 
@@ -643,10 +676,14 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         "name:sans", "name:flowey"
     ):
         voice = "flowey" if normalize_key(req.character) == "name:flowey" else "sans"
-        rec_block = crossave.build_recognition_grounding(
-            ledger.snapshot_fields_from_truth(save_truth),
-            _prior_save_summaries(db, project_id),
-            voice=voice,
+        cur_fields = ledger.snapshot_fields_from_truth(save_truth)
+        priors = _prior_save_summaries(db, project_id)
+        # The Other's Echo (a darker prior run behind a gentler save in hand) is the
+        # sharper beat — it implies recognition, with dread — so it supersedes the
+        # plain recognition block when it fires.
+        rec_block = (
+            crossave.build_echo_grounding(cur_fields, priors, voice=voice)
+            or crossave.build_recognition_grounding(cur_fields, priors, voice=voice)
         )
         if rec_block:
             remembrance = (remembrance + "\n\n" + rec_block).strip()

@@ -109,10 +109,25 @@
     api("/api/projects/" + state.projectId + "/recognition").then(function (res) {
       if (!res || !res.present) { box.classList.add("hidden"); return; }
       var n = res.count || 0;
+      // The Other's Echo: a darker prior run behind this gentler face — dread, not nostalgia.
+      if (res.echo_present && res.darkest) {
+        var d = res.darkest;
+        var dl = (d.route || "a darker run") +
+          (typeof d.love === "number" ? " · LOVE " + d.love : "") +
+          (typeof d.total_kills === "number" ? " · " + d.total_kills + " kills" : "");
+        box.className = "recognition echo";  // uneasy styling
+        box.innerHTML =
+          '<span class="rec-mark">🩸</span> <strong>It remembers what you did on another save.</strong> ' +
+          '<span class="muted">' + dl + "</span> — on a different file, the same hand. " +
+          "<em>The clean face doesn't fool Flowey, or Sans.</em>";
+        box.classList.remove("hidden");
+        return;
+      }
       var faces = (res.priors || []).slice(0, 3).map(function (p) {
         var nm = p.name || "a nameless run";
         return nm + (p.route ? (" · " + p.route) : "");
       }).join("  ·  ");
+      box.className = "recognition";  // reset to the warm beat
       box.innerHTML =
         '<span class="rec-mark">🌼</span> <strong>You\'ve been here before.</strong> ' +
         n + " other save" + (n === 1 ? "" : "s") + " shown — " +
@@ -140,6 +155,40 @@
         el.appendChild(card);
       });
       $("shelf-panel").classList.remove("hidden");
+      // "Across Your Saves" only means something once there's more than one save.
+      $("constellation-btn").classList.toggle("hidden", res.projects.length < 2);
+    });
+  }
+
+  // The Constellation of You — the whole shape across every save shown.
+  function showConstellation() {
+    api("/api/constellation").then(function (res) {
+      var el = $("constellation-content");
+      if (!res || !res.present) {
+        el.innerHTML = '<p class="muted">Only one save shown so far — read another to see the shape of you.</p>';
+      } else {
+        var a = res.aggregate || {};
+        var routes = a.routes || {};
+        var chips = Object.keys(routes).map(function (r) {
+          return '<span class="route-badge ' + r.toLowerCase() + '" style="font-size:0.74rem;">' +
+            r + " ×" + routes[r] + "</span>";
+        }).join(" ");
+        var rangeLine = "";
+        if (a.kindest && a.darkest && a.kindest.route !== a.darkest.route) {
+          rangeLine = '<div class="con-range"><span class="muted">moral range:</span> ' +
+            (a.kindest.route || "—") + "  →  " + (a.darkest.route || "—") + "</div>";
+        }
+        var divLine = res.divergence
+          ? '<div class="con-divergence">“' + res.divergence + '”</div>' : "";
+        el.innerHTML =
+          '<div class="con-count">' + res.count + " saves shown</div>" +
+          '<div class="con-routes">' + chips + "</div>" +
+          rangeLine +
+          '<div class="con-verdict' + (a.full_spectrum ? " spectrum" : "") + '">' +
+          '<span class="con-mark">🌌</span> ' + (res.verdict || "") + "</div>" +
+          divLine;
+      }
+      $("constellation-panel").classList.remove("hidden");
     });
   }
 
@@ -625,6 +674,8 @@
     $("timeline-close-btn").onclick = function () { $("timeline-panel").classList.add("hidden"); };
     $("council-btn").onclick = showCouncil;
     $("council-close-btn").onclick = function () { $("council-panel").classList.add("hidden"); };
+    $("constellation-btn").onclick = showConstellation;
+    $("constellation-close-btn").onclick = function () { $("constellation-panel").classList.add("hidden"); };
     $("reachout-toggle").onchange = function () { setReachOut(this.checked); };
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;
