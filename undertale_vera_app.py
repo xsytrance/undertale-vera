@@ -45,7 +45,7 @@ import living_memory as lm
 import provenance as provenance_mod
 import rag_engine
 import scene_resolver
-from avatar_resolver import resolve_avatar, PORTRAIT_DIR, _slug as _portrait_slug
+from avatar_resolver import resolve_avatar, resolve_emblem, PORTRAIT_DIR, _slug as _portrait_slug
 from backend.models import Base, CharacterMemory, Conversation, JournalEntry, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
 from llm_client import LLMUnavailable, generate_reply
@@ -575,6 +575,7 @@ def get_characters() -> dict[str, Any]:
     chars = list_characters()
     for c in chars:
         c["avatar_url"] = resolve_avatar(c)
+        c["emblem_url"] = resolve_emblem(c)
     return {"characters": chars}
 
 
