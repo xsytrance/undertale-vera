@@ -157,12 +157,12 @@ h1, h2, h3, .display {
   image-rendering: pixelated;   /* keep pixel portraits crisp */
   object-fit: cover;
 }
+/* centre the crest in ANY size box (rail card, strip face, chat portrait) */
+.relic-portrait.empty { display: flex; align-items: center; justify-content: center; }
 .relic-portrait.empty::after {
   content: "";
-  display: block;
   /* default crest = the soul sigil, museum-lit */
   width: 28px; height: 28px;
-  margin: 34px auto 0;
   clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
   background: linear-gradient(160deg, var(--ember), var(--brass));
   opacity: 0.6;
@@ -266,8 +266,9 @@ input[type="file"], input[type="text"] {
   box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
   image-rendering: pixelated; object-fit: cover;
 }
+.bubble-avatar.empty { display: flex; align-items: center; justify-content: center; }
 .bubble-avatar.empty::after {       /* crest until a portrait lands */
-  content: ""; display: block; width: 15px; height: 15px; margin: 11px auto 0;
+  content: ""; width: 15px; height: 15px;
   clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
   background: linear-gradient(160deg, var(--ember), var(--brass)); opacity: 0.55;
 }
@@ -532,8 +533,12 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
   flex: 1; min-width: 0; font-family: var(--font-body); font-size: 1rem; color: var(--ink);
   background: var(--obsidian); border: 1px solid var(--plate-frame); border-radius: 8px; padding: 10px 12px;
 }
-.dialogue-vessel { flex: 1; min-height: 0; }
+/* in the Console shell the chat fills the stage — no narrow 760px cap, so the
+   wide pixel font has room and bubbles stop wrapping every few words */
+.view-chat .dialogue-vessel { flex: 1; min-height: 0; max-width: none; width: 100%; margin: 0; }
 .view-chat .transcript { overflow: auto; }
+.view-chat .msg { max-width: 96%; }
+.view-chat .bubble { max-width: 100%; }
 
 /* speaker strip (mobile) + bottom nav (mobile) hidden on desktop */
 .speaker-strip, .bottom-nav, .scrim { display: none; }
