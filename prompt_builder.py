@@ -99,6 +99,7 @@ def build_system_prompt(
     remembrance: str = "",
     lore_grounding: str = "",
     disposition_grounding: str = "",
+    relational_grounding: str = "",
     texture_grounding: str = "",
     anomaly_grounding: str = "",
     character_override: Optional[dict[str, Any]] = None,
@@ -135,6 +136,10 @@ def build_system_prompt(
     # derived from documented flags). Sits with the save-facts, not the free voice.
     if disposition_grounding.strip():
         sections.append(disposition_grounding.strip())
+
+    # 2a². Relational awareness (SACRED — the fate of those THIS speaker cares about).
+    if relational_grounding.strip():
+        sections.append(relational_grounding.strip())
 
     # 2b. Remembrance ledger (SACRED — parser-confirmed history across visits).
     if remembrance.strip():

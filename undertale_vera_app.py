@@ -26,8 +26,10 @@ from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
+import affinity as affinity_mod
 import character_disposition
 import chronicle as chronicle_mod
+import relationships
 import save_flavor
 import hallucination_guard
 import judgment as judgment_mod
@@ -248,6 +250,15 @@ def get_judgment(project_id: int, db: Session = Depends(get_db)) -> dict[str, An
     return {"project_id": project_id, "judgment": judgment_mod.build_judgment(project.save_data or {}, snaps)}
 
 
+@app.get("/api/projects/{project_id}/affinities")
+def get_affinities(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """How the whole cast REGARDS the player, derived from the save (SACRED-derived tone)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    return {"project_id": project_id, "affinities": affinity_mod.all_affinities(project.save_data or {})}
+
+
 @app.get("/api/projects/{project_id}/chronicle")
 def get_chronicle(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """The Chronicle: the save's whole story as shareable Markdown (SACRED, facts-only)."""
@@ -427,6 +438,8 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
     lore_grounding = rag_engine.format_lore_grounding(lore_docs)
     # SACRED: who the save records as killed/spared/befriended (parser-derived).
     disposition_grounding = character_disposition.grounding_from_truth(save_truth)
+    # SACRED: the fate of those THIS speaker cares about (relational awareness).
+    relational_grounding = relationships.build_relational_grounding(req.character, save_truth)
     # SACRED texture (area / play time / pie) for everyone; the Fun-value anomaly is
     # eerie meta-lore, so only the save/reset-aware characters (Sans, Flowey) get it.
     texture_grounding = save_flavor.build_texture_grounding(save_truth)
@@ -439,6 +452,7 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         remembrance=remembrance,
         lore_grounding=lore_grounding,
         disposition_grounding=disposition_grounding,
+        relational_grounding=relational_grounding,
         texture_grounding=texture_grounding,
         anomaly_grounding=anomaly_grounding,
     )
