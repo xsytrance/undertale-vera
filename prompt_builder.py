@@ -102,6 +102,7 @@ def build_system_prompt(
     relational_grounding: str = "",
     texture_grounding: str = "",
     anomaly_grounding: str = "",
+    style_grounding: str = "",
     character_override: Optional[dict[str, Any]] = None,
 ) -> str:
     """Assemble the full grounded system prompt for one character.
@@ -179,6 +180,10 @@ def build_system_prompt(
     # 4. Living Memory (FREE, clearly fenced as out-of-game)
     if memory_grounding.strip():
         sections.append(memory_grounding.strip())
+
+    # 4b. Player style dials (FREE — how to answer; never what the save says).
+    if style_grounding.strip():
+        sections.append(style_grounding.strip())
 
     # 5. The rules that hold the wall up.
     sections.append(

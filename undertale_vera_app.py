@@ -28,6 +28,7 @@ from sqlalchemy.orm import Session, sessionmaker
 
 import affinity as affinity_mod
 import character_disposition
+import chat_style
 import chronicle as chronicle_mod
 import council
 import journal
@@ -516,6 +517,7 @@ class ChatRequest(BaseModel):
     character: str
     message: str
     history: Optional[list[dict[str, str]]] = None
+    options: Optional[dict[str, Any]] = None   # FREE style dials (verbosity/intensity/lore/meta)
 
 
 def _get_or_create_conversation(db: Session, project_id: int, character: str) -> Conversation:
@@ -596,8 +598,11 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")
-    lore_docs = rag_engine.retrieve(req.message, character=req.character, route=save_route)
+    # FREE style dials: lore depth controls retrieval (None → skip the lore layer).
+    k = chat_style.lore_k(req.options or {})
+    lore_docs = rag_engine.retrieve(req.message, character=req.character, route=save_route, k=k) if k else []
     lore_grounding = rag_engine.format_lore_grounding(lore_docs)
+    style_grounding = chat_style.build_style_directives(req.options or {})
     # SACRED: who the save records as killed/spared/befriended (parser-derived).
     disposition_grounding = character_disposition.grounding_from_truth(save_truth)
     # SACRED: the fate of those THIS speaker cares about (relational awareness).
@@ -617,6 +622,7 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         relational_grounding=relational_grounding,
         texture_grounding=texture_grounding,
         anomaly_grounding=anomaly_grounding,
+        style_grounding=style_grounding,
     )
 
     grounding_source = "llm"

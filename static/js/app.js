@@ -234,12 +234,15 @@
   }
 
   function typewriter(span, text) {
+    var ms = (state.settings && state.settings.hud.typewriterMs);
+    if (ms == null) ms = 18;
+    if (!ms) { span.textContent = text; return; }   // instant
     span.textContent = ""; span.parentNode.classList.add("ink-reveal");
     var i = 0;
     var timer = setInterval(function () {
       span.textContent = text.slice(0, ++i);
       if (i >= text.length) { clearInterval(timer); span.parentNode.classList.remove("ink-reveal"); }
-    }, 18);
+    }, ms);
   }
 
   function sendMessage() {
@@ -248,7 +251,8 @@
     var hist = state.history[state.character];
     hist.push({ role: "user", content: msg });
     renderTranscript(); input.value = "";
-    var body = { character: state.character, message: msg, history: hist.slice(0, -1) };
+    var body = { character: state.character, message: msg, history: hist.slice(0, -1),
+                 options: (state.settings || {}).options };
     api("/api/projects/" + state.projectId + "/chat", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     }).then(function (res) {
@@ -525,7 +529,56 @@
     t._timer = setTimeout(function () { t.classList.add("hidden"); }, 14000);
   }
 
+  // ── Options menu (response dials + HUD density; persisted) ─────────────────
+  var SETTINGS_DEFAULT = {
+    options: { verbosity: "normal", intensity: "normal", lore: "normal", meta: "subtle" },
+    hud: { provenance: true, affinity: true, remembrance: true, motion: true, typewriterMs: 18 },
+  };
+  function loadSettings() {
+    try {
+      var saved = JSON.parse(localStorage.getItem("uv_settings") || "{}");
+      return {
+        options: Object.assign({}, SETTINGS_DEFAULT.options, saved.options || {}),
+        hud: Object.assign({}, SETTINGS_DEFAULT.hud, saved.hud || {}),
+      };
+    } catch (e) { return JSON.parse(JSON.stringify(SETTINGS_DEFAULT)); }
+  }
+  function applyHud() {
+    var h = state.settings.hud, b = document.body;
+    b.classList.toggle("hud-no-provenance", !h.provenance);
+    b.classList.toggle("hud-no-affinity", !h.affinity);
+    b.classList.toggle("hud-no-remembrance", !h.remembrance);
+    b.classList.toggle("hud-no-motion", !h.motion);
+  }
+  function syncSettingsControls() {
+    var o = state.settings.options, h = state.settings.hud;
+    $("opt-verbosity").value = o.verbosity; $("opt-intensity").value = o.intensity;
+    $("opt-lore").value = o.lore; $("opt-meta").value = o.meta;
+    $("hud-provenance").checked = h.provenance; $("hud-affinity").checked = h.affinity;
+    $("hud-remembrance").checked = h.remembrance; $("hud-motion").checked = h.motion;
+    $("hud-typewriter").value = String(h.typewriterMs);
+  }
+  function readSettingsControls() {
+    state.settings.options = {
+      verbosity: $("opt-verbosity").value, intensity: $("opt-intensity").value,
+      lore: $("opt-lore").value, meta: $("opt-meta").value,
+    };
+    state.settings.hud = {
+      provenance: $("hud-provenance").checked, affinity: $("hud-affinity").checked,
+      remembrance: $("hud-remembrance").checked, motion: $("hud-motion").checked,
+      typewriterMs: parseInt($("hud-typewriter").value, 10) || 0,
+    };
+    try { localStorage.setItem("uv_settings", JSON.stringify(state.settings)); } catch (e) {}
+    applyHud();
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
+    state.settings = loadSettings();
+    syncSettingsControls();
+    applyHud();
+    $("settings-btn").onclick = function () { $("settings-panel").classList.toggle("hidden"); };
+    $("settings-close").onclick = function () { $("settings-panel").classList.add("hidden"); };
+    $("settings-panel").addEventListener("change", readSettingsControls);
     if (window.MusicLayer) window.MusicLayer.init();
     loadShelf();
     $("upload-btn").onclick = uploadSave;

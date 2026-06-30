@@ -12,6 +12,28 @@
   <!-- route-reactive backdrop: CSS gradient tint always; generated scene art fades
        in over it when present (static/assets/scenes/<route>.png, gitignored). -->
   <div id="scene-backdrop" class="scene-backdrop scene-undetermined" aria-hidden="true"></div>
+
+  <!-- compact options menu (one gear, its own panel) -->
+  <button id="settings-btn" class="settings-gear" title="Options" aria-label="Options">⚙</button>
+  <div id="settings-panel" class="settings hidden" aria-label="Options">
+    <div class="settings-head"><span>⚙ Options</span><button id="settings-close" class="btn">Done</button></div>
+    <div class="settings-sec">
+      <h3>How they respond</h3>
+      <label>Length <select id="opt-verbosity"><option>brief</option><option selected>normal</option><option>verbose</option></select></label>
+      <label>Intensity <select id="opt-intensity"><option>subtle</option><option selected>normal</option><option>dramatic</option></select></label>
+      <label>Lore depth <select id="opt-lore"><option>none</option><option>light</option><option selected>normal</option><option>rich</option></select></label>
+      <label>Save/reset talk <select id="opt-meta"><option>off</option><option selected>subtle</option><option>on</option></select></label>
+    </div>
+    <div class="settings-sec">
+      <h3>Display (HUD)</h3>
+      <label>Provenance chips <input type="checkbox" id="hud-provenance" checked /></label>
+      <label>Affinity chips <input type="checkbox" id="hud-affinity" checked /></label>
+      <label>Remembrance box <input type="checkbox" id="hud-remembrance" checked /></label>
+      <label>Backdrop motion <input type="checkbox" id="hud-motion" checked /></label>
+      <label>Typewriter <select id="hud-typewriter"><option value="0">instant</option><option value="18" selected>normal</option><option value="42">slow</option></select></label>
+    </div>
+  </div>
+
   <header style="text-align:center; padding:28px 16px 4px;">
     <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
       <span class="soul-sigil" id="header-sigil" aria-hidden="true"></span>
