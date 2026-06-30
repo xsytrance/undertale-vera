@@ -19,19 +19,22 @@
 
   var PREF_KEY = "undertale-vera:music:v1";
 
+  // The main theme — a user-supplied track that auto-plays on load. Audio files
+  // are gitignored; drop the file at static/audio/a-new-save-file.mp3 on the server.
+  var MENU_TRACK = "a-new-save-file";
+
   // Static catalog (flavour only; structure is portable).
   var TRACKS = {
+    "a-new-save-file": { title: "A New Save File", url: "/audio/a-new-save-file.mp3", ambient: true },
     "ember-field":   { title: "Ember Field",   url: "/audio/ember-field.mp3",   ambient: true },
     "obsidian-calm": { title: "Obsidian Calm",  url: "/audio/obsidian-calm.mp3", ambient: true },
     "determination": { title: "Determination",  url: "/audio/determination.mp3", ambient: false }
   };
 
-  // Per-route default bed (the route-aware-music seed for the next beat).
+  // Per-route bed. For now every route keeps the main theme playing — the route
+  // track files don't exist yet, and switching to a 404 would cut the music.
   var ROUTE_TRACK = {
-    Pacifist: "ember-field",
-    Neutral: "obsidian-calm",
-    Genocide: "determination",
-    undetermined: "obsidian-calm"
+    Pacifist: MENU_TRACK, Neutral: MENU_TRACK, Genocide: MENU_TRACK, undetermined: MENU_TRACK
   };
 
   function loadPrefs() {
@@ -61,13 +64,33 @@
       this.init();
       var track = TRACKS[trackId];
       if (!track || !this.prefs.enabled) return;
-      this.current = trackId;
-      this.audio.src = track.url;
+      if (this.current !== trackId) { this.current = trackId; this.audio.src = track.url; }
+      if (!this.audio.paused) return;   // already playing this track — don't restart
       var self = this;
       var p = this.audio.play();
       if (p && p.catch) {
-        p.catch(function () { self.blocked = true; });  // autoplay blocked → hint, no error
+        p.catch(function () { self.blocked = true; });  // autoplay blocked → start on first gesture
       }
+    },
+
+    isEnabled: function () { this.init(); return this.prefs.enabled !== false; },
+
+    // Auto-play the main theme. Browsers block autoplay until a user gesture, so
+    // we try immediately AND start on the first interaction (one-shot listeners).
+    startMenu: function () {
+      this.init();
+      if (this.prefs.volume == null) this.setVolume(0.4);   // a reasonable default
+      var self = this;
+      this.play(MENU_TRACK);
+      function kick() {
+        ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+          document.removeEventListener(ev, kick, true);
+        });
+        self.play(MENU_TRACK);
+      }
+      ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
+        document.addEventListener(ev, kick, true);
+      });
     },
 
     setEnabled: function (on) {
