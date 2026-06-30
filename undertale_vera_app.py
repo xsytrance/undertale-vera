@@ -431,6 +431,11 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         flowey_block = ledger.build_flowey_awareness(snapshots)
         if flowey_block:
             remembrance = (remembrance + "\n\n" + flowey_block).strip()
+    # The save/reset-aware pair also FEEL it when the numbers go backward (a load).
+    if normalize_key(req.character) in ("name:sans", "name:flowey"):
+        reset_block = ledger.build_reset_awareness(snapshots)
+        if reset_block:
+            remembrance = (remembrance + "\n\n" + reset_block).strip()
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")

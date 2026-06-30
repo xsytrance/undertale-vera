@@ -17,7 +17,7 @@ from typing import Any, Optional
 import affinity as affinity_mod
 import save_flavor
 from judgment import classify_verdict
-from ledger import detect_route_turn
+from ledger import detect_route_turn, detect_resets
 
 # How a recorded disposition reads in the Chronicle (definite outcomes only).
 _DISPOSITION_PHRASE = {
@@ -101,6 +101,13 @@ def build_chronicle(
             lines.append(
                 f"Between readings, the path turned from {turn['from']} to {turn['to']}."
             )
+        resets = detect_resets(snaps)
+        if resets:
+            r = resets[-1]
+            lines += ["", "## The Timeline Bends",
+                      f"The recorded {r['field']} fell from {r['from']} to {r['to']} between "
+                      "readings — a number that never drops on its own. An earlier state was "
+                      "loaded. Someone reached back."]
 
     # ── An Anomaly (the Fun value) ───────────────────────────────────────────
     event = save_flavor.fun_value_event(play.get("fun"))
