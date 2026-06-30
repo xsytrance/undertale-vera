@@ -880,7 +880,11 @@
     state.settings = loadSettings();
     syncSettingsControls();
     applyHud();
-    if (window.MusicLayer) window.MusicLayer.init();
+    if (window.MusicLayer) {
+      window.MusicLayer.init();
+      $("music-toggle").checked = window.MusicLayer.isEnabled();
+      window.MusicLayer.startMenu();   // auto-play the main theme (gesture fallback inside)
+    }
 
     // options drawer
     $("settings-btn").onclick = function () { $("settings-panel").classList.toggle("hidden"); };
