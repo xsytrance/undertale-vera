@@ -6,8 +6,12 @@ uvicorn>=0.29
 SQLAlchemy>=2.0          # 2.0 ORM API
 pydantic>=2.6            # v2 models
 python-multipart>=0.0.9  # required for the save-file upload endpoint
+httpx>=0.27             # HTTP client for the default Ollama chat backend
 
-# Grounded character chat targets Anthropic Claude (default: claude-opus-4-8).
+# Grounded character chat. Default backend is a local Ollama server
+# (UNDERTALE_VERA_BACKEND=ollama, OLLAMA_HOST=http://100.110.224.126:11434,
+# OLLAMA_MODEL=llama3.1:8b — no API key). Set UNDERTALE_VERA_BACKEND=anthropic
+# to use Claude instead (default model claude-opus-4-8; needs ANTHROPIC_API_KEY).
 anthropic>=0.40
 
 # Optional, used by the Inspector's Playwright engine (falls back to HTTP-only
