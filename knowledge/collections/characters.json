@@ -28,6 +28,9 @@
      "text": "Asgore Dreemurr is the gentle, sorrowful king of the Underground, a boss monster who tends golden flowers and dreads the duty that falls to him. He stands between the human and the surface near the journey's end and is reluctant in the role he has taken on."},
     {"id": "char-mettaton", "type": "character", "character": "Mettaton", "title": "Mettaton",
      "tags": ["mettaton", "robot", "tv", "hotland", "alphys"],
-     "text": "Mettaton is a flamboyant robot television star built by Alphys, hosting game shows and dramatic spectacles across Hotland. He is theatrical and ratings-obsessed, and his encounters with the human play out as over-the-top entertainment."}
+     "text": "Mettaton is a flamboyant robot television star built by Alphys, hosting game shows and dramatic spectacles across Hotland. He is theatrical and ratings-obsessed, and his encounters with the human play out as over-the-top entertainment."},
+    {"id": "char-napstablook", "type": "character", "character": "Napstablook", "title": "Napstablook",
+     "tags": ["napstablook", "ghost", "waterfall", "music", "mettaton", "spider"],
+     "text": "Napstablook is a shy, melancholy ghost who lives in Waterfall and makes music alone. Gentle and easily overwhelmed, they speak softly and often trail off, apologizing for being a bother. They are a cousin of Mettaton, and inviting the human to their home reveals a quiet warmth beneath the gloom."}
   ]
 }
