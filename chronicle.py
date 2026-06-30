@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from typing import Any, Optional
 
+import affinity as affinity_mod
 import save_flavor
 from judgment import classify_verdict
 from ledger import detect_route_turn
@@ -108,6 +109,12 @@ def build_chronicle(
                   f"The Fun value reads {event['value']}. At that exact number, the "
                   f"Underground quietly allows {event['name']} to surface in "
                   f"{event['where']} — {event['blurb']}."]
+
+    # ── How the Underground Regards You (derived stances) ────────────────────
+    if route != "undetermined":
+        lines += ["", "## How the Underground Regards You"]
+        for who, a in affinity_mod.all_affinities(st).items():
+            lines.append(f"- {who} — *{a['stance']}* ({a['gloss']})")
 
     # ── The Verdict ──────────────────────────────────────────────────────────
     verdict = classify_verdict(route)

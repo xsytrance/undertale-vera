@@ -504,3 +504,23 @@ The payoff for all the mining: one shareable narrated artifact.
   + 404). Verified on a real corpus genocide save (route confirmed, dispositions,
   Fun anomaly, verdict all rendered).
 - Verified: `pytest -q` → **151 passing**.
+
+## The Underground reacts to you — cast, relationships, affinity, Chronicle
+A whole batch making the companion deeper and more alive.
+- **Expanded cast** (`character_config`, ADD-only): Alphys, Asgore, Mettaton,
+  Napstablook join the five — 9 characters, each with tone/personality/route_demeanor
+  and a `cares_about` web. Napstablook lore added to the knowledge base.
+- **Relational awareness** (`relationships.py`): a speaker is given the SACRED
+  recorded fate of those they care about (Sans←Papyrus, Undyne←Alphys, …) and reacts
+  in voice — never invented. Injected into chat (prompt section 2a²).
+- **Affinity** (`affinity.py`): each character's STANCE toward you —
+  warm/wary/grieving/hostile/unreadable — derived from route + self/loved-one fate
+  (a tone, never a new fact). `GET /api/projects/{id}/affinities`; the roster shows
+  a live stance chip per character ("how the Underground regards you").
+- **Chronicle, deepened**: a "How the Underground Regards You" section lists every
+  character's stance; the Chronicle now also renders **in-app** (a parchment viewer,
+  tiny md→html) alongside the markdown download.
+- Tests: `tests/relationships_affinity_test.py` (cast, fates, grounding, affinity by
+  route + escalation, endpoints, chat wiring) + chronicle regard-section cases.
+  Browser-verified: 9-card roster with stance chips + the in-app Chronicle viewer.
+- Verified: `pytest -q` → **164 passing**; lore_eval 12/12.

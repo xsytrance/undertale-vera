@@ -47,9 +47,24 @@ def test_sacred_facts_render():
 
 def test_dispositions_only_definite():
     md = build_chronicle(_truth())["markdown"]
-    assert "Toriel — spared" in md
-    assert "Papyrus — befriended" in md
-    assert "Undyne" not in md          # unknown status is not asserted
+    met = md[md.index("## Those You Met"):]
+    met = met[:met.index("\n## ", 1)]   # just the 'Those You Met' section
+    assert "Toriel — spared" in met
+    assert "Papyrus — befriended" in met
+    assert "Undyne" not in met          # unknown status is not asserted here
+
+
+def test_regard_section_lists_the_cast():
+    md = build_chronicle(_truth())["markdown"]
+    assert "## How the Underground Regards You" in md
+    assert "Sans —" in md and "Toriel —" in md
+    # Pacifist save → warm stances
+    assert "*warm*" in md
+
+
+def test_regard_section_omitted_when_undetermined():
+    t = {"play_state": {"name": "Frisk"}, "route": {"route": "undetermined"}, "kills": {}}
+    assert "## How the Underground Regards You" not in build_chronicle(t)["markdown"]
 
 
 def test_fun_anomaly_section():
