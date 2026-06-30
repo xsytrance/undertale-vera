@@ -470,3 +470,12 @@ A 4-up grid can't show how a backdrop fights the parchment ink; this does.
   generated scene is in play. Honors `$UNDERTALE_VERA_CHROMIUM`; output to `preview/`
   (gitignored). The real legibility test for each new scene drop from Prime.
 - Verified end-to-end against the current gradient state (4 screenshots written).
+
+## Frosted panels — let the route scene read through
+With Prime's V3 scene art tested in situ (`tools/preview_scenes.py`), all four
+routes are legible behind the live UI — the obsidian wash even tames the bright
+Neutral. To stop the panels from fully hiding the scene's central composition, the
+app-shell panels are now translucent obsidian + a 3px backdrop blur, so the route
+backdrop bleeds THROUGH them for depth while parchment text stays readable. Verified
+across all four routes behind real text (title + facts panel + chips). Scene art
+itself stays gitignored (delivered out-of-band); only the CSS is committed.
