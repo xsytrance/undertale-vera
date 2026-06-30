@@ -104,3 +104,36 @@ def build_verdict(agg: dict[str, Any], *, voice: str = "sans") -> str:
         tail = "that's the shape of you, so far. the save remembers all of it — and so do i."
 
     return f"{head} {tail}"
+
+
+def build_divergence(
+    kindest: dict[str, Any] | None,
+    darkest: dict[str, Any] | None,
+    *,
+    voice: str = "sans",
+) -> str:
+    """The fork between the player's gentlest and cruelest runs, named directly.
+
+    Both args are snapshot-fields dicts (aggregate()'s kindest/darkest). "" when
+    either is missing or they share a route — there is no divergence to point at.
+    Honest fields only: a name or LOVE that was never read is simply not spoken.
+    """
+    if not kindest or not darkest:
+        return ""
+    kr, dr = kindest.get("route"), darkest.get("route")
+    if not kr or not dr or kr == dr:
+        return ""
+
+    def _tag(s: dict[str, Any]) -> str:
+        nm = s.get("name")
+        who = nm if nm else "a face with no name I could read"
+        love = f", LOVE {s['love']}" if isinstance(s.get("love"), int) else ""
+        return f"{who}{love}"
+
+    dk = darkest.get("total_kills")
+    kills = f", {dk} of them dead" if isinstance(dk, int) and dk > 0 else ""
+    return (
+        f"on one save you walked it {kr} — {_tag(kindest)}. "
+        f"on another you walked it {dr} — {_tag(darkest)}{kills}. "
+        "same hands. the space between those two saves... that's the whole question, isn't it."
+    )

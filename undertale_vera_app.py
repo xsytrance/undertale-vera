@@ -466,6 +466,11 @@ def get_constellation(db: Session = Depends(get_db)) -> dict[str, Any]:
         "count": agg["count"],
         "aggregate": agg,
         "verdict": constellation_mod.build_verdict(agg, voice="sans"),
+        # The Divergence: the fork between the gentlest and cruelest runs, when both exist.
+        "divergence": (
+            constellation_mod.build_divergence(agg.get("kindest"), agg.get("darkest"))
+            if agg.get("full_spectrum") else ""
+        ),
     }
 
 

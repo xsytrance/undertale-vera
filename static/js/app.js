@@ -178,12 +178,15 @@
           rangeLine = '<div class="con-range"><span class="muted">moral range:</span> ' +
             (a.kindest.route || "—") + "  →  " + (a.darkest.route || "—") + "</div>";
         }
+        var divLine = res.divergence
+          ? '<div class="con-divergence">“' + res.divergence + '”</div>' : "";
         el.innerHTML =
           '<div class="con-count">' + res.count + " saves shown</div>" +
           '<div class="con-routes">' + chips + "</div>" +
           rangeLine +
           '<div class="con-verdict' + (a.full_spectrum ? " spectrum" : "") + '">' +
-          '<span class="con-mark">🌌</span> ' + (res.verdict || "") + "</div>";
+          '<span class="con-mark">🌌</span> ' + (res.verdict || "") + "</div>" +
+          divLine;
       }
       $("constellation-panel").classList.remove("hidden");
     });

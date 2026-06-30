@@ -306,6 +306,10 @@ input[type="file"], input[type="text"] {
 }
 .constellation .con-verdict.spectrum { border-left: 3px solid #8e7cc3; background: rgba(142, 124, 195, 0.08); }
 .constellation .con-mark { font-size: 1.1rem; }
+.constellation .con-divergence {
+  margin-top: 10px; padding-left: 14px; border-left: 2px solid #8e7cc3;
+  color: var(--ink-dim); font-style: italic; line-height: 1.6;
+}
 
 /* provenance overlay — the wall, made visible per reply */
 .provenance {

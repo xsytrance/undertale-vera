@@ -5,7 +5,7 @@ import os
 from fastapi.testclient import TestClient
 
 import undertale_vera_app as appmod
-from constellation import aggregate, build_verdict, _routes_phrase
+from constellation import aggregate, build_verdict, build_divergence, _routes_phrase
 
 client = TestClient(appmod.app)
 FIX = os.path.join(os.path.dirname(__file__), "fixtures")
@@ -56,6 +56,26 @@ def test_verdict_all_pacifist_and_empty():
     assert "walked it kind" in v and "2 Pacifist" in v
 
 
+def test_divergence_names_the_fork():
+    d = build_divergence(
+        {"name": "Frisk", "route": "Pacifist", "love": 1},
+        {"name": "Chara", "route": "Genocide", "love": 20, "total_kills": 9},
+    )
+    assert "Pacifist — Frisk, LOVE 1" in d
+    assert "Genocide — Chara, LOVE 20, 9 of them dead" in d
+    assert "same hands" in d
+
+
+def test_divergence_empty_when_no_fork():
+    # same route → no divergence
+    assert build_divergence({"route": "Pacifist"}, {"route": "Pacifist"}) == ""
+    # missing side → no divergence
+    assert build_divergence(None, {"route": "Genocide"}) == ""
+    # honest: an unread name/LOVE is simply not spoken
+    d = build_divergence({"route": "Pacifist", "name": None}, {"route": "Genocide", "name": None})
+    assert "no name I could read" in d and "LOVE" not in d
+
+
 # ── endpoint wiring ──────────────────────────────────────────────────────────
 
 def _upload(stem, ini):
@@ -74,3 +94,6 @@ def test_constellation_endpoint_sees_the_full_spectrum():
     assert "same hands did both" in con["verdict"]
     # SACRED: the route tally reflects real saves
     assert con["aggregate"]["routes"].get("Genocide", 0) >= 1
+    # the Divergence names the fork between the kindest and cruelest runs
+    assert "same hands" in con["divergence"]
+    assert "Pacifist" in con["divergence"] and "Genocide" in con["divergence"]
