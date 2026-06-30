@@ -25,6 +25,15 @@ PORTRAIT_DIR = os.environ.get(
 )
 PORTRAIT_URL_BASE = "/assets/portraits"
 
+# Character emblem crests (our own original art; gitignored like portraits). These
+# are the designed default crest per character — distinct from a user-supplied
+# portrait. Resolved separately so the frontend can layer: photo > emblem > SVG.
+EMBLEM_DIR = os.environ.get(
+    "UNDERTALE_VERA_EMBLEM_DIR",
+    os.path.join(os.path.dirname(__file__), "static", "assets", "emblems"),
+)
+EMBLEM_URL_BASE = "/assets/emblems"
+
 
 def _slug(name: Optional[str]) -> str:
     return re.sub(r"[^a-z0-9]+", "_", (name or "").strip().lower()).strip("_")
@@ -58,4 +67,23 @@ def resolve_avatar(
         return str(gen)
 
     # 3. Default crest.
+    return ""
+
+
+def resolve_emblem(character: dict[str, Any], *, emblem_dir: str = EMBLEM_DIR) -> str:
+    """Resolve a character to its designed emblem-crest URL, or "".
+
+    Checks static/assets/emblems/<slug>.png. Independent of resolve_avatar so the
+    frontend can prefer a user-supplied portrait, fall back to this emblem, then to
+    the inline SVG crest. Returns "" when no emblem file is present.
+    """
+    slug = _slug(character.get("name") or character.get("key"))
+    if not slug:
+        return ""
+    candidate = os.path.join(emblem_dir, f"{slug}.png")
+    try:
+        if os.path.isfile(candidate) and os.path.getsize(candidate) > 100:
+            return f"{EMBLEM_URL_BASE}/{slug}.png"
+    except OSError:
+        pass
     return ""

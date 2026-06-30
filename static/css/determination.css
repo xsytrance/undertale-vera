@@ -506,6 +506,8 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 .relic-portrait.emblem svg { width: 82%; height: 82%; }
 .bubble-avatar.emblem { display: flex; align-items: center; justify-content: center; }
 .bubble-avatar.emblem svg { width: 84%; height: 84%; }
+/* designed raster emblem (its own centred symbol on black) — show it whole */
+.relic-portrait.emblem-img, .bubble-avatar.emblem-img { object-fit: contain; }
 
 /* portrait → photo options (View larger · Change · Remove) */
 .portrait-wrap { position: relative; display: inline-flex; flex: none; cursor: pointer; }

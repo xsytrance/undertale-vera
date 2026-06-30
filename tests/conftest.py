@@ -11,3 +11,4 @@ os.environ["UNDERTALE_VERA_DB"] = f"sqlite:///{_tmp.name}"
 # Isolate supplied-portrait writes to a throwaway dir (the resolver reads this env
 # at import) so tests never touch the real static/assets/portraits folder.
 os.environ["UNDERTALE_VERA_PORTRAIT_DIR"] = tempfile.mkdtemp(prefix="utv_portraits_")
+os.environ["UNDERTALE_VERA_EMBLEM_DIR"] = tempfile.mkdtemp(prefix="utv_emblems_")

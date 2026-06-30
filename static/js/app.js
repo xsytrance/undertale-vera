@@ -273,13 +273,28 @@
     for (var i = 0; i < l.length; i++) if (l[i].name === name) return l[i];
     return null;
   }
-  function portraitUrl(name) {
-    var c = charByName(name); var u = c && c.avatar_url;
+  function _bust(u) {
     if (!u) return "";
     return portraitBust ? (u + (u.indexOf("?") < 0 ? "?" : "&") + "v=" + portraitBust) : u;
   }
+  function portraitUrl(name) { var c = charByName(name); return _bust(c && c.avatar_url); }
+  function emblemRaster(name) { var c = charByName(name); return _bust(c && c.emblem_url); }
   function emblemSvg(name) { return (window.UV_EMBLEMS && window.UV_EMBLEMS[name]) || ""; }
   function slug(name) { return (name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
+
+  // The avatar shown for a character, in priority order:
+  //   user-supplied photo  >  designed raster emblem  >  inline SVG emblem  >  blank crest.
+  function avatarMarkup(name, baseCls, id) {
+    var idAttr = id ? ' id="' + id + '"' : "";
+    var p = portraitUrl(name);
+    if (p) return '<img' + idAttr + ' class="' + baseCls + '" src="' + p + '" alt="' + name + '" />';
+    var e = emblemRaster(name);
+    if (e) return '<img' + idAttr + ' class="' + baseCls + ' emblem-img" src="' + e + '" alt="' + name + '" />';
+    var svg = emblemSvg(name);
+    if (svg) return '<div' + idAttr + ' class="' + baseCls + ' emblem">' + svg + "</div>";
+    return '<div' + idAttr + ' class="' + baseCls + ' empty"></div>';
+  }
+  function hasAnyImage(name) { var c = charByName(name); return !!(c && (c.avatar_url || c.emblem_url)); }
 
   // ── Undertale-feel: a short text "blip" per character as dialogue types ────
   var _ac = null;
@@ -303,14 +318,7 @@
       o.start(t); o.stop(t + 0.05);
     } catch (e) { /* audio not available — silent */ }
   }
-  function portraitTag(name) {
-    var u = portraitUrl(name);
-    if (u) return '<img class="relic-portrait" src="' + u + '" alt="' + name + '" />';
-    var emb = emblemSvg(name);
-    return emb
-      ? '<div class="relic-portrait emblem">' + emb + "</div>"
-      : '<div class="relic-portrait empty"></div>';
-  }
+  function portraitTag(name) { return avatarMarkup(name, "relic-portrait"); }
 
   function loadRoster() {
     api("/api/characters").then(function (res) {
@@ -326,8 +334,7 @@
     var el = $("roster"); if (el) el.innerHTML = "";
     var strip = $("speaker-strip"); if (strip) strip.innerHTML = "";
     (state.characters || []).forEach(function (c) {
-      var hasImg = !!(c.avatar_url);
-      // left-rail roster card — the portrait carries ✎ (change) / ✕ (clear) badges
+      // left-rail roster card — the portrait opens a photo-options menu (⋯)
       var card = document.createElement("div");
       card.className = "char-card";
       card.dataset.name = c.name;
@@ -400,12 +407,14 @@
   }
   function openPortraitMenu(name, anchor) {
     closePortraitMenu();
-    var c = charByName(name); var hasImg = !!(c && c.avatar_url);
+    var c = charByName(name);
+    var hasPhoto = !!(c && c.avatar_url);   // a user-supplied photo (removable)
+    var anyImg = hasAnyImage(name);          // photo or designed emblem (viewable)
     var m = document.createElement("div"); m.id = "portrait-menu"; m.className = "portrait-menu";
     var items = [];
-    if (hasImg) items.push(["🔍 View larger", function () { openLightbox(name); }]);
-    items.push([hasImg ? "✎ Change image" : "✎ Add image", function () { changePortrait(name); }]);
-    if (hasImg) items.push(["✕ Remove image", function () { resetPortrait(name); }]);
+    if (anyImg) items.push(["🔍 View larger", function () { openLightbox(name); }]);
+    items.push([hasPhoto ? "✎ Change image" : "✎ Add image", function () { changePortrait(name); }]);
+    if (hasPhoto) items.push(["✕ Remove image", function () { resetPortrait(name); }]);
     items.forEach(function (it) {
       var b = document.createElement("button"); b.className = "pm-item"; b.textContent = it[0];
       b.onclick = function (e) { e.stopPropagation(); closePortraitMenu(); it[1](); };
@@ -418,7 +427,7 @@
     setTimeout(function () { document.addEventListener("click", closePortraitMenu, true); }, 0);
   }
   function openLightbox(name) {
-    var u = portraitUrl(name); if (!u) return;
+    var u = portraitUrl(name) || emblemRaster(name); if (!u) return;
     var ov = document.createElement("div"); ov.className = "lightbox";
     var img = document.createElement("img"); img.src = u; img.alt = name;
     var cap = document.createElement("div"); cap.className = "lb-name"; cap.textContent = name;
@@ -456,11 +465,8 @@
       ? ' <span class="chip ' + (STANCE_CLASS[a.stance] || "free") + '" title="' + a.basis +
         '" style="font-size:0.64rem; vertical-align:middle;">regards you: ' + a.stance + "</span>"
       : "");
-    var pu = portraitUrl(c.name);
     var p = $("chat-portrait");
-    if (p) p.outerHTML = pu
-      ? '<img class="relic-portrait" id="chat-portrait" src="' + pu + '" />'
-      : '<div class="relic-portrait empty" id="chat-portrait"></div>';
+    if (p) p.outerHTML = avatarMarkup(c.name, "relic-portrait", "chat-portrait");
     showView("chat");
     renderTranscript();   // show what we have immediately (placeholder or local history)
     // Load the persisted transcript so the conversation survives a reload. Only
@@ -495,20 +501,11 @@
       var msg = document.createElement("div");
       msg.className = "msg " + (them ? "them" : "you");
 
-      // the speaker's portrait sits beside their reply (emblem crest until art lands)
+      // the speaker's portrait sits beside their reply (photo > emblem > crest)
       if (them) {
-        var av = avatarFor(state.character);
-        var avEl;
-        if (av) {
-          avEl = document.createElement("img");
-          avEl.className = "bubble-avatar"; avEl.src = av; avEl.alt = state.character;
-        } else {
-          avEl = document.createElement("div");
-          var emb = emblemSvg(state.character);
-          avEl.className = "bubble-avatar" + (emb ? " emblem" : " empty");
-          if (emb) avEl.innerHTML = emb;
-        }
-        msg.appendChild(avEl);
+        var holder = document.createElement("div");
+        holder.innerHTML = avatarMarkup(state.character, "bubble-avatar");
+        msg.appendChild(holder.firstChild);
       }
 
       var b = document.createElement("div");
@@ -787,13 +784,10 @@
     api("/api/projects/" + state.projectId + "/council").then(function (res) {
       var box = $("council-list"); box.innerHTML = "";
       (res.council || []).forEach(function (e) {
-        var av = avatarFor(e.character);
         var row = document.createElement("div");
         row.className = "council-voice";
         row.innerHTML =
-          (av ? '<img class="bubble-avatar" src="' + av + '" alt="" />'
-              : '<div class="bubble-avatar ' + (emblemSvg(e.character) ? "emblem" : "empty") + '">' +
-                emblemSvg(e.character) + "</div>") +
+          avatarMarkup(e.character, "bubble-avatar") +
           '<div class="cv-body"><div class="cv-head">' + e.character +
           ' <span class="chip ' + (STANCE_CLASS[e.stance] || "free") + '">' + e.stance + "</span></div>" +
           '<div class="cv-line"></div></div>';

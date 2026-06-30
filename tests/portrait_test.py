@@ -38,3 +38,21 @@ def test_portrait_rejects_unknown_character():
 def test_portrait_rejects_tiny_image():
     assert client.post("/api/characters/toriel/portrait",
                        files={"image": ("t.png", b"tiny", "image/png")}).status_code == 400
+
+
+def test_emblem_url_resolves_when_present():
+    import os
+    from avatar_resolver import EMBLEM_DIR
+    # no emblem file yet → empty
+    chars = {c["name"]: c for c in client.get("/api/characters").json()["characters"]}
+    assert chars["Sans"]["emblem_url"] == ""
+    # drop an emblem crest → resolved as a distinct layer (not the user portrait)
+    os.makedirs(EMBLEM_DIR, exist_ok=True)
+    with open(os.path.join(EMBLEM_DIR, "sans.png"), "wb") as f:
+        f.write(_IMG)
+    try:
+        chars = {c["name"]: c for c in client.get("/api/characters").json()["characters"]}
+        assert chars["Sans"]["emblem_url"] == "/assets/emblems/sans.png"
+        assert chars["Sans"]["avatar_url"] == ""   # emblem is separate from the photo slot
+    finally:
+        os.remove(os.path.join(EMBLEM_DIR, "sans.png"))
