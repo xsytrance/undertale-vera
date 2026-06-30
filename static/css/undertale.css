@@ -104,3 +104,13 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 
 /* the typewriter caret → white block (terminal feel) */
 .ink-reveal { border-right-color: #fff !important; }
+
+/* ── mobile density: the pixel font is wide, so tighten the chat on narrow
+   screens and shrink the per-message avatar to give text more room ───────── */
+@media (max-width: 860px) {
+  .view-chat .bubble { font-size: 0.92rem; line-height: 1.36; }
+  .view-chat .bubble .who { font-size: 0.7rem; }
+  .composer #chat-input { font-size: 0.95rem; }
+  .bubble-avatar { width: 30px; height: 30px; flex: 0 0 30px; }
+  .msg { gap: 7px; }
+}

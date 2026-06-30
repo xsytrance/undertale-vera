@@ -325,15 +325,21 @@
     var p = $("chat-portrait");
     if (c.avatar_url) { p.outerHTML = '<img class="relic-portrait" id="chat-portrait" src="' + c.avatar_url + '" />'; }
     showView("chat");
-    // Load the persisted transcript so the conversation survives a reload.
+    renderTranscript();   // show what we have immediately (placeholder or local history)
+    // Load the persisted transcript so the conversation survives a reload. Only
+    // adopt it if nothing was typed locally in the meantime (a fast
+    // send-after-select must not be clobbered), and only render if this is still
+    // the selected character.
     api("/api/projects/" + state.projectId + "/conversations/" + c.name.toLowerCase())
       .then(function (res) {
-        state.history[c.name] = (res.messages || []).map(function (m) {
-          return { role: m.role, content: m.content };
-        });
-        renderTranscript();
+        if ((state.history[c.name] || []).length === 0) {
+          state.history[c.name] = (res.messages || []).map(function (m) {
+            return { role: m.role, content: m.content };
+          });
+        }
+        if (state.character === c.name) renderTranscript();
       })
-      .catch(function () { renderTranscript(); });
+      .catch(function () { if (state.character === c.name) renderTranscript(); });
   }
 
   // ── chat ──────────────────────────────────────────────────────────────────
