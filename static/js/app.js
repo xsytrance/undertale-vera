@@ -314,6 +314,20 @@
   }
 
   // ── wiring ────────────────────────────────────────────────────────────────
+  // ── Chronicle export (the save's whole story as shareable markdown) ────────
+  function downloadChronicle() {
+    if (!state.projectId) return;
+    api("/api/projects/" + state.projectId + "/chronicle").then(function (res) {
+      var blob = new Blob([res.markdown], { type: "text/markdown" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      var slug = (res.title || "chronicle").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+      a.href = url; a.download = slug + ".md";
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+    }).catch(function (e) { $("upload-status").textContent = "Chronicle error: " + e.message; });
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
     if (window.MusicLayer) window.MusicLayer.init();
     loadShelf();
@@ -323,6 +337,7 @@
     $("chat-input").addEventListener("keydown", function (e) { if (e.key === "Enter") sendMessage(); });
     $("judge-btn").onclick = showJudgment;
     $("speak-btn").onclick = speakJudgment;
+    $("chronicle-btn").onclick = downloadChronicle;
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;
       window.MusicLayer.setEnabled(this.checked);

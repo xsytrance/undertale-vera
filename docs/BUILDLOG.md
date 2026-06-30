@@ -486,3 +486,21 @@ overscan so no edge ever shows), so the approved scene art feels alive and its
 centred composition wanders gently into view around the frosted panels. Pure CSS,
 honours `prefers-reduced-motion`. Browser-verified: animation applies, the texture
 visibly shifts between frames, text stays legible, 0 console errors.
+
+## The Chronicle — a save's whole story, exportable (SACRED, facts-only)
+The payoff for all the mining: one shareable narrated artifact.
+- `chronicle.py` (pure): `build_chronicle(save_truth, snapshots)` renders the save
+  into Markdown — the route + confidence, the journey (area, play time, pie), the
+  numbers (LOVE, kills), Those You Met (definite dispositions only), What the Save
+  Remembers (visit count + path turn, ≥2 readings), the Fun-value Anomaly, and the
+  Verdict. Reuses save_flavor / character_disposition / ledger / judgment. Invents
+  NOTHING — unknowns render "not recorded" or omit their section; undetermined route
+  is named, never filled in.
+- `GET /api/projects/{id}/chronicle` → {markdown, title, route}.
+- Frontend: an "⤓ Export Chronicle" button in the truth panel downloads it as
+  `<title>.md` (vanilla Blob download). Browser-verified end-to-end.
+- Tests: `tests/chronicle_test.py` (sections, sacred facts, definite-dispositions-
+  only, anomaly gating, unknowns-left-unwritten, remembrance across visits, endpoint
+  + 404). Verified on a real corpus genocide save (route confirmed, dispositions,
+  Fun anomaly, verdict all rendered).
+- Verified: `pytest -q` → **151 passing**.
