@@ -55,6 +55,8 @@
       .then(function (res) {
         $("upload-status").textContent = "Return visit recorded (visit #" + res.visit + ").";
         renderTruth(res.save_truth, res.visit, res.remembrance || "");
+        loadAffinities();   // the cast's regard can change with the new reading
+        if (!$("journal-panel").classList.contains("hidden")) loadJournal();
       })
       .catch(function (e) { $("upload-status").textContent = "Error: " + e.message; });
   }
@@ -387,6 +389,119 @@
     document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
+  function downloadText(text, filename) {
+    var blob = new Blob([text], { type: "text/markdown" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url; a.download = filename;
+    document.body.appendChild(a); a.click(); document.body.removeChild(a); URL.revokeObjectURL(url);
+  }
+
+  function openCharacter(name) {
+    var c = (state.characters || []).filter(function (x) { return x.name === name; })[0];
+    if (c) selectCharacter(c);
+    var cp = $("chat-panel"); if (cp) cp.scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+
+  // ── The Keepsake Journal ───────────────────────────────────────────────────
+  function showJournal() {
+    if (!state.projectId) return;
+    var sel = $("journal-author");
+    if (sel.options.length === 0) {
+      (state.characters || []).forEach(function (c) {
+        var o = document.createElement("option"); o.value = c.name; o.textContent = c.name; sel.appendChild(o);
+      });
+    }
+    loadJournal();
+    $("journal-panel").classList.remove("hidden");
+    $("journal-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function loadJournal() {
+    api("/api/projects/" + state.projectId + "/journal").then(function (res) {
+      state.journalMd = res.markdown;
+      var box = $("journal-entries"); box.innerHTML = "";
+      if (!res.entries.length) {
+        box.innerHTML = '<p class="muted">No one has written here yet — ask someone to leave you a page.</p>';
+        return;
+      }
+      res.entries.forEach(function (e) {
+        var d = document.createElement("div"); d.className = "entry";
+        d.innerHTML = '<div class="entry-head">' + e.author +
+          (e.route_context ? ' <span class="muted">· ' + e.route_context + "</span>" : "") +
+          '</div><div class="entry-text"></div>';
+        d.querySelector(".entry-text").textContent = e.text;
+        box.appendChild(d);
+      });
+    });
+  }
+  function inscribeJournal() {
+    if (!state.projectId) return;
+    var btn = $("journal-inscribe-btn"); btn.disabled = true; btn.textContent = "writing…";
+    api("/api/projects/" + state.projectId + "/journal/inscribe", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ character: $("journal-author").value }),
+    }).then(loadJournal).catch(function () {}).then(function () {
+      btn.disabled = false; btn.textContent = "Ask them to write";
+    });
+  }
+
+  // ── The Timeline (the save's history, with resets marked) ──────────────────
+  function showTimeline() {
+    if (!state.projectId) return;
+    api("/api/projects/" + state.projectId + "/save-memory").then(function (res) {
+      var snaps = res.snapshots || [], track = $("timeline-track"); track.innerHTML = "";
+      var peakLove = null, peakKills = null;
+      snaps.forEach(function (s, i) {
+        var reset = false;
+        if (typeof s.love === "number") {
+          if (peakLove !== null && s.love < peakLove) reset = true;
+          peakLove = peakLove === null ? s.love : Math.max(peakLove, s.love);
+        }
+        if (typeof s.total_kills === "number") {
+          if (peakKills !== null && s.total_kills < peakKills) reset = true;
+          peakKills = peakKills === null ? s.total_kills : Math.max(peakKills, s.total_kills);
+        }
+        if (i > 0) {
+          var conn = document.createElement("div");
+          conn.className = "tl-conn" + (reset ? " reset" : "");
+          conn.textContent = reset ? "↩" : "→"; track.appendChild(conn);
+        }
+        var route = (s.route || "undetermined").toLowerCase();
+        var node = document.createElement("div"); node.className = "tl-node";
+        node.innerHTML = '<div class="tl-visit">reading #' + s.counter + "</div>" +
+          '<span class="route-badge ' + route + '">' + (s.route || "undetermined") + "</span>" +
+          '<div class="muted tl-meta">LV ' + (s.love == null ? "—" : s.love) +
+          " · " + (s.total_kills == null ? "—" : s.total_kills) + " kills</div>";
+        track.appendChild(node);
+      });
+      if (!snaps.length) track.innerHTML = '<p class="muted">No readings yet.</p>';
+      $("timeline-panel").classList.remove("hidden");
+      $("timeline-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
+  // ── Proactive contact (they reach out to you) ──────────────────────────────
+  var reachTimer = null;
+  function setReachOut(on) {
+    if (reachTimer) { clearInterval(reachTimer); reachTimer = null; }
+    if (on && state.projectId) { reachOutNow(); reachTimer = setInterval(reachOutNow, 60000); }
+  }
+  function reachOutNow() {
+    if (!state.projectId) return;
+    api("/api/projects/" + state.projectId + "/reach-out", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}),
+    }).then(function (res) { showReachToast(res.character, res.message); }).catch(function () {});
+  }
+  function showReachToast(character, message) {
+    var t = $("reach-toast");
+    t.innerHTML = "<strong>" + character + "</strong> reached out — <em>tap to answer</em><br/><span></span>";
+    t.querySelector("span").textContent = message;
+    t.classList.remove("hidden");
+    t.onclick = function () { t.classList.add("hidden"); openCharacter(character); };
+    clearTimeout(t._timer);
+    t._timer = setTimeout(function () { t.classList.add("hidden"); }, 14000);
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
     if (window.MusicLayer) window.MusicLayer.init();
     loadShelf();
@@ -399,6 +514,13 @@
     $("chronicle-btn").onclick = showChronicle;
     $("chronicle-download-btn").onclick = downloadChronicle;
     $("chronicle-close-btn").onclick = function () { $("chronicle-panel").classList.add("hidden"); };
+    $("journal-btn").onclick = showJournal;
+    $("journal-inscribe-btn").onclick = inscribeJournal;
+    $("journal-download-btn").onclick = function () { if (state.journalMd) downloadText(state.journalMd, "keepsake_journal.md"); };
+    $("journal-close-btn").onclick = function () { $("journal-panel").classList.add("hidden"); };
+    $("timeline-btn").onclick = showTimeline;
+    $("timeline-close-btn").onclick = function () { $("timeline-panel").classList.add("hidden"); };
+    $("reachout-toggle").onchange = function () { setReachOut(this.checked); };
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;
       window.MusicLayer.setEnabled(this.checked);
