@@ -98,7 +98,7 @@
       this.prefs.enabled = !!on;
       savePrefs(this.prefs);
       if (!on) { this.audio.pause(); }
-      else if (this.current) { this.play(this.current); }
+      else { this.play(this.current || MENU_TRACK); }   // enabling with nothing queued starts the theme
     },
 
     setVolume: function (v) {
