@@ -31,6 +31,7 @@ import character_disposition
 import chat_style
 import chronicle as chronicle_mod
 import council
+import crossave
 import journal
 import milestones
 import proactive
@@ -126,6 +127,23 @@ def _snapshots_for(db: Session, project_id: int) -> list[dict[str, Any]]:
         }
         for r in rows
     ]
+
+
+def _prior_save_summaries(db: Session, current_project_id: int) -> list[dict[str, Any]]:
+    """Snapshot-fields of every OTHER save (project) the player has shown.
+
+    Cross-save recognition material (Bucket A, SACRED): each entry is the current
+    SaveTruth of a different project, reduced to the same honest fields the ledger
+    uses. Ordered oldest-first by project id. In this single-player install all
+    projects are the same hand on the keys.
+    """
+    rows = (
+        db.query(Project)
+        .filter(Project.id != current_project_id)
+        .order_by(Project.id.asc())
+        .all()
+    )
+    return [ledger.snapshot_fields_from_truth(r.save_data or {}) for r in rows]
 
 
 # ── health ───────────────────────────────────────────────────────────────────
@@ -400,6 +418,29 @@ def get_council(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any
     return {"project_id": project_id, "council": council.build_council(project.save_data or {})}
 
 
+@app.get("/api/projects/{project_id}/recognition")
+def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """New Game+: does anything here know you from ANOTHER save you've shown?
+
+    Deterministic (no model). Surfaces the SACRED facts of your other saves and the
+    save-aware characters' (Flowey / Sans) knowing recognition lines. `present` is
+    false on a first/only save — nothing has seen you before yet.
+    """
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    current = ledger.snapshot_fields_from_truth(project.save_data or {})
+    priors = _prior_save_summaries(db, project_id)
+    return {
+        "project_id": project_id,
+        "present": bool(priors),
+        "count": len(priors),
+        "priors": priors,
+        "flowey": crossave.build_recognition_grounding(current, priors, voice="flowey"),
+        "sans": crossave.build_recognition_grounding(current, priors, voice="sans"),
+    }
+
+
 def _autofill_journal(db: Session, project_id: int, save_truth: dict[str, Any],
                       snapshots: list[dict[str, Any]]) -> None:
     """Append milestone journal entries the save just earned (ADD-only, de-duped by kind)."""
@@ -595,6 +636,20 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         reset_block = ledger.build_reset_awareness(snapshots)
         if reset_block:
             remembrance = (remembrance + "\n\n" + reset_block).strip()
+    # New Game+: the save/reset-aware pair also recognise the player ACROSS saves —
+    # a different file shown before, a different face. SACRED (other projects' real
+    # fields). Muted when the player sets the Options 'Save/reset talk' dial to off.
+    if (req.options or {}).get("meta") != "off" and normalize_key(req.character) in (
+        "name:sans", "name:flowey"
+    ):
+        voice = "flowey" if normalize_key(req.character) == "name:flowey" else "sans"
+        rec_block = crossave.build_recognition_grounding(
+            ledger.snapshot_fields_from_truth(save_truth),
+            _prior_save_summaries(db, project_id),
+            voice=voice,
+        )
+        if rec_block:
+            remembrance = (remembrance + "\n\n" + rec_block).strip()
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")

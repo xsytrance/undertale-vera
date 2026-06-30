@@ -93,8 +93,34 @@
     if (window.SceneLayer) window.SceneLayer.setRoute(route);
     // tint the header sigil red on the Genocide beat.
     $("header-sigil").className = "soul-sigil" + (route === "Genocide" ? " determined" : "");
+    // New Game+: does anything here know you from another save you've shown?
+    loadRecognition();
   }
   function row(k, v) { return '<div class="k">' + k + "</div><div>" + v + "</div>"; }
+
+  // New Game+ / cross-save recognition: a quiet beat when this save has siblings.
+  // Honours the Options "Save/reset talk" dial — off means stay in the fiction.
+  function loadRecognition() {
+    var box = $("recognition-box");
+    if (!box) return;
+    if (!state.projectId) { box.classList.add("hidden"); return; }
+    var metaOff = (((state.settings || {}).options || {}).meta === "off");
+    if (metaOff) { box.classList.add("hidden"); return; }
+    api("/api/projects/" + state.projectId + "/recognition").then(function (res) {
+      if (!res || !res.present) { box.classList.add("hidden"); return; }
+      var n = res.count || 0;
+      var faces = (res.priors || []).slice(0, 3).map(function (p) {
+        var nm = p.name || "a nameless run";
+        return nm + (p.route ? (" · " + p.route) : "");
+      }).join("  ·  ");
+      box.innerHTML =
+        '<span class="rec-mark">🌼</span> <strong>You\'ve been here before.</strong> ' +
+        n + " other save" + (n === 1 ? "" : "s") + " shown — " +
+        '<span class="muted">' + faces + "</span>. " +
+        "<em>Flowey never forgets a run. Ask him.</em>";
+      box.classList.remove("hidden");
+    }).catch(function () { box.classList.add("hidden"); });
+  }
 
   // ── save shelf (switch between read saves) ───────────────────────────────
   function loadShelf() {
@@ -570,6 +596,7 @@
     };
     try { localStorage.setItem("uv_settings", JSON.stringify(state.settings)); } catch (e) {}
     applyHud();
+    loadRecognition();  // the "Save/reset talk" dial gates the recognition beat
   }
 
   window.addEventListener("DOMContentLoaded", function () {

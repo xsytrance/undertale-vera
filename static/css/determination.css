@@ -279,6 +279,17 @@ input[type="file"], input[type="text"] {
 .gap { color: var(--ink-dim); font-style: italic; }
 .remembrance { border-left: 2px solid var(--ember); padding-left: 12px; margin-top: 10px; color: var(--ink); }
 
+/* New Game+ recognition beat — a save that knows you from another file */
+.recognition {
+  margin-top: 10px; padding: 10px 12px;
+  border: 1px solid var(--plate-frame); border-left: 2px solid #78c878;
+  border-radius: 6px; background: rgba(120, 200, 120, 0.06);
+  color: var(--ink); font-size: 0.92rem; line-height: 1.5;
+}
+.recognition .rec-mark { font-size: 1.05rem; }
+.recognition strong { color: #9bd99b; font-family: var(--font-display); }
+.recognition em { color: var(--ink-dim); }
+
 /* provenance overlay — the wall, made visible per reply */
 .provenance {
   margin-top: 8px; padding-top: 8px;
