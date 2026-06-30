@@ -35,6 +35,7 @@ static/audio/
 
 # ── Inspector / QA artifacts (screenshots, summaries) ────────────────────────
 dogfood-output/inspector/
+preview/
 
 # ── Logs, caches, secrets ────────────────────────────────────────────────────
 logs/

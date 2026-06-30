@@ -461,3 +461,12 @@ roster), so a face anchors every line.
   `resolve_avatar` serves them and the face appears here automatically — no code
   change; crest until then.
 - Browser-verified: portrait img renders beside the reply, 0 console errors.
+
+## Scene legibility harness — judge backdrops behind the real text
+A 4-up grid can't show how a backdrop fights the parchment ink; this does.
+- `tools/preview_scenes.py`: drives the running app via Playwright — reads a fixture
+  save so the actual panels + text render, then swaps `SceneLayer.setRoute(route)`
+  per route and screenshots each. Tags `[ART]` vs `[gradient]` so we know whether a
+  generated scene is in play. Honors `$UNDERTALE_VERA_CHROMIUM`; output to `preview/`
+  (gitignored). The real legibility test for each new scene drop from Prime.
+- Verified end-to-end against the current gradient state (4 screenshots written).
