@@ -29,7 +29,9 @@ from sqlalchemy.orm import Session, sessionmaker
 import affinity as affinity_mod
 import character_disposition
 import chronicle as chronicle_mod
+import council
 import journal
+import milestones
 import proactive
 import relationships
 import save_flavor
@@ -161,6 +163,7 @@ async def upload_save(
 
     # First remembrance-ledger entry (the save begins to remember).
     _record_snapshot(db, project.id, truth)
+    _autofill_journal(db, project.id, truth, _snapshots_for(db, project.id))
 
     return {"project_id": project.id, "save_truth": truth, "validation": validation}
 
@@ -191,6 +194,7 @@ async def refresh_save(
     project.save_data = truth
     db.commit()
     snap = _record_snapshot(db, project_id, truth)
+    _autofill_journal(db, project_id, truth, _snapshots_for(db, project_id))
 
     return {
         "project_id": project_id,
@@ -384,6 +388,32 @@ def get_affinities(project_id: int, db: Session = Depends(get_db)) -> dict[str, 
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     return {"project_id": project_id, "affinities": affinity_mod.all_affinities(project.save_data or {})}
+
+
+@app.get("/api/projects/{project_id}/council")
+def get_council(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The Council: the whole Underground's reaction to the run, side by side (deterministic)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    return {"project_id": project_id, "council": council.build_council(project.save_data or {})}
+
+
+def _autofill_journal(db: Session, project_id: int, save_truth: dict[str, Any],
+                      snapshots: list[dict[str, Any]]) -> None:
+    """Append milestone journal entries the save just earned (ADD-only, de-duped by kind)."""
+    existing = {
+        r.kind for r in db.query(JournalEntry).filter(JournalEntry.project_id == project_id).all()
+    }
+    fresh = [m for m in milestones.detect_milestones(save_truth, snapshots) if m["kind"] not in existing]
+    if not fresh:
+        return
+    prior = db.query(JournalEntry).filter(JournalEntry.project_id == project_id).count()
+    route = (save_truth.get("route") or {}).get("route")
+    for i, m in enumerate(fresh, start=1):
+        db.add(JournalEntry(project_id=project_id, counter=prior + i, author=m["author"],
+                            kind=m["kind"], text=m["text"], route_context=route))
+    db.commit()
 
 
 @app.get("/api/projects/{project_id}/chronicle")
