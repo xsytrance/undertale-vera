@@ -312,3 +312,18 @@ input[type="file"], input[type="text"] {
 .route-badge.pacifist { color: var(--ember); border-color: var(--ember-soft); }
 .route-badge.neutral  { color: var(--brass-edge); }
 .route-badge.undetermined { color: var(--ink-dim); font-style: italic; }
+
+/* ── the Chronicle viewer (a parchment record) ───────────────────────────── */
+.chronicle { font-family: var(--font-body); line-height: 1.55; }
+.chronicle h2 { font-family: var(--font-display); color: var(--brass-edge); margin: 0 0 6px; }
+.chronicle h3 { font-family: var(--font-display); color: var(--ember); font-size: 1rem;
+  margin: 16px 0 4px; letter-spacing: 0.04em; }
+.chronicle p { margin: 4px 0; color: var(--ink); }
+.chronicle em { color: var(--ink-dim); }
+.chronicle ul { margin: 4px 0 4px 18px; padding: 0; }
+.chronicle li { margin: 2px 0; }
+.chronicle hr { border: none; border-top: 1px solid var(--plate-frame); margin: 14px 0; }
+
+/* ── roster affinity chip (how each character regards you) ────────────────── */
+.char-card .affinity { margin-top: 6px; min-height: 20px; }
+.char-card .affinity .chip { font-size: 0.66rem; letter-spacing: 0.04em; }

@@ -52,7 +52,7 @@
     <div class="remembrance hidden" id="remembrance-box"></div>
     <div class="row" style="margin-top:14px;">
       <label class="muted"><input type="checkbox" id="music-toggle" /> ambient music (route-aware)</label>
-      <button class="btn" id="chronicle-btn">⤓ Export Chronicle</button>
+      <button class="btn" id="chronicle-btn">📜 The Chronicle</button>
     </div>
   </section>
 
@@ -75,6 +75,15 @@
       <input type="text" id="chat-input" placeholder="say something…" style="flex:1; min-width:200px;" />
       <button class="btn" id="send-btn">Send</button>
       <button class="btn determined" id="judge-btn">Judgment</button>
+    </div>
+  </section>
+
+  <!-- 4b. The Chronicle (in-app viewer) -->
+  <section class="panel hidden" id="chronicle-panel">
+    <div class="chronicle" id="chronicle-content"></div>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn" id="chronicle-download-btn">⤓ Download .md</button>
+      <button class="btn" id="chronicle-close-btn">Close</button>
     </div>
   </section>
 

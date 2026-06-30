@@ -129,6 +129,9 @@
   }
 
   // ── roster ────────────────────────────────────────────────────────────────
+  // stance → CSS class for the affinity chip colour
+  var STANCE_CLASS = { warm: "ok", wary: "free", grieving: "warn", hostile: "warn", unreadable: "free" };
+
   function loadRoster() {
     api("/api/characters").then(function (res) {
       state.characters = res.characters;
@@ -140,12 +143,28 @@
         var portrait = c.avatar_url
           ? '<img class="relic-portrait" src="' + c.avatar_url + '" alt="' + c.name + '" />'
           : '<div class="relic-portrait empty"></div>';
-        card.innerHTML = portrait + '<div class="name">' + c.name + "</div>";
+        card.innerHTML = portrait + '<div class="name">' + c.name + "</div>" +
+          '<div class="affinity" data-for="' + c.name + '"></div>';
         card.onclick = function () { selectCharacter(c); };
         el.appendChild(card);
       });
       $("roster-panel").classList.remove("hidden");
+      loadAffinities();   // decorate cards with how each regards you
     });
+  }
+
+  // How the Underground regards you — a stance chip per roster card (SACRED-derived).
+  function loadAffinities() {
+    if (!state.projectId) return;
+    api("/api/projects/" + state.projectId + "/affinities").then(function (res) {
+      var aff = res.affinities || {};
+      Array.prototype.forEach.call(document.querySelectorAll("#roster .affinity"), function (slot) {
+        var a = aff[slot.dataset.for];
+        if (!a) { slot.innerHTML = ""; return; }
+        slot.innerHTML = '<span class="chip ' + (STANCE_CLASS[a.stance] || "free") +
+          '" title="' + a.basis + '">' + a.stance + "</span>";
+      });
+    }).catch(function () {});
   }
 
   function selectCharacter(c) {
@@ -314,18 +333,53 @@
   }
 
   // ── wiring ────────────────────────────────────────────────────────────────
-  // ── Chronicle export (the save's whole story as shareable markdown) ────────
-  function downloadChronicle() {
+  // ── The Chronicle (in-app viewer + markdown export) ────────────────────────
+  var chronicleMd = "";   // last-fetched markdown, for download
+
+  function esc(s) {
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  }
+  // tiny markdown → HTML, just enough for the Chronicle's shape (#, ##, **, -, ---, *)
+  function mdToHtml(md) {
+    var out = [], inList = false;
+    md.split("\n").forEach(function (raw) {
+      var line = esc(raw);
+      line = line.replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+                 .replace(/(^|[^*])\*(?!\*)([^*]+?)\*/g, "$1<em>$2</em>");
+      if (/^- /.test(raw)) {
+        if (!inList) { out.push("<ul>"); inList = true; }
+        out.push("<li>" + line.slice(2) + "</li>"); return;
+      }
+      if (inList) { out.push("</ul>"); inList = false; }
+      if (/^# /.test(raw)) out.push("<h2>" + line.slice(2) + "</h2>");
+      else if (/^## /.test(raw)) out.push("<h3>" + line.slice(3) + "</h3>");
+      else if (/^---\s*$/.test(raw)) out.push("<hr/>");
+      else if (raw.trim() === "") out.push("");
+      else out.push("<p>" + line + "</p>");
+    });
+    if (inList) out.push("</ul>");
+    return out.join("\n");
+  }
+
+  function showChronicle() {
     if (!state.projectId) return;
     api("/api/projects/" + state.projectId + "/chronicle").then(function (res) {
-      var blob = new Blob([res.markdown], { type: "text/markdown" });
-      var url = URL.createObjectURL(blob);
-      var a = document.createElement("a");
-      var slug = (res.title || "chronicle").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
-      a.href = url; a.download = slug + ".md";
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(url);
+      chronicleMd = res.markdown;
+      $("chronicle-content").innerHTML = mdToHtml(res.markdown);
+      $("chronicle-panel").classList.remove("hidden");
+      $("chronicle-panel").scrollIntoView({ behavior: "smooth", block: "start" });
     }).catch(function (e) { $("upload-status").textContent = "Chronicle error: " + e.message; });
+  }
+
+  function downloadChronicle() {
+    if (!chronicleMd) return;
+    var blob = new Blob([chronicleMd], { type: "text/markdown" });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    var slug = ($("chronicle-content").querySelector("h2") || {}).textContent || "chronicle";
+    a.href = url; a.download = slug.replace(/[^a-z0-9]+/gi, "_").toLowerCase() + ".md";
+    document.body.appendChild(a); a.click();
+    document.body.removeChild(a); URL.revokeObjectURL(url);
   }
 
   window.addEventListener("DOMContentLoaded", function () {
@@ -337,7 +391,9 @@
     $("chat-input").addEventListener("keydown", function (e) { if (e.key === "Enter") sendMessage(); });
     $("judge-btn").onclick = showJudgment;
     $("speak-btn").onclick = speakJudgment;
-    $("chronicle-btn").onclick = downloadChronicle;
+    $("chronicle-btn").onclick = showChronicle;
+    $("chronicle-download-btn").onclick = downloadChronicle;
+    $("chronicle-close-btn").onclick = function () { $("chronicle-panel").classList.add("hidden"); };
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;
       window.MusicLayer.setEnabled(this.checked);
