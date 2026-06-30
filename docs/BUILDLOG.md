@@ -547,3 +547,17 @@ A batch that makes the Underground reach out of the screen toward you.
   end-to-end (journal inscription, timeline reset marker, reach-out toast; 0 errors).
 - Tests: `reset_awareness_test` (7), `journal_test` (8), `proactive_test` (7).
 - Verified: `pytest -q` → **186 passing**.
+
+## The Council + the self-filling journal
+- The Council (`council.py`, `GET /council`): the whole Underground reacts to the
+  run at once — each character's affinity stance + their route-shaped in-voice line
+  + the SACRED fate of a loved one when relevant. The contrast IS the argument
+  (Flowey gleeful while everyone else grieves on Genocide). Deterministic, instant,
+  grounded; a Council panel renders all nine side by side.
+- Self-filling journal (`milestones.py` + `_autofill_journal`): when a save crosses
+  a threshold (first steps → Toriel; LV 20 / Genocide / path turned → Sans; true
+  mercy → Toriel; a reset → Flowey) the fitting character writes a Keepsake Journal
+  page UNBIDDEN. De-duped by kind; runs on upload + refresh.
+- Browser-verified: 9-voice Council on a genocide save, 3 auto-entries on upload,
+  0 console errors. Tests: `tests/council_milestones_test.py` (9).
+- Verified: `pytest -q` → **195 passing**.

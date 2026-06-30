@@ -480,6 +480,29 @@
     });
   }
 
+  // ── The Council (the whole Underground reacts at once) ─────────────────────
+  function showCouncil() {
+    if (!state.projectId) return;
+    api("/api/projects/" + state.projectId + "/council").then(function (res) {
+      var box = $("council-list"); box.innerHTML = "";
+      (res.council || []).forEach(function (e) {
+        var av = avatarFor(e.character);
+        var row = document.createElement("div");
+        row.className = "council-voice";
+        row.innerHTML =
+          (av ? '<img class="bubble-avatar" src="' + av + '" alt="" />'
+              : '<div class="bubble-avatar empty"></div>') +
+          '<div class="cv-body"><div class="cv-head">' + e.character +
+          ' <span class="chip ' + (STANCE_CLASS[e.stance] || "free") + '">' + e.stance + "</span></div>" +
+          '<div class="cv-line"></div></div>';
+        row.querySelector(".cv-line").textContent = e.line;
+        box.appendChild(row);
+      });
+      $("council-panel").classList.remove("hidden");
+      $("council-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+  }
+
   // ── Proactive contact (they reach out to you) ──────────────────────────────
   var reachTimer = null;
   function setReachOut(on) {
@@ -520,6 +543,8 @@
     $("journal-close-btn").onclick = function () { $("journal-panel").classList.add("hidden"); };
     $("timeline-btn").onclick = showTimeline;
     $("timeline-close-btn").onclick = function () { $("timeline-panel").classList.add("hidden"); };
+    $("council-btn").onclick = showCouncil;
+    $("council-close-btn").onclick = function () { $("council-panel").classList.add("hidden"); };
     $("reachout-toggle").onchange = function () { setReachOut(this.checked); };
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;

@@ -358,3 +358,11 @@ input[type="file"], input[type="text"] {
 .reach-toast strong { color: var(--ember); font-family: var(--font-display); }
 .reach-toast span { display: block; margin-top: 4px; color: var(--ink); }
 @keyframes toast-in { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }
+
+/* ── The Council (whole-cast reaction) ────────────────────────────────────── */
+.council { display: flex; flex-direction: column; gap: 12px; }
+.council-voice { display: flex; gap: 12px; align-items: flex-start;
+  padding: 8px 10px; border-radius: 8px; background: rgba(21,19,28,0.5);
+  border-left: 3px solid var(--brass); }
+.council-voice .cv-head { font-family: var(--font-display); color: var(--ember); margin-bottom: 3px; }
+.council-voice .cv-line { font-family: var(--font-body); line-height: 1.45; color: var(--ink); }
