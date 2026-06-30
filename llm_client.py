@@ -28,12 +28,21 @@ class LLMUnavailable(RuntimeError):
 
 
 def _make_client():
-    """Lazily construct an Anthropic client. Import errors → LLMUnavailable."""
+    """Lazily construct an Anthropic client.
+
+    A missing SDK *or* unset/invalid credentials both surface as LLMUnavailable so
+    the caller degrades gracefully — running with no ANTHROPIC_API_KEY must yield a
+    grounded deterministic reply, never a 500.
+    """
     try:
         import anthropic  # imported lazily so the module loads without the SDK
     except ImportError as e:  # pragma: no cover - exercised only without the dep
         raise LLMUnavailable("anthropic SDK not installed") from e
-    return anthropic.Anthropic()
+    try:
+        # Raises (e.g. AnthropicError) when ANTHROPIC_API_KEY is not set.
+        return anthropic.Anthropic()
+    except Exception as e:  # noqa: BLE001 - any construction failure → degrade
+        raise LLMUnavailable(f"Anthropic client unavailable: {e}") from e
 
 
 def generate_reply(
@@ -62,15 +71,23 @@ def generate_reply(
     messages.append({"role": "user", "content": user_message})
 
     cli = client or _make_client()
-    resp = cli.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        system=system_prompt,
-        messages=messages,
-        # Adaptive thinking + effort is the current API surface for Opus 4.8.
-        thinking={"type": "adaptive"},
-        output_config={"effort": "low"},
-    )
+    try:
+        resp = cli.messages.create(
+            model=model,
+            max_tokens=max_tokens,
+            system=system_prompt,
+            messages=messages,
+            # Adaptive thinking + effort is the current API surface for Opus 4.8.
+            thinking={"type": "adaptive"},
+            output_config={"effort": "low"},
+        )
+    except LLMUnavailable:
+        raise
+    except Exception as e:  # noqa: BLE001 - auth/connection/rate-limit → degrade
+        # A request-time failure (bad key, no network, rate limit) is the same
+        # outcome as no backend: degrade to the grounded deterministic fallback
+        # rather than 500. Tests inject `client`, so they bypass this path.
+        raise LLMUnavailable(f"Anthropic request failed: {e}") from e
 
     text = ""
     for block in getattr(resp, "content", []) or []:

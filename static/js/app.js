@@ -13,8 +13,16 @@
 
   function api(path, opts) {
     return fetch(path, opts).then(function (r) {
-      return r.json().then(function (body) {
-        if (!r.ok) throw new Error(body.detail || ("HTTP " + r.status));
+      // Read text first: a server error body may be plain text (e.g. "Internal
+      // Server Error"), not JSON — parsing it blindly would throw a cryptic
+      // "Unexpected token" instead of a clean message.
+      return r.text().then(function (raw) {
+        var body = null;
+        try { body = raw ? JSON.parse(raw) : null; } catch (e) { body = null; }
+        if (!r.ok) {
+          throw new Error((body && body.detail) ? body.detail : ("HTTP " + r.status));
+        }
+        if (body === null) throw new Error("HTTP " + r.status + " (non-JSON response)");
         return body;
       });
     });
