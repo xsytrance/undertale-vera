@@ -27,6 +27,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 
 import character_disposition
+import chronicle as chronicle_mod
 import save_flavor
 import hallucination_guard
 import judgment as judgment_mod
@@ -34,6 +35,7 @@ import ledger
 import living_memory as lm
 import provenance as provenance_mod
 import rag_engine
+import scene_resolver
 from avatar_resolver import resolve_avatar
 from backend.models import Base, CharacterMemory, Conversation, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
@@ -246,6 +248,17 @@ def get_judgment(project_id: int, db: Session = Depends(get_db)) -> dict[str, An
     return {"project_id": project_id, "judgment": judgment_mod.build_judgment(project.save_data or {}, snaps)}
 
 
+@app.get("/api/projects/{project_id}/chronicle")
+def get_chronicle(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The Chronicle: the save's whole story as shareable Markdown (SACRED, facts-only)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    snaps = _snapshots_for(db, project_id)
+    chron = chronicle_mod.build_chronicle(project.save_data or {}, snaps)
+    return {"project_id": project_id, **chron}
+
+
 class JudgmentSpeakRequest(BaseModel):
     character: str = "sans"
 
@@ -320,6 +333,13 @@ def get_characters() -> dict[str, Any]:
     for c in chars:
         c["avatar_url"] = resolve_avatar(c)
     return {"characters": chars}
+
+
+@app.get("/api/scenes")
+def get_scenes() -> dict[str, Any]:
+    """Route → backdrop URL for every generated scene on disk (empty until Prime
+    delivers art). The frontend keeps its CSS route-tinted gradient as the fallback."""
+    return {"scenes": scene_resolver.available_scenes()}
 
 
 # ── grounded character chat ──────────────────────────────────────────────────

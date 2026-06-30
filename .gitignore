@@ -19,6 +19,10 @@ saves/
 static/assets/portraits/*.png
 static/assets/portraits/*.jpg
 static/assets/portraits/*.webp
+# Route-reactive scene backdrops (same rule — pipeline + resolver committed, art not).
+static/assets/scenes/*.png
+static/assets/scenes/*.jpg
+static/assets/scenes/*.webp
 # Source art format — never commit raw art anywhere in the tree.
 *.webp
 # Overnight / batch art output (mirrors the FFT spine; ~GBs per run).
@@ -31,6 +35,7 @@ static/audio/
 
 # ── Inspector / QA artifacts (screenshots, summaries) ────────────────────────
 dogfood-output/inspector/
+preview/
 
 # ── Logs, caches, secrets ────────────────────────────────────────────────────
 logs/

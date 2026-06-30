@@ -34,16 +34,45 @@ _AREA_KEYWORDS: tuple[tuple[tuple[str, ...], str], ...] = (
 )
 
 
-def area_from_save(save_truth: dict[str, Any]) -> Optional[str]:
-    """The area, derived from the recorded room name. None when unknown — not guessed."""
-    play = (save_truth or {}).get("play_state") or {}
-    room_name = (play.get("room_name") or "").strip().lower()
-    if not room_name:
+# Room-id → area fallback, used ONLY when no room name is recorded. Boundaries were
+# derived from the real 64-save corpus (each room id cross-checked against its scene
+# label) and matched 64/64. Room numbers can shift across game versions, so this is a
+# best-effort secondary to the room name; ids outside the validated span → None.
+ROOM_AREA_RANGES: tuple[tuple[int, int, str], ...] = (
+    (1, 45, "the Ruins"),
+    (46, 82, "Snowdin"),
+    (83, 138, "Waterfall"),
+    (139, 195, "Hotland"),
+    (196, 218, "the CORE"),
+    (219, 245, "the King's castle"),
+    (246, 260, "the True Lab"),
+)
+
+
+def _area_from_room_id(room: Any) -> Optional[str]:
+    try:
+        rid = int(room)
+    except (TypeError, ValueError):
         return None
-    for keywords, area in _AREA_KEYWORDS:
-        if any(k in room_name for k in keywords):
+    for lo, hi, area in ROOM_AREA_RANGES:
+        if lo <= rid <= hi:
             return area
     return None
+
+
+def area_from_save(save_truth: dict[str, Any]) -> Optional[str]:
+    """The area: from the recorded room NAME first, else the room-id range fallback.
+
+    None when neither is available or in range — never guessed.
+    """
+    play = (save_truth or {}).get("play_state") or {}
+    room_name = (play.get("room_name") or "").strip().lower()
+    if room_name:
+        for keywords, area in _AREA_KEYWORDS:
+            if any(k in room_name for k in keywords):
+                return area
+        # A room name we don't recognise — fall through to the id, don't guess.
+    return _area_from_room_id(play.get("room"))
 
 
 # ── Toriel's pie flavour ([Toriel] Bscotch: 1 butterscotch, 2 cinnamon) ──────

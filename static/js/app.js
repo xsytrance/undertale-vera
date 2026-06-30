@@ -87,6 +87,8 @@
 
     // route-aware music: drive the bed from the live route (if enabled).
     if (window.MusicLayer && $("music-toggle").checked) window.MusicLayer.setRoute(route);
+    // route-reactive backdrop: tint (always) + generated scene art (when present).
+    if (window.SceneLayer) window.SceneLayer.setRoute(route);
     // tint the header sigil red on the Genocide beat.
     $("header-sigil").className = "soul-sigil" + (route === "Genocide" ? " determined" : "");
   }
@@ -169,16 +171,39 @@
   }
 
   // ── chat ──────────────────────────────────────────────────────────────────
+  function avatarFor(name) {
+    var list = state.characters || [];
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].name === name) return list[i].avatar_url || "";
+    }
+    return "";
+  }
+
   function renderTranscript() {
     var t = $("transcript"); t.innerHTML = "";
     (state.history[state.character] || []).forEach(function (m) {
+      var them = m.role !== "user";
+      var msg = document.createElement("div");
+      msg.className = "msg " + (them ? "them" : "you");
+
+      // the speaker's portrait sits beside their reply (crest until art lands)
+      if (them) {
+        var av = avatarFor(state.character);
+        var avEl = document.createElement(av ? "img" : "div");
+        avEl.className = "bubble-avatar" + (av ? "" : " empty");
+        if (av) { avEl.src = av; avEl.alt = state.character; }
+        msg.appendChild(avEl);
+      }
+
       var b = document.createElement("div");
-      b.className = "bubble " + (m.role === "user" ? "you" : "them");
-      b.innerHTML = '<div class="who">' + (m.role === "user" ? "you" : state.character) + "</div>";
+      b.className = "bubble " + (them ? "them" : "you");
+      var who = document.createElement("div");
+      who.className = "who"; who.textContent = them ? state.character : "you";
       var span = document.createElement("span");
       span.textContent = m.content;
-      b.appendChild(span);
-      t.appendChild(b);
+      b.appendChild(who); b.appendChild(span);
+      msg.appendChild(b);
+      t.appendChild(msg);
     });
   }
 
@@ -203,7 +228,8 @@
     }).then(function (res) {
       hist.push({ role: "assistant", content: res.response });
       renderTranscript();
-      var bubble = $("transcript").lastChild;
+      var row = $("transcript").lastChild;                 // the .msg row
+      var bubble = row.querySelector(".bubble") || row;     // provenance rides the bubble
       typewriter(bubble.querySelector("span"), res.response);
       renderProvenance(bubble, res);   // the wall, made visible
     }).catch(function (e) {
@@ -288,6 +314,20 @@
   }
 
   // ── wiring ────────────────────────────────────────────────────────────────
+  // ── Chronicle export (the save's whole story as shareable markdown) ────────
+  function downloadChronicle() {
+    if (!state.projectId) return;
+    api("/api/projects/" + state.projectId + "/chronicle").then(function (res) {
+      var blob = new Blob([res.markdown], { type: "text/markdown" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      var slug = (res.title || "chronicle").replace(/[^a-z0-9]+/gi, "_").toLowerCase();
+      a.href = url; a.download = slug + ".md";
+      document.body.appendChild(a); a.click();
+      document.body.removeChild(a); URL.revokeObjectURL(url);
+    }).catch(function (e) { $("upload-status").textContent = "Chronicle error: " + e.message; });
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
     if (window.MusicLayer) window.MusicLayer.init();
     loadShelf();
@@ -297,6 +337,7 @@
     $("chat-input").addEventListener("keydown", function (e) { if (e.key === "Enter") sendMessage(); });
     $("judge-btn").onclick = showJudgment;
     $("speak-btn").onclick = speakJudgment;
+    $("chronicle-btn").onclick = downloadChronicle;
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;
       window.MusicLayer.setEnabled(this.checked);

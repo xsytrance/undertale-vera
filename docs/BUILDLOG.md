@@ -415,3 +415,92 @@ remembers runs no one else can.
   resets + turn in Flowey's framing) and app (Flowey chat carries the RESETS block;
   Sans's variant is not also present).
 - Verified: `pytest -q` → **133 passing**.
+
+## Area, everywhere — room-id fallback (corpus-derived, 64/64)
+Area detection relied on [General].RoomName, which the real corpus saves don't carry
+— so area was None for all 64. Added a room-id range fallback.
+- save_flavor.ROOM_AREA_RANGES: Ruins 1-45, Snowdin 46-82, Waterfall 83-138,
+  Hotland 139-195, the CORE 196-218, the King's castle 219-245, the True Lab 246-260.
+  Boundaries derived from the corpus by cross-checking each room id against its scene
+  label — matched 64/64. area_from_save now prefers the (version-robust) room name
+  and falls back to the id ranges; ids outside the validated span -> None.
+- Effect: all 64 corpus saves now resolve a sensible area (was 0); the fixture's
+  RoomName still wins over its id. Tests in tests/save_flavor_test.py.
+- Verified: pytest -q -> 135 passing.
+
+## Pivot to Prime/art — route-reactive scenes + the art drop-in contract
+Prepared the codebase to RECEIVE Prime's ComfyUI art with zero rework, and shipped
+a route-reactive backdrop that works NOW (before any art).
+- `scene_resolver.py` (pure, mirrors avatar_resolver): route → generated backdrop
+  at static/assets/scenes/<route>.png, or "" → the frontend keeps its CSS gradient.
+  `available_scenes()` + `GET /api/scenes` expose the route→url map.
+- Frontend route-reactive backdrop: `static/js/scene.js` (`SceneLayer.setRoute`,
+  fetches the art map once), a `#scene-backdrop` layer in index.html, and CSS
+  `.scene-<route>` tints in determination.css (Pacifist warm gold, Genocide crimson,
+  Neutral violet-grey, undetermined obsidian murk) under an obsidian wash for text
+  legibility. Generated scene art fades in over the tint when present. Wired into
+  `renderTruth` beside the route-aware music. Browser-verified: all 4 route tints
+  render, 0 console errors.
+- Generated scenes gitignored (same rule as portraits).
+- Hand-off docs: `docs/ASSET_MANIFEST.md` (exact slugs/sizes/format → drop-in
+  contract) and `docs/PRIME_BRIEF.md` (the magic prompts — per-character portrait
+  prompts, per-route scene prompts, shared style token + negative, LoRA training note).
+- Tests: `tests/scene_resolver_test.py` (resolve/normalize/tiny-file/endpoint).
+- Verified: `pytest -q` → **141 passing**.
+
+## Speaker portraits in the chat bubbles
+Each character reply now carries the speaker's portrait beside it (not just on the
+roster), so a face anchors every line.
+- `app.js`: messages render as `.msg` rows — a `.bubble-avatar` (the speaker's
+  `avatar_url` from /api/characters) beside the `.bubble`. `avatarFor()` looks it up
+  from the loaded roster; provenance still rides the bubble. User messages stay
+  right (no avatar), character replies left with their portrait.
+- `determination.css`: `.msg` row layout + a small museum-lit `.bubble-avatar`
+  (brass frame, pixelated) with an ember-gem crest fallback until art lands.
+- Drop-in: when Prime's portraits arrive at static/assets/portraits/<slug>.png,
+  `resolve_avatar` serves them and the face appears here automatically — no code
+  change; crest until then.
+- Browser-verified: portrait img renders beside the reply, 0 console errors.
+
+## Scene legibility harness — judge backdrops behind the real text
+A 4-up grid can't show how a backdrop fights the parchment ink; this does.
+- `tools/preview_scenes.py`: drives the running app via Playwright — reads a fixture
+  save so the actual panels + text render, then swaps `SceneLayer.setRoute(route)`
+  per route and screenshots each. Tags `[ART]` vs `[gradient]` so we know whether a
+  generated scene is in play. Honors `$UNDERTALE_VERA_CHROMIUM`; output to `preview/`
+  (gitignored). The real legibility test for each new scene drop from Prime.
+- Verified end-to-end against the current gradient state (4 screenshots written).
+
+## Frosted panels — let the route scene read through
+With Prime's V3 scene art tested in situ (`tools/preview_scenes.py`), all four
+routes are legible behind the live UI — the obsidian wash even tames the bright
+Neutral. To stop the panels from fully hiding the scene's central composition, the
+app-shell panels are now translucent obsidian + a 3px backdrop blur, so the route
+backdrop bleeds THROUGH them for depth while parchment text stays readable. Verified
+across all four routes behind real text (title + facts panel + chips). Scene art
+itself stays gitignored (delivered out-of-band); only the CSS is committed.
+
+## The scene breathes — slow Ken Burns drift
+The route backdrop now drifts slowly (a 52s scale+translate Ken Burns loop, with
+overscan so no edge ever shows), so the approved scene art feels alive and its
+centred composition wanders gently into view around the frosted panels. Pure CSS,
+honours `prefers-reduced-motion`. Browser-verified: animation applies, the texture
+visibly shifts between frames, text stays legible, 0 console errors.
+
+## The Chronicle — a save's whole story, exportable (SACRED, facts-only)
+The payoff for all the mining: one shareable narrated artifact.
+- `chronicle.py` (pure): `build_chronicle(save_truth, snapshots)` renders the save
+  into Markdown — the route + confidence, the journey (area, play time, pie), the
+  numbers (LOVE, kills), Those You Met (definite dispositions only), What the Save
+  Remembers (visit count + path turn, ≥2 readings), the Fun-value Anomaly, and the
+  Verdict. Reuses save_flavor / character_disposition / ledger / judgment. Invents
+  NOTHING — unknowns render "not recorded" or omit their section; undetermined route
+  is named, never filled in.
+- `GET /api/projects/{id}/chronicle` → {markdown, title, route}.
+- Frontend: an "⤓ Export Chronicle" button in the truth panel downloads it as
+  `<title>.md` (vanilla Blob download). Browser-verified end-to-end.
+- Tests: `tests/chronicle_test.py` (sections, sacred facts, definite-dispositions-
+  only, anomaly gating, unknowns-left-unwritten, remembrance across visits, endpoint
+  + 404). Verified on a real corpus genocide save (route confirmed, dispositions,
+  Fun anomaly, verdict all rendered).
+- Verified: `pytest -q` → **151 passing**.
