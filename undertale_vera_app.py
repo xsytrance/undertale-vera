@@ -431,6 +431,8 @@ def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str,
         raise HTTPException(status_code=404, detail="project not found")
     current = ledger.snapshot_fields_from_truth(project.save_data or {})
     priors = _prior_save_summaries(db, project_id)
+    echo_flowey = crossave.build_echo_grounding(current, priors, voice="flowey")
+    echo_sans = crossave.build_echo_grounding(current, priors, voice="sans")
     return {
         "project_id": project_id,
         "present": bool(priors),
@@ -438,6 +440,10 @@ def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str,
         "priors": priors,
         "flowey": crossave.build_recognition_grounding(current, priors, voice="flowey"),
         "sans": crossave.build_recognition_grounding(current, priors, voice="sans"),
+        # The Other's Echo: a darker prior run behind a gentler save in hand.
+        "echo_present": bool(echo_flowey),
+        "echo": {"flowey": echo_flowey, "sans": echo_sans},
+        "darkest": crossave.darkest_prior(priors),
     }
 
 
@@ -643,10 +649,14 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         "name:sans", "name:flowey"
     ):
         voice = "flowey" if normalize_key(req.character) == "name:flowey" else "sans"
-        rec_block = crossave.build_recognition_grounding(
-            ledger.snapshot_fields_from_truth(save_truth),
-            _prior_save_summaries(db, project_id),
-            voice=voice,
+        cur_fields = ledger.snapshot_fields_from_truth(save_truth)
+        priors = _prior_save_summaries(db, project_id)
+        # The Other's Echo (a darker prior run behind a gentler save in hand) is the
+        # sharper beat — it implies recognition, with dread — so it supersedes the
+        # plain recognition block when it fires.
+        rec_block = (
+            crossave.build_echo_grounding(cur_fields, priors, voice=voice)
+            or crossave.build_recognition_grounding(cur_fields, priors, voice=voice)
         )
         if rec_block:
             remembrance = (remembrance + "\n\n" + rec_block).strip()

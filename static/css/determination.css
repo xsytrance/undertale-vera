@@ -290,6 +290,12 @@ input[type="file"], input[type="text"] {
 .recognition strong { color: #9bd99b; font-family: var(--font-display); }
 .recognition em { color: var(--ink-dim); }
 
+/* The Other's Echo — a darker run behind a gentler face. Dread, not nostalgia. */
+.recognition.echo {
+  border-left-color: #c0392b; background: rgba(192, 57, 43, 0.08);
+}
+.recognition.echo strong { color: #e07a6c; }
+
 /* provenance overlay — the wall, made visible per reply */
 .provenance {
   margin-top: 8px; padding-top: 8px;

@@ -109,10 +109,25 @@
     api("/api/projects/" + state.projectId + "/recognition").then(function (res) {
       if (!res || !res.present) { box.classList.add("hidden"); return; }
       var n = res.count || 0;
+      // The Other's Echo: a darker prior run behind this gentler face — dread, not nostalgia.
+      if (res.echo_present && res.darkest) {
+        var d = res.darkest;
+        var dl = (d.route || "a darker run") +
+          (typeof d.love === "number" ? " · LOVE " + d.love : "") +
+          (typeof d.total_kills === "number" ? " · " + d.total_kills + " kills" : "");
+        box.className = "recognition echo";  // uneasy styling
+        box.innerHTML =
+          '<span class="rec-mark">🩸</span> <strong>It remembers what you did on another save.</strong> ' +
+          '<span class="muted">' + dl + "</span> — on a different file, the same hand. " +
+          "<em>The clean face doesn't fool Flowey, or Sans.</em>";
+        box.classList.remove("hidden");
+        return;
+      }
       var faces = (res.priors || []).slice(0, 3).map(function (p) {
         var nm = p.name || "a nameless run";
         return nm + (p.route ? (" · " + p.route) : "");
       }).join("  ·  ");
+      box.className = "recognition";  // reset to the warm beat
       box.innerHTML =
         '<span class="rec-mark">🌼</span> <strong>You\'ve been here before.</strong> ' +
         n + " other save" + (n === 1 ? "" : "s") + " shown — " +
