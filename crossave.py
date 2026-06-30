@@ -118,6 +118,14 @@ def _severity(route: Any) -> int:
     return _SEVERITY.get(route, 0)
 
 
+def route_severity(route: Any) -> int:
+    """Public route-severity rank (Pacifist<Neutral<Genocide; unknown=0).
+
+    Shared with constellation.py so the moral ordering of routes is defined once.
+    """
+    return _severity(route)
+
+
 def _has_blood(p: dict[str, Any]) -> bool:
     """A prior is genuinely dark only if its route is Genocide, or Neutral with
     at least one RECORDED kill — a clean Neutral leaves no echo to fear."""

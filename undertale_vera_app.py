@@ -30,6 +30,7 @@ import affinity as affinity_mod
 import character_disposition
 import chat_style
 import chronicle as chronicle_mod
+import constellation as constellation_mod
 import council
 import crossave
 import journal
@@ -444,6 +445,27 @@ def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str,
         "echo_present": bool(echo_flowey),
         "echo": {"flowey": echo_flowey, "sans": echo_sans},
         "darkest": crossave.darkest_prior(priors),
+    }
+
+
+@app.get("/api/constellation")
+def get_constellation(db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The Constellation of You: the whole shape of the player across ALL saves shown.
+
+    Aggregate (not pairwise): the route tally, kindest/darkest runs, peak LOVE, and
+    Sans's FREE verdict over the SACRED tallies. Deterministic (no model). `present`
+    is false until at least two saves have been shown — one save is not yet a shape.
+    """
+    saves = [
+        ledger.snapshot_fields_from_truth(p.save_data or {})
+        for p in db.query(Project).order_by(Project.id.asc()).all()
+    ]
+    agg = constellation_mod.aggregate(saves)
+    return {
+        "present": agg["count"] >= 2,
+        "count": agg["count"],
+        "aggregate": agg,
+        "verdict": constellation_mod.build_verdict(agg, voice="sans"),
     }
 
 
