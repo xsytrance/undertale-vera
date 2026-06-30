@@ -90,6 +90,30 @@ class Conversation(Base):
     updated_at = Column(DateTime, nullable=False, default=_now, onupdate=_now)
 
 
+class JournalEntry(Base):
+    """The Keepsake Journal — the object the player carries between worlds (ADD-only).
+
+    A persistent, append-only book the characters fill: each row is one immutable
+    inscription, written in a character's voice, grounded in the save's truth at the
+    time. Never edited, never deleted (DB ADD-only). `counter` is the per-project
+    page number; load order is the book's order. It survives sessions and exports to
+    markdown — a thing you take with you.
+    """
+
+    __tablename__ = "journal_entries"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    counter = Column(Integer, nullable=False, default=1)   # per-project page number
+    author = Column(String(255), nullable=False)           # character display name
+    kind = Column(String(32), nullable=False, default="inscription")
+    text = Column(String, nullable=False)
+    route_context = Column(String(32))                     # the route when written
+    created_at = Column(DateTime, nullable=False, default=_now)
+
+
 class CharacterMemory(Base):
     """Per-(project, character) Living Memory. Bucket B — FREE.
 

@@ -52,7 +52,12 @@
     <div class="remembrance hidden" id="remembrance-box"></div>
     <div class="row" style="margin-top:14px;">
       <label class="muted"><input type="checkbox" id="music-toggle" /> ambient music (route-aware)</label>
-      <button class="btn" id="chronicle-btn">⤓ Export Chronicle</button>
+      <label class="muted"><input type="checkbox" id="reachout-toggle" /> let them reach out to you</label>
+    </div>
+    <div class="row" style="margin-top:10px;">
+      <button class="btn" id="chronicle-btn">📜 The Chronicle</button>
+      <button class="btn" id="journal-btn">📖 Keepsake Journal</button>
+      <button class="btn" id="timeline-btn">🕰 Timeline</button>
     </div>
   </section>
 
@@ -78,6 +83,34 @@
     </div>
   </section>
 
+  <!-- 4a². The Keepsake Journal -->
+  <section class="panel hidden" id="journal-panel">
+    <h2>The Keepsake Journal <span class="muted">— a book the Underground fills; carry it with you</span></h2>
+    <div class="row" style="margin-bottom:12px;">
+      <select id="journal-author" class="btn"></select>
+      <button class="btn" id="journal-inscribe-btn">Ask them to write</button>
+      <button class="btn" id="journal-download-btn">⤓ Download .md</button>
+      <button class="btn" id="journal-close-btn">Close</button>
+    </div>
+    <div class="journal" id="journal-entries"></div>
+  </section>
+
+  <!-- 4a³. The Timeline (the save's history) -->
+  <section class="panel hidden" id="timeline-panel">
+    <h2>The Timeline <span class="muted">— every reading; ↩ marks where the numbers went backward</span></h2>
+    <div class="timeline" id="timeline-track"></div>
+    <div class="row" style="margin-top:12px;"><button class="btn" id="timeline-close-btn">Close</button></div>
+  </section>
+
+  <!-- 4b. The Chronicle (in-app viewer) -->
+  <section class="panel hidden" id="chronicle-panel">
+    <div class="chronicle" id="chronicle-content"></div>
+    <div class="row" style="margin-top:12px;">
+      <button class="btn" id="chronicle-download-btn">⤓ Download .md</button>
+      <button class="btn" id="chronicle-close-btn">Close</button>
+    </div>
+  </section>
+
   <!-- 5. Judgment -->
   <section class="panel hidden" id="judgment-panel">
     <h2>Judgment</h2>
@@ -93,6 +126,9 @@
   <p style="color:var(--ink-dim); text-align:center; font-size:0.85rem; margin:24px 0 48px;">
     Facts are sacred, feelings are free.
   </p>
+
+  <!-- proactive "they reached out" toast -->
+  <div id="reach-toast" class="reach-toast hidden" role="button" aria-live="polite"></div>
 
   <script src="/js/music.js"></script>
   <script src="/js/scene.js"></script>

@@ -312,3 +312,49 @@ input[type="file"], input[type="text"] {
 .route-badge.pacifist { color: var(--ember); border-color: var(--ember-soft); }
 .route-badge.neutral  { color: var(--brass-edge); }
 .route-badge.undetermined { color: var(--ink-dim); font-style: italic; }
+
+/* ── the Chronicle viewer (a parchment record) ───────────────────────────── */
+.chronicle { font-family: var(--font-body); line-height: 1.55; }
+.chronicle h2 { font-family: var(--font-display); color: var(--brass-edge); margin: 0 0 6px; }
+.chronicle h3 { font-family: var(--font-display); color: var(--ember); font-size: 1rem;
+  margin: 16px 0 4px; letter-spacing: 0.04em; }
+.chronicle p { margin: 4px 0; color: var(--ink); }
+.chronicle em { color: var(--ink-dim); }
+.chronicle ul { margin: 4px 0 4px 18px; padding: 0; }
+.chronicle li { margin: 2px 0; }
+.chronicle hr { border: none; border-top: 1px solid var(--plate-frame); margin: 14px 0; }
+
+/* ── roster affinity chip (how each character regards you) ────────────────── */
+.char-card .affinity { margin-top: 6px; min-height: 20px; }
+.char-card .affinity .chip { font-size: 0.66rem; letter-spacing: 0.04em; }
+
+/* ── The Keepsake Journal ─────────────────────────────────────────────────── */
+.journal { display: flex; flex-direction: column; gap: 14px; }
+.journal .entry {
+  border-left: 3px solid var(--brass);
+  padding: 8px 14px; background: rgba(34,29,24,0.4); border-radius: 0 8px 8px 0;
+}
+.journal .entry-head { font-family: var(--font-display); color: var(--ember); margin-bottom: 4px; }
+.journal .entry-text { font-family: var(--font-body); line-height: 1.5; white-space: pre-wrap; }
+
+/* ── The Timeline ─────────────────────────────────────────────────────────── */
+.timeline { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.tl-node { text-align: center; padding: 8px 10px; border-radius: 8px;
+  border: 1px solid var(--plate-frame); background: var(--obsidian-2); min-width: 112px; }
+.tl-visit { font-family: var(--font-mono); font-size: 0.72rem; color: var(--ink-dim); margin-bottom: 4px; }
+.tl-meta { font-size: 0.7rem; margin-top: 4px; }
+.tl-conn { font-family: var(--font-mono); color: var(--ink-dim); padding: 0 2px; }
+.tl-conn.reset { color: var(--determination); font-weight: bold; font-size: 1.15rem; }
+
+/* ── proactive "they reached out" toast ───────────────────────────────────── */
+.reach-toast {
+  position: fixed; right: 18px; bottom: 18px; max-width: 340px; z-index: 50;
+  padding: 12px 16px; cursor: pointer;
+  background: linear-gradient(180deg, var(--obsidian-panel), var(--plate-inner));
+  border: 1px solid var(--brass); border-left: 3px solid var(--ember);
+  border-radius: 10px; box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+  font-family: var(--font-body); animation: toast-in 0.3s ease;
+}
+.reach-toast strong { color: var(--ember); font-family: var(--font-display); }
+.reach-toast span { display: block; margin-top: 4px; color: var(--ink); }
+@keyframes toast-in { from { transform: translateY(20px); opacity: 0; } to { transform: none; opacity: 1; } }

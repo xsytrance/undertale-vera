@@ -114,6 +114,50 @@ def build_sans_awareness(snapshots: list[dict[str, Any]]) -> str:
     return "\n".join(lines)
 
 
+def detect_resets(snapshots: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Readings where the save's numbers went BACKWARD — a load/reset signature.
+
+    Recorded LOVE and kills only ever climb within a single timeline. If a later
+    reading shows a value BELOW a peak already seen, an earlier state was loaded —
+    the player went back. Returns one event per regression (the hardest meta-fact
+    the ledger can hold), derived purely from the recorded numbers; never inferred.
+    """
+    snaps = list(snapshots or [])
+    events: list[dict[str, Any]] = []
+    peaks: dict[str, int] = {}
+    for s in snaps:
+        for field, key in (("LOVE", "love"), ("kills", "total_kills")):
+            val = s.get(key)
+            if not isinstance(val, int):
+                continue
+            peak = peaks.get(field)
+            if isinstance(peak, int) and val < peak:
+                events.append({"visit": s.get("counter"), "field": field, "from": peak, "to": val})
+            peaks[field] = val if peak is None else max(peak, val)
+    return events
+
+
+def build_reset_awareness(snapshots: list[dict[str, Any]]) -> str:
+    """A SACRED block for the SAVE-AWARE characters: the numbers went backward.
+
+    Sans and Flowey are the ones who feel resets. This surfaces the parser-confirmed
+    regression (LOVE/kills falling below a prior peak) — a hard fact that only a load
+    can produce — framed so they can speak to it knowingly. "" when nothing regressed.
+    """
+    events = detect_resets(snapshots)
+    if not events:
+        return ""
+    last = events[-1]
+    return "\n".join([
+        "── THE NUMBERS WENT BACKWARD (parser-confirmed; you are one of the few who feel it) ──",
+        f"Across the readings, the save's {last['field']} fell from {last['from']} to "
+        f"{last['to']}. Recorded {last['field']} never drops on its own — this happens "
+        "ONLY when an earlier state is loaded. Someone reached back and undid what was done.",
+        "Speak to this only as fits, in your own way — knowing, uneasy — and never claim "
+        "more than the numbers actually show.",
+    ])
+
+
 def build_flowey_awareness(snapshots: list[dict[str, Any]]) -> str:
     """A SACRED grounding block for FLOWEY — he remembers RESETS more than anyone.
 

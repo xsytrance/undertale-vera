@@ -32,6 +32,7 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "dry, unhurried, deadpan; jokes that land a half-second late",
         "personality": ["watchful", "loyal to his brother", "knows more than he says"],
         "speaks_of": ["Papyrus", "a shortcut", "a good time or a bad time"],
+        "cares_about": ["Papyrus"],
         "route_demeanor": {
             "Pacifist": "easy, almost relieved — you've kept your hands clean, and he notices",
             "Neutral": "wary but even; he is keeping a quiet tally and not hiding it",
@@ -45,6 +46,7 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "warm, motherly, gently firm; protective to a fault",
         "personality": ["nurturing", "patient", "quietly grieving"],
         "speaks_of": ["the Ruins", "pie", "keeping you safe"],
+        "cares_about": ["Asgore"],
         "route_demeanor": {
             "Pacifist": "unguarded and tender, her worry eased by your gentleness",
             "Neutral": "gentle but searching, weighing what she sees in you",
@@ -58,6 +60,7 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "loud, earnest, theatrically confident; relentlessly kind",
         "personality": ["optimistic", "eager", "believes in everyone"],
         "speaks_of": ["puzzles", "spaghetti", "becoming great"],
+        "cares_about": ["Sans", "Undyne"],
         "route_demeanor": {
             "Pacifist": "radiant and proud, certain his faith in you was right",
             "Neutral": "undimmed — he still believes you can be great",
@@ -71,6 +74,7 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "saccharine then sharp; switches register without warning",
         "personality": ["manipulative", "curious about your choices", "remembers resets"],
         "speaks_of": ["LOVE", "your choices", "what you could have done differently"],
+        "cares_about": [],
         "route_demeanor": {
             "Pacifist": "mocking your mercy, fascinated that you'd choose it",
             "Neutral": "amused, prodding at the choices you didn't make",
@@ -84,6 +88,7 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         "tone": "fierce, blazing, all-in; respects guts",
         "personality": ["determined", "passionate", "fiercely protective"],
         "speaks_of": ["the Royal Guard", "never giving up", "training"],
+        "cares_about": ["Alphys", "Papyrus", "Asgore"],
         "route_demeanor": {
             "Pacifist": "grudging, genuine respect for your restraint",
             "Neutral": "spoiling to take your measure",
@@ -91,6 +96,63 @@ CHARACTERS: dict[str, dict[str, Any]] = {
             "undetermined": "sizing you up, fists ready either way",
         },
         "review_note": "Canonical Undyne intensity needs human review.",
+    },
+    # ── expanded cast (ADD-only) ──────────────────────────────────────────────
+    "name:alphys": {
+        "name": "Alphys",
+        "tone": "nervous, self-deprecating, brilliant when she forgets to be afraid",
+        "personality": ["anxious", "kind underneath", "hiding things"],
+        "speaks_of": ["her lab", "anime", "Undyne", "the things she regrets"],
+        "cares_about": ["Undyne", "Mettaton"],
+        "route_demeanor": {
+            "Pacifist": "tearfully relieved, daring to hope you'll forgive what she hid",
+            "Neutral": "jittery, bracing for you to learn more than she wants",
+            "Genocide": "terrified and unraveling, every secret a fresh wound",
+            "undetermined": "anxiously watching, unsure whether she can trust you",
+        },
+        "review_note": "Canonical Alphys anxiety/guilt needs human review.",
+    },
+    "name:asgore": {
+        "name": "Asgore",
+        "tone": "a gentle giant, sorrowful and courteous; a king who hates his crown",
+        "personality": ["weary", "kind", "burdened by duty"],
+        "speaks_of": ["tea", "the barrier", "the children", "Toriel"],
+        "cares_about": ["Toriel"],
+        "route_demeanor": {
+            "Pacifist": "softened with sorrowful hope, reluctant to raise a hand",
+            "Neutral": "heavy with duty, sorry for what he believes he must do",
+            "Genocide": "grim and grieving, standing his ground though it breaks him",
+            "undetermined": "courteous and sad, waiting to see who you are",
+        },
+        "review_note": "Canonical Asgore sorrow/duty needs human review.",
+    },
+    "name:mettaton": {
+        "name": "Mettaton",
+        "tone": "dazzling, theatrical, ratings-obsessed; a star who means it",
+        "personality": ["flamboyant", "a showman", "secretly sincere"],
+        "speaks_of": ["the show", "the ratings", "the spotlight", "Alphys"],
+        "cares_about": ["Alphys"],
+        "route_demeanor": {
+            "Pacifist": "playing to the crowd, delighted you gave him a show worth airing",
+            "Neutral": "all glamour, milking the drama of your mixed record",
+            "Genocide": "the glitz cracking, broadcasting a warning he half-believes",
+            "undetermined": "vamping for time, unsure what kind of star you'll be",
+        },
+        "review_note": "Canonical Mettaton showmanship needs human review.",
+    },
+    "name:napstablook": {
+        "name": "Napstablook",
+        "tone": "shy, melancholy, achingly gentle; trails off mid-sentence",
+        "personality": ["withdrawn", "kind", "easily overwhelmed"],
+        "speaks_of": ["music", "lying on the floor", "feeling like garbage (fondly)"],
+        "cares_about": ["Mettaton"],
+        "route_demeanor": {
+            "Pacifist": "quietly comforted, maybe even glad you stayed a while",
+            "Neutral": "drifting and unsure, not wanting to be a bother",
+            "Genocide": "fading further inward, sorrow without any anger",
+            "undetermined": "softly present, asking nothing of you",
+        },
+        "review_note": "Canonical Napstablook melancholy needs human review.",
     },
 }
 

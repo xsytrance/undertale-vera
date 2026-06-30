@@ -504,3 +504,46 @@ The payoff for all the mining: one shareable narrated artifact.
   + 404). Verified on a real corpus genocide save (route confirmed, dispositions,
   Fun anomaly, verdict all rendered).
 - Verified: `pytest -q` → **151 passing**.
+
+## The Underground reacts to you — cast, relationships, affinity, Chronicle
+A whole batch making the companion deeper and more alive.
+- **Expanded cast** (`character_config`, ADD-only): Alphys, Asgore, Mettaton,
+  Napstablook join the five — 9 characters, each with tone/personality/route_demeanor
+  and a `cares_about` web. Napstablook lore added to the knowledge base.
+- **Relational awareness** (`relationships.py`): a speaker is given the SACRED
+  recorded fate of those they care about (Sans←Papyrus, Undyne←Alphys, …) and reacts
+  in voice — never invented. Injected into chat (prompt section 2a²).
+- **Affinity** (`affinity.py`): each character's STANCE toward you —
+  warm/wary/grieving/hostile/unreadable — derived from route + self/loved-one fate
+  (a tone, never a new fact). `GET /api/projects/{id}/affinities`; the roster shows
+  a live stance chip per character ("how the Underground regards you").
+- **Chronicle, deepened**: a "How the Underground Regards You" section lists every
+  character's stance; the Chronicle now also renders **in-app** (a parchment viewer,
+  tiny md→html) alongside the markdown download.
+- Tests: `tests/relationships_affinity_test.py` (cast, fates, grounding, affinity by
+  route + escalation, endpoints, chat wiring) + chronicle regard-section cases.
+  Browser-verified: 9-card roster with stance chips + the in-app Chronicle viewer.
+- Verified: `pytest -q` → **164 passing**; lore_eval 12/12.
+
+## The world reaches back — Journal, proactive contact, Timeline, reset detection
+A batch that makes the Underground reach out of the screen toward you.
+- **Reset/timeline detection** (`ledger.detect_resets` / `build_reset_awareness`):
+  recorded LOVE/kills only climb in a timeline, so a value below a prior peak is a
+  hard load/reset signature. Sans & Flowey are told ("the numbers went backward —
+  someone loaded an earlier state") and call you out. A "The Timeline Bends"
+  Chronicle section too.
+- **The Keepsake Journal** (`journal.py`, `JournalEntry` ADD-only): characters write
+  grounded inscriptions in their voice; persisted, guarded, exportable to markdown —
+  a book you carry between worlds. Frontend: a Journal panel (pick a character → "Ask
+  them to write" → entry appears; download .md).
+- **Proactive contact** (`proactive.py`): a "let them reach out to you" toggle; the
+  character with the most at stake (by affinity urgency) messages you FIRST,
+  unprompted — surfaced as a toast that opens their chat. Persisted as an
+  assistant-only turn.
+- **The Timeline** view: the ledger as a row of readings with route badges and a red
+  ↩ where the numbers went backward (a reload).
+- Affinity/journal refresh on a return visit so the cast's regard updates live.
+- All grounded + guarded + graceful-fallback (no model needed); browser-verified
+  end-to-end (journal inscription, timeline reset marker, reach-out toast; 0 errors).
+- Tests: `reset_awareness_test` (7), `journal_test` (8), `proactive_test` (7).
+- Verified: `pytest -q` → **186 passing**.
