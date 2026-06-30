@@ -157,12 +157,12 @@ h1, h2, h3, .display {
   image-rendering: pixelated;   /* keep pixel portraits crisp */
   object-fit: cover;
 }
+/* centre the crest in ANY size box (rail card, strip face, chat portrait) */
+.relic-portrait.empty { display: flex; align-items: center; justify-content: center; }
 .relic-portrait.empty::after {
   content: "";
-  display: block;
   /* default crest = the soul sigil, museum-lit */
   width: 28px; height: 28px;
-  margin: 34px auto 0;
   clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
   background: linear-gradient(160deg, var(--ember), var(--brass));
   opacity: 0.6;
@@ -266,8 +266,9 @@ input[type="file"], input[type="text"] {
   box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
   image-rendering: pixelated; object-fit: cover;
 }
+.bubble-avatar.empty { display: flex; align-items: center; justify-content: center; }
 .bubble-avatar.empty::after {       /* crest until a portrait lands */
-  content: ""; display: block; width: 15px; height: 15px; margin: 11px auto 0;
+  content: ""; width: 15px; height: 15px;
   clip-path: polygon(50% 0%, 88% 38%, 50% 100%, 12% 38%);
   background: linear-gradient(160deg, var(--ember), var(--brass)); opacity: 0.55;
 }
@@ -430,3 +431,173 @@ input[type="file"], input[type="text"] {
 .hud-no-affinity .char-card .affinity { display: none; }
 .hud-no-remembrance #remembrance-box { display: none !important; }
 .hud-no-motion .scene-backdrop { animation: none !important; transform: none !important; }
+
+/* ════════════════════════════════════════════════════════════════════════
+   THE CONSOLE — persistent app shell (top bar · rails · stage · bottom nav)
+   Replaces the old single-scroll stack of panels. One view is active at a
+   time; rails persist on desktop and become drawers on mobile.
+   ════════════════════════════════════════════════════════════════════════ */
+html, body { height: 100%; }
+body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
+
+.app {
+  /* NOTE: no z-index here — a stacking context would trap the fixed mobile
+     drawers (rail z-index:40) beneath the scrim (z-index:35, a sibling). */
+  position: relative;
+  display: grid;
+  grid-template-columns: 224px minmax(0, 1fr) 268px;
+  grid-template-rows: auto minmax(0, 1fr);
+  grid-template-areas: "top top top" "left stage right";
+  height: 100vh; height: 100dvh; gap: 10px; padding: 10px;
+}
+
+/* top bar */
+.topbar {
+  grid-area: top;
+  display: flex; align-items: center; gap: 12px;
+  padding: 8px 14px; border: 1px solid var(--plate-frame); border-radius: 10px;
+  background: linear-gradient(90deg, rgba(36,28,20,.9), rgba(26,20,14,.9));
+}
+.topbar .brand { display: flex; align-items: center; gap: 10px; }
+.topbar .brand-name { color: var(--ember); font-family: var(--font-display); letter-spacing: .04em; font-size: 1rem; }
+.save-pill {
+  margin-left: auto; font-family: var(--font-mono); font-size: .76rem; color: var(--ink);
+  background: var(--obsidian); border: 1px solid var(--plate-frame); border-radius: 16px;
+  padding: 5px 12px; cursor: pointer;
+}
+.save-pill:hover { border-color: var(--ember-soft); color: var(--ember); }
+.topbar-gear {
+  background: none; border: 1px solid var(--plate-frame); color: var(--ember);
+  width: 34px; height: 34px; border-radius: 50%; cursor: pointer; font-size: 1.05rem; line-height: 1;
+  transition: transform .3s ease;
+}
+.topbar-gear:hover { transform: rotate(60deg); border-color: var(--ember); }
+
+/* rails */
+.rail {
+  border: 1px solid var(--plate-frame); border-radius: 10px;
+  background: rgba(21,19,28,.82); padding: 12px; overflow: auto;
+}
+.rail-left { grid-area: left; }
+.rail-right { grid-area: right; }
+.rail-sec { margin-bottom: 16px; }
+.rail-lbl {
+  font-size: .64rem; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--ink-dim); margin-bottom: 8px;
+}
+.rail-list { display: flex; flex-direction: column; gap: 6px; }
+.rail-add {
+  margin-top: 8px; width: 100%; font-size: .76rem; color: var(--ember);
+  background: none; border: 1px dashed var(--plate-frame); border-radius: 8px; padding: 7px; cursor: pointer;
+}
+.rail-add:hover { border-color: var(--ember-soft); background: rgba(232,162,76,.06); }
+.toggle { display: block; margin: 6px 0; }
+
+/* the left-rail roster + save shelf collapse to compact rows in the rail */
+.rail .roster { display: flex; flex-direction: column; gap: 6px; }
+.rail .char-card {
+  width: auto !important; flex-direction: row; align-items: center; gap: 8px;
+  padding: 7px 8px; text-align: left; cursor: pointer;
+}
+.rail .char-card .relic-portrait { width: 30px; height: 30px; flex: none; margin: 0; }
+.rail .char-card .name { font-size: .82rem; margin: 0; }
+.rail .char-card .affinity { margin-left: auto; }
+.rail .char-card.selected { border-color: var(--ember-soft); background: rgba(232,162,76,.12); }
+
+/* views nav */
+.rail-nav { display: flex; flex-direction: column; gap: 3px; }
+.navitem {
+  text-align: left; font-size: .82rem; color: var(--ink); background: none;
+  border: 1px solid transparent; border-radius: 7px; padding: 7px 9px; cursor: pointer;
+}
+.navitem:hover { background: rgba(232,162,76,.07); }
+.navitem.sel { color: var(--ember); background: rgba(232,162,76,.14); border-color: var(--ember-soft); }
+
+/* the stage + views */
+.stage {
+  grid-area: stage; position: relative; overflow: auto;
+  display: flex; flex-direction: column;
+}
+.view { display: none; }
+.view.active {
+  display: flex; flex-direction: column; flex: 1; min-height: 0;
+  border: 1px solid var(--plate-frame); border-radius: 12px;
+  background: rgba(27,24,34,.78); padding: 18px;
+}
+.view > h2 { margin-top: 0; }
+.view-chat.active { padding: 16px; }
+
+/* chat composer pinned at the bottom of the chat view */
+.composer { display: flex; gap: 8px; margin-top: 12px; }
+.composer #chat-input {
+  flex: 1; min-width: 0; font-family: var(--font-body); font-size: 1rem; color: var(--ink);
+  background: var(--obsidian); border: 1px solid var(--plate-frame); border-radius: 8px; padding: 10px 12px;
+}
+/* in the Console shell the chat fills the stage — no narrow 760px cap, and the
+   fixed 96px portrait column is dropped (it stole width from every line and the
+   per-message avatars already show who's speaking). The vessel becomes a simple
+   vertical flex so the transcript uses 100% of the stage width. */
+.view-chat .dialogue-vessel {
+  display: flex; flex-direction: column;
+  flex: 1; min-height: 0; max-width: none; width: 100%; margin: 0;
+}
+.view-chat #chat-portrait { display: none; }
+.view-chat .dialogue-body { display: flex; flex-direction: column; min-height: 0; flex: 1; padding: 4px 8px; }
+.view-chat .transcript { flex: 1; overflow: auto; }
+/* bubbles fill the available row width before wrapping (percentage, not px) */
+.view-chat .msg { max-width: 100%; }
+.view-chat .msg.them { width: 100%; }
+.view-chat .bubble { max-width: 100%; }
+.view-chat .bubble.them { flex: 1; }
+
+/* speaker strip (mobile) + bottom nav (mobile) hidden on desktop */
+.speaker-strip, .bottom-nav, .scrim { display: none; }
+
+/* ── mobile: rails become drawers, bottom nav drives navigation ───────── */
+@media (max-width: 860px) {
+  .app {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-areas: "top" "stage" "nav";
+    gap: 8px; padding: 8px;
+  }
+  .topbar .brand-name { font-size: .86rem; }
+
+  /* rails slide in from the edges */
+  .rail {
+    position: fixed; top: 0; bottom: 0; width: min(82vw, 320px); z-index: 40;
+    border-radius: 0; transition: transform .22s ease;
+  }
+  .rail-left { left: 0; transform: translateX(-102%); }
+  .rail-right { right: 0; transform: translateX(102%); }
+  body.drawer-left .rail-left { transform: translateX(0); }
+  body.drawer-right .rail-right { transform: translateX(0); }
+  .scrim {
+    display: block; position: fixed; inset: 0; z-index: 35;
+    background: rgba(0,0,0,.5); opacity: 0; pointer-events: none; transition: opacity .22s ease;
+  }
+  body.drawer-left .scrim, body.drawer-right .scrim { opacity: 1; pointer-events: auto; }
+
+  .bottom-nav {
+    grid-area: nav; display: flex; border: 1px solid var(--plate-frame);
+    border-radius: 12px; background: rgba(26,20,14,.95); overflow: hidden;
+  }
+  .bottom-nav .bn {
+    flex: 1; background: none; border: none; color: var(--ink-dim);
+    font-size: .62rem; padding: 8px 0; cursor: pointer; letter-spacing: .04em;
+  }
+  .bottom-nav .bn b { display: block; font-size: 1.15rem; line-height: 1.1; }
+  .bottom-nav .bn.sel { color: var(--ember); }
+
+  /* the speaker strip rides the top of the chat view on mobile */
+  body.on-chat .speaker-strip {
+    display: flex; gap: 10px; overflow-x: auto; padding: 4px 2px 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .speaker-strip .face { flex: none; width: 54px; text-align: center; font-size: .58rem; color: var(--ink-dim); cursor: pointer; }
+  .speaker-strip .face .relic-portrait { width: 46px; height: 46px; margin: 0 auto 3px; }
+  .speaker-strip .face.selected { color: var(--ember); }
+  .speaker-strip .face.selected .relic-portrait { border-color: var(--ember); }
+
+  .view.active { padding: 14px; }
+}

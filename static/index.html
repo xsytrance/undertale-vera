@@ -6,15 +6,167 @@
   <title>undertale-vera · The Save Remembers</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;700&family=VT323&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="/css/determination.css" />
+  <!-- Pass 2: Undertale game skin (override layer; loaded after the base theme) -->
+  <link rel="stylesheet" href="/css/undertale.css" />
 </head>
 <body>
   <!-- route-reactive backdrop: CSS gradient tint always; generated scene art fades
        in over it when present (static/assets/scenes/<route>.png, gitignored). -->
   <div id="scene-backdrop" class="scene-backdrop scene-undetermined" aria-hidden="true"></div>
 
-  <!-- compact options menu (one gear, its own panel) -->
-  <button id="settings-btn" class="settings-gear" title="Options" aria-label="Options">⚙</button>
+  <!-- ░░░ THE CONSOLE — a persistent app shell ░░░
+       Top bar · left rail (saves + cast + views) · stage (one active view) ·
+       right rail (the save). On mobile the rails become drawers and a bottom
+       nav drives navigation; the stage shows exactly one view at a time so you
+       never scroll a stack of panels. -->
+  <div class="app" id="app">
+
+    <!-- ── top bar ─────────────────────────────────────────────────────── -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="soul-sigil" id="header-sigil" aria-hidden="true"></span>
+        <span class="brand-name display">Determination Chronicle</span>
+      </div>
+      <button class="save-pill" id="save-pill" title="Your saves">no save yet ▾</button>
+      <button id="settings-btn" class="topbar-gear" title="Options" aria-label="Options">⚙</button>
+    </header>
+
+    <!-- ── left rail: saves · cast · views (a drawer on mobile) ────────── -->
+    <aside class="rail rail-left" id="rail-left" aria-label="Navigation">
+      <div class="rail-sec">
+        <div class="rail-lbl">Saves</div>
+        <div class="rail-list" id="shelf"></div>
+        <button class="rail-add" id="add-save-btn">＋ Read a save</button>
+      </div>
+      <div class="rail-sec">
+        <div class="rail-lbl">Who's here</div>
+        <div class="rail-list roster" id="roster"></div>
+      </div>
+      <div class="rail-sec">
+        <div class="rail-lbl">Views</div>
+        <nav class="rail-nav" id="view-nav">
+          <button data-view="chat" class="navitem sel">💬 Chat</button>
+          <button data-view="council" class="navitem">🗣 The Council</button>
+          <button data-view="timeline" class="navitem">🕰 Timeline</button>
+          <button data-view="journal" class="navitem">📖 Keepsake Journal</button>
+          <button data-view="constellation" id="nav-constellation" class="navitem hidden">🌌 Across Your Saves</button>
+          <button data-view="chronicle" class="navitem">📜 The Chronicle</button>
+          <button data-view="judgment" class="navitem">⚖ Judgment</button>
+        </nav>
+      </div>
+    </aside>
+
+    <!-- ── the stage: exactly one view is .active ──────────────────────── -->
+    <main class="stage" id="stage">
+      <!-- speaker strip (mobile only, chat view): tap a face to switch who you talk to -->
+      <div class="speaker-strip" id="speaker-strip" aria-label="Switch speaker"></div>
+
+      <!-- Chat -->
+      <section class="view view-chat active" id="view-chat">
+        <div class="dialogue-vessel">
+          <div class="relic-portrait empty" id="chat-portrait" role="img"></div>
+          <div class="dialogue-body">
+            <div class="dialogue-name" id="chat-name">—</div>
+            <div class="transcript" id="transcript"></div>
+          </div>
+        </div>
+        <div class="composer">
+          <input type="text" id="chat-input" placeholder="say something…" />
+          <button class="btn" id="send-btn">Send</button>
+        </div>
+      </section>
+
+      <!-- The Council -->
+      <section class="view" id="view-council">
+        <h2>The Council <span class="muted">— the whole Underground reacts to your run</span></h2>
+        <div class="council" id="council-list"></div>
+      </section>
+
+      <!-- The Timeline -->
+      <section class="view" id="view-timeline">
+        <h2>The Timeline <span class="muted">— every reading; ↩ marks where the numbers went backward</span></h2>
+        <div class="timeline" id="timeline-track"></div>
+      </section>
+
+      <!-- The Keepsake Journal -->
+      <section class="view" id="view-journal">
+        <h2>The Keepsake Journal <span class="muted">— a book the Underground fills; carry it with you</span></h2>
+        <div class="row" style="margin-bottom:12px;">
+          <select id="journal-author" class="btn"></select>
+          <button class="btn" id="journal-inscribe-btn">Ask them to write</button>
+          <button class="btn" id="journal-download-btn">⤓ Download .md</button>
+        </div>
+        <div class="journal" id="journal-entries"></div>
+      </section>
+
+      <!-- The Constellation -->
+      <section class="view" id="view-constellation">
+        <h2>Across Your Saves <span class="muted">— the whole shape of you, every file shown</span></h2>
+        <div class="constellation" id="constellation-content"></div>
+      </section>
+
+      <!-- The Chronicle -->
+      <section class="view" id="view-chronicle">
+        <div class="row" style="margin-bottom:10px;">
+          <button class="btn" id="chronicle-download-btn">⤓ Download .md</button>
+        </div>
+        <div class="chronicle" id="chronicle-content"></div>
+      </section>
+
+      <!-- Judgment -->
+      <section class="view" id="view-judgment">
+        <h2>Judgment</h2>
+        <div class="verdict-line" id="verdict-line"></div>
+        <div class="facts-grid" id="judgment-facts"></div>
+        <ul id="judgment-gaps" class="muted"></ul>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="speak-btn">Let them say it</button>
+        </div>
+        <div class="bubble them hidden" id="spoken-box" style="margin-top:12px;"></div>
+      </section>
+
+      <!-- Read / refresh a save -->
+      <section class="view" id="view-saves">
+        <h2>Read a save</h2>
+        <p class="muted">Read-only. Provide <code>file0</code> and/or <code>undertale.ini</code>.
+          Unknown fields stay null — never guessed.</p>
+        <div class="row">
+          <label class="muted">file0 <input type="file" id="file0-input" /></label>
+          <label class="muted">undertale.ini <input type="file" id="ini-input" /></label>
+          <button class="btn" id="upload-btn">Read save</button>
+          <button class="btn hidden" id="refresh-btn">Read a later save (return visit)</button>
+        </div>
+        <p class="muted" id="upload-status"></p>
+      </section>
+    </main>
+
+    <!-- ── right rail: the save (a drawer on mobile) ───────────────────── -->
+    <aside class="rail rail-right" id="rail-right" aria-label="The save">
+      <div class="rail-lbl">What the save shows <span class="muted" id="visit-label"></span></div>
+      <div class="facts-grid" id="truth-facts"><p class="muted">Read a save to begin.</p></div>
+      <div style="margin-top:10px;"><span class="route-badge" id="route-badge"></span></div>
+      <div class="remembrance hidden" id="remembrance-box"></div>
+      <div class="recognition hidden" id="recognition-box" role="note"></div>
+      <div class="rail-sec" style="margin-top:14px;">
+        <label class="muted toggle"><input type="checkbox" id="music-toggle" /> ambient music (route-aware)</label>
+        <label class="muted toggle"><input type="checkbox" id="reachout-toggle" /> let them reach out to you</label>
+      </div>
+    </aside>
+
+    <!-- ── mobile bottom nav ───────────────────────────────────────────── -->
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Main">
+      <button data-nav="chat" class="bn sel"><b>💬</b>Chat</button>
+      <button data-nav="cast" class="bn"><b>🎭</b>Cast</button>
+      <button data-nav="save" class="bn"><b>📜</b>Save</button>
+    </nav>
+  </div>
+
+  <!-- drawer scrim (mobile) -->
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+  <!-- compact options drawer (one gear, its own panel) -->
   <div id="settings-panel" class="settings hidden" aria-label="Options">
     <div class="settings-head"><span>⚙ Options</span><button id="settings-close" class="btn">Done</button></div>
     <div class="settings-sec">
@@ -33,139 +185,6 @@
       <label>Typewriter <select id="hud-typewriter"><option value="0">instant</option><option value="18" selected>normal</option><option value="42">slow</option></select></label>
     </div>
   </div>
-
-  <header style="text-align:center; padding:28px 16px 4px;">
-    <div style="display:flex; gap:12px; align-items:center; justify-content:center;">
-      <span class="soul-sigil" id="header-sigil" aria-hidden="true"></span>
-      <h1 style="margin:0;">Determination Chronicle</h1>
-    </div>
-    <p class="display" style="color:var(--ink-dim); font-size:0.85rem; letter-spacing:0.18em;">
-      UNDERTALE&nbsp;·&nbsp;VERA&nbsp;—&nbsp;THE&nbsp;SAVE&nbsp;REMEMBERS
-    </p>
-  </header>
-
-  <!-- 1. Upload / refresh a save -->
-  <section class="panel" id="upload-panel">
-    <h2>Read a save</h2>
-    <p class="muted">Read-only. Provide <code>file0</code> and/or <code>undertale.ini</code>.
-      Unknown fields stay null — never guessed.</p>
-    <div class="row">
-      <label class="muted">file0 <input type="file" id="file0-input" /></label>
-      <label class="muted">undertale.ini <input type="file" id="ini-input" /></label>
-      <button class="btn" id="upload-btn">Read save</button>
-      <button class="btn hidden" id="refresh-btn">Read a later save (return visit)</button>
-    </div>
-    <p class="muted" id="upload-status"></p>
-  </section>
-
-  <!-- 1b. Save shelf -->
-  <section class="panel hidden" id="shelf-panel">
-    <h2>Your saves</h2>
-    <div class="roster" id="shelf"></div>
-  </section>
-
-  <!-- 2. SaveTruth summary -->
-  <section class="panel hidden" id="truth-panel">
-    <h2>What the save shows <span class="muted" id="visit-label"></span></h2>
-    <div class="facts-grid" id="truth-facts"></div>
-    <div style="margin-top:10px;">
-      <span class="route-badge" id="route-badge"></span>
-    </div>
-    <div class="remembrance hidden" id="remembrance-box"></div>
-    <!-- New Game+: shown only when this save has siblings (you've shown others) -->
-    <div class="recognition hidden" id="recognition-box" role="note"></div>
-    <div class="row" style="margin-top:14px;">
-      <label class="muted"><input type="checkbox" id="music-toggle" /> ambient music (route-aware)</label>
-      <label class="muted"><input type="checkbox" id="reachout-toggle" /> let them reach out to you</label>
-    </div>
-    <div class="row" style="margin-top:10px;">
-      <button class="btn" id="chronicle-btn">📜 The Chronicle</button>
-      <button class="btn" id="journal-btn">📖 Keepsake Journal</button>
-      <button class="btn" id="timeline-btn">🕰 Timeline</button>
-      <button class="btn" id="council-btn">🗣 The Council</button>
-      <button class="btn hidden" id="constellation-btn">🌌 Across Your Saves</button>
-    </div>
-  </section>
-
-  <!-- 3. Characters -->
-  <section class="panel hidden" id="roster-panel">
-    <h2>Who's here</h2>
-    <div class="roster" id="roster"></div>
-  </section>
-
-  <!-- 4. Chat -->
-  <section class="panel hidden" id="chat-panel">
-    <div class="dialogue-vessel">
-      <div class="relic-portrait empty" id="chat-portrait" role="img"></div>
-      <div class="dialogue-body">
-        <div class="dialogue-name" id="chat-name">—</div>
-        <div class="transcript" id="transcript"></div>
-      </div>
-    </div>
-    <div class="row" style="margin-top:12px;">
-      <input type="text" id="chat-input" placeholder="say something…" style="flex:1; min-width:200px;" />
-      <button class="btn" id="send-btn">Send</button>
-      <button class="btn determined" id="judge-btn">Judgment</button>
-    </div>
-  </section>
-
-  <!-- 4a². The Keepsake Journal -->
-  <section class="panel hidden" id="journal-panel">
-    <h2>The Keepsake Journal <span class="muted">— a book the Underground fills; carry it with you</span></h2>
-    <div class="row" style="margin-bottom:12px;">
-      <select id="journal-author" class="btn"></select>
-      <button class="btn" id="journal-inscribe-btn">Ask them to write</button>
-      <button class="btn" id="journal-download-btn">⤓ Download .md</button>
-      <button class="btn" id="journal-close-btn">Close</button>
-    </div>
-    <div class="journal" id="journal-entries"></div>
-  </section>
-
-  <!-- 4a³. The Timeline (the save's history) -->
-  <section class="panel hidden" id="timeline-panel">
-    <h2>The Timeline <span class="muted">— every reading; ↩ marks where the numbers went backward</span></h2>
-    <div class="timeline" id="timeline-track"></div>
-    <div class="row" style="margin-top:12px;"><button class="btn" id="timeline-close-btn">Close</button></div>
-  </section>
-
-  <!-- 4a⁴. The Council (the whole Underground reacts at once) -->
-  <section class="panel hidden" id="council-panel">
-    <h2>The Council <span class="muted">— the whole Underground reacts to your run</span></h2>
-    <div class="council" id="council-list"></div>
-    <div class="row" style="margin-top:12px;"><button class="btn" id="council-close-btn">Close</button></div>
-  </section>
-
-  <!-- 4a⁵. The Constellation (the whole shape of you across every save) -->
-  <section class="panel hidden" id="constellation-panel">
-    <h2>Across Your Saves <span class="muted">— the whole shape of you, every file shown</span></h2>
-    <div class="constellation" id="constellation-content"></div>
-    <div class="row" style="margin-top:12px;"><button class="btn" id="constellation-close-btn">Close</button></div>
-  </section>
-
-  <!-- 4b. The Chronicle (in-app viewer) -->
-  <section class="panel hidden" id="chronicle-panel">
-    <div class="chronicle" id="chronicle-content"></div>
-    <div class="row" style="margin-top:12px;">
-      <button class="btn" id="chronicle-download-btn">⤓ Download .md</button>
-      <button class="btn" id="chronicle-close-btn">Close</button>
-    </div>
-  </section>
-
-  <!-- 5. Judgment -->
-  <section class="panel hidden" id="judgment-panel">
-    <h2>Judgment</h2>
-    <div class="verdict-line" id="verdict-line"></div>
-    <div class="facts-grid" id="judgment-facts"></div>
-    <ul id="judgment-gaps" class="muted"></ul>
-    <div class="row" style="margin-top:10px;">
-      <button class="btn" id="speak-btn">Let them say it</button>
-    </div>
-    <div class="bubble them hidden" id="spoken-box" style="margin-top:12px;"></div>
-  </section>
-
-  <p style="color:var(--ink-dim); text-align:center; font-size:0.85rem; margin:24px 0 48px;">
-    Facts are sacred, feelings are free.
-  </p>
 
   <!-- proactive "they reached out" toast -->
   <div id="reach-toast" class="reach-toast hidden" role="button" aria-live="polite"></div>

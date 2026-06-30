@@ -7,9 +7,48 @@
 (function () {
   "use strict";
 
-  var state = { projectId: null, character: null, characters: [], history: {} };
+  var state = { projectId: null, character: null, characters: [], history: {}, view: "chat" };
 
   function $(id) { return document.getElementById(id); }
+  function $$(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
+
+  // ── the view router ───────────────────────────────────────────────────────
+  // Exactly one stage view is .active at a time. Switching a character or a
+  // feature swaps the stage only — the rails never move, nothing scrolls away.
+  var VIEWS = ["chat", "council", "timeline", "journal", "constellation", "chronicle", "judgment", "saves"];
+  function showView(name) {
+    state.view = name;
+    VIEWS.forEach(function (v) {
+      var el = $("view-" + v); if (el) el.classList.toggle("active", v === name);
+    });
+    $$("[data-view]").forEach(function (b) {
+      b.classList.toggle("sel", b.getAttribute("data-view") === name);
+    });
+    document.body.classList.toggle("on-chat", name === "chat");
+    closeDrawers();
+    var st = $("stage"); if (st) st.scrollTop = 0;
+  }
+
+  // nav button → fetch+render the feature, then reveal its view (or just switch)
+  function navTo(name) {
+    switch (name) {
+      case "council": return showCouncil();
+      case "timeline": return showTimeline();
+      case "journal": return showJournal();
+      case "constellation": return showConstellation();
+      case "chronicle": return showChronicle();
+      case "judgment": return showJudgment();
+      case "saves": return showView("saves");
+      default: return showView("chat");
+    }
+  }
+
+  // mobile drawers (rails slide in); no-op visuals on desktop where rails persist
+  function openDrawer(side) {
+    document.body.classList.remove("drawer-left", "drawer-right");
+    document.body.classList.add("drawer-" + side);
+  }
+  function closeDrawers() { document.body.classList.remove("drawer-left", "drawer-right"); }
 
   function api(path, opts) {
     return fetch(path, opts).then(function (r) {
@@ -45,11 +84,15 @@
     api("/api/upload", { method: "POST", body: fd })
       .then(function (res) {
         state.projectId = res.project_id;
+        state.character = null;
+        state.history = {};
         $("refresh-btn").classList.remove("hidden");
         $("upload-status").textContent = "Save read. Project #" + res.project_id + ".";
         renderTruth(res.save_truth, null, "");
         loadRoster();
         loadShelf();
+        renderTranscript();
+        showView("chat");
       })
       .catch(function (e) { $("upload-status").textContent = "Error: " + e.message; });
   }
@@ -64,7 +107,7 @@
         $("upload-status").textContent = "Return visit recorded (visit #" + res.visit + ").";
         renderTruth(res.save_truth, res.visit, res.remembrance || "");
         loadAffinities();   // the cast's regard can change with the new reading
-        if (!$("journal-panel").classList.contains("hidden")) loadJournal();
+        if (state.view === "journal") loadJournal();
       })
       .catch(function (e) { $("upload-status").textContent = "Error: " + e.message; });
   }
@@ -93,7 +136,9 @@
     if (remembrance) { rbox.textContent = remembrance; rbox.classList.remove("hidden"); }
     else { rbox.classList.add("hidden"); }
 
-    $("truth-panel").classList.remove("hidden");
+    // reflect the current save in the top-bar pill
+    var pill = $("save-pill");
+    if (pill) pill.textContent = (fmt(play.name) === "—" ? "Save" : play.name) + " · " + route + " ▾";
 
     // route-aware music: drive the bed from the live route (if enabled).
     if (window.MusicLayer && $("music-toggle").checked) window.MusicLayer.setRoute(route);
@@ -149,22 +194,25 @@
   function loadShelf() {
     api("/api/projects").then(function (res) {
       var el = $("shelf"); el.innerHTML = "";
-      if (!res.projects.length) { $("shelf-panel").classList.add("hidden"); return; }
-      res.projects.forEach(function (p) {
+      (res.projects || []).forEach(function (p) {
         var route = p.route || "undetermined";
         var card = document.createElement("div");
-        card.className = "char-card";
-        card.style.width = "150px";
+        card.className = "char-card shelf-card";
+        card.dataset.pid = p.project_id;
+        card.classList.toggle("selected", p.project_id === state.projectId);
         card.innerHTML =
           '<div class="name">' + (p.name || "Save #" + p.project_id) + "</div>" +
-          '<span class="route-badge ' + route.toLowerCase() + '" style="font-size:0.72rem;">' +
+          '<span class="route-badge ' + route.toLowerCase() + '" style="font-size:0.68rem;">' +
           route + "</span>";
         card.onclick = function () { loadProject(p.project_id); };
         el.appendChild(card);
       });
-      $("shelf-panel").classList.remove("hidden");
+      if (!res.projects || !res.projects.length) {
+        el.innerHTML = '<p class="muted" style="font-size:.78rem;">No saves yet.</p>';
+      }
       // "Across Your Saves" only means something once there's more than one save.
-      $("constellation-btn").classList.toggle("hidden", res.projects.length < 2);
+      var navC = $("nav-constellation");
+      if (navC) navC.classList.toggle("hidden", (res.projects || []).length < 2);
     });
   }
 
@@ -196,7 +244,7 @@
           '<span class="con-mark">🌌</span> ' + (res.verdict || "") + "</div>" +
           divLine;
       }
-      $("constellation-panel").classList.remove("hidden");
+      showView("constellation");
     });
   }
 
@@ -206,10 +254,11 @@
       state.history = {};
       state.character = null;
       $("refresh-btn").classList.remove("hidden");
-      $("chat-panel").classList.add("hidden");
-      $("judgment-panel").classList.add("hidden");
       renderTruth(res.save_truth, null, "");
       loadRoster();
+      loadShelf();           // refresh the shelf's selected highlight
+      renderTranscript();    // chat shows the "pick someone" placeholder
+      showView("chat");
     });
   }
 
@@ -221,19 +270,28 @@
     api("/api/characters").then(function (res) {
       state.characters = res.characters;
       var el = $("roster"); el.innerHTML = "";
+      var strip = $("speaker-strip"); if (strip) strip.innerHTML = "";
       res.characters.forEach(function (c) {
-        var card = document.createElement("div");
-        card.className = "char-card";
-        card.dataset.name = c.name;
         var portrait = c.avatar_url
           ? '<img class="relic-portrait" src="' + c.avatar_url + '" alt="' + c.name + '" />'
           : '<div class="relic-portrait empty"></div>';
+        // left-rail roster card
+        var card = document.createElement("div");
+        card.className = "char-card";
+        card.dataset.name = c.name;
         card.innerHTML = portrait + '<div class="name">' + c.name + "</div>" +
           '<div class="affinity" data-for="' + c.name + '"></div>';
         card.onclick = function () { selectCharacter(c); };
         el.appendChild(card);
+        // mobile speaker strip face
+        if (strip) {
+          var face = document.createElement("div");
+          face.className = "face"; face.dataset.name = c.name;
+          face.innerHTML = portrait + "<div>" + c.name + "</div>";
+          face.onclick = function () { selectCharacter(c); };
+          strip.appendChild(face);
+        }
       });
-      $("roster-panel").classList.remove("hidden");
       loadAffinities();   // decorate cards with how each regards you
     });
   }
@@ -256,7 +314,7 @@
   function selectCharacter(c) {
     state.character = c.name;
     if (!state.history[c.name]) state.history[c.name] = [];
-    Array.prototype.forEach.call(document.querySelectorAll("#roster .char-card"), function (el) {
+    $$("#roster .char-card, #speaker-strip .face").forEach(function (el) {
       el.classList.toggle("selected", el.dataset.name === c.name);
     });
     var a = (state.affinities || {})[c.name];
@@ -266,8 +324,7 @@
       : "");
     var p = $("chat-portrait");
     if (c.avatar_url) { p.outerHTML = '<img class="relic-portrait" id="chat-portrait" src="' + c.avatar_url + '" />'; }
-    $("chat-panel").classList.remove("hidden");
-    $("judgment-panel").classList.add("hidden");
+    showView("chat");
     // Load the persisted transcript so the conversation survives a reload.
     api("/api/projects/" + state.projectId + "/conversations/" + c.name.toLowerCase())
       .then(function (res) {
@@ -290,6 +347,12 @@
 
   function renderTranscript() {
     var t = $("transcript"); t.innerHTML = "";
+    if (!state.character) {
+      t.innerHTML = '<p class="muted">' +
+        (state.projectId ? "Pick someone from the cast to talk to." : "Read a save, then pick someone to talk to.") +
+        "</p>";
+      return;
+    }
     (state.history[state.character] || []).forEach(function (m) {
       var them = m.role !== "user";
       var msg = document.createElement("div");
@@ -407,7 +470,7 @@
         var li = document.createElement("li"); li.textContent = g; gaps.appendChild(li);
       });
       $("spoken-box").classList.add("hidden");
-      $("judgment-panel").classList.remove("hidden");
+      showView("judgment");
     });
   }
 
@@ -460,8 +523,7 @@
     api("/api/projects/" + state.projectId + "/chronicle").then(function (res) {
       chronicleMd = res.markdown;
       $("chronicle-content").innerHTML = mdToHtml(res.markdown);
-      $("chronicle-panel").classList.remove("hidden");
-      $("chronicle-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+      showView("chronicle");
     }).catch(function (e) { $("upload-status").textContent = "Chronicle error: " + e.message; });
   }
 
@@ -486,8 +548,7 @@
 
   function openCharacter(name) {
     var c = (state.characters || []).filter(function (x) { return x.name === name; })[0];
-    if (c) selectCharacter(c);
-    var cp = $("chat-panel"); if (cp) cp.scrollIntoView({ behavior: "smooth", block: "start" });
+    if (c) selectCharacter(c); else showView("chat");
   }
 
   // ── The Keepsake Journal ───────────────────────────────────────────────────
@@ -500,8 +561,7 @@
       });
     }
     loadJournal();
-    $("journal-panel").classList.remove("hidden");
-    $("journal-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+    showView("journal");
   }
   function loadJournal() {
     api("/api/projects/" + state.projectId + "/journal").then(function (res) {
@@ -562,8 +622,7 @@
         track.appendChild(node);
       });
       if (!snaps.length) track.innerHTML = '<p class="muted">No readings yet.</p>';
-      $("timeline-panel").classList.remove("hidden");
-      $("timeline-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+      showView("timeline");
     });
   }
 
@@ -585,8 +644,7 @@
         row.querySelector(".cv-line").textContent = e.line;
         box.appendChild(row);
       });
-      $("council-panel").classList.remove("hidden");
-      $("council-panel").scrollIntoView({ behavior: "smooth", block: "start" });
+      showView("council");
     });
   }
 
@@ -656,38 +714,62 @@
     loadRecognition();  // the "Save/reset talk" dial gates the recognition beat
   }
 
+  // mobile bottom nav: Chat (stage) · Cast (left drawer) · Save (right drawer)
+  function bottomNav(which) {
+    $$("#bottom-nav .bn").forEach(function (b) {
+      b.classList.toggle("sel", b.getAttribute("data-nav") === which);
+    });
+    if (which === "cast") { openDrawer("left"); }
+    else if (which === "save") { openDrawer("right"); }
+    else { showView("chat"); }
+  }
+
   window.addEventListener("DOMContentLoaded", function () {
     state.settings = loadSettings();
     syncSettingsControls();
     applyHud();
+    if (window.MusicLayer) window.MusicLayer.init();
+
+    // options drawer
     $("settings-btn").onclick = function () { $("settings-panel").classList.toggle("hidden"); };
     $("settings-close").onclick = function () { $("settings-panel").classList.add("hidden"); };
     $("settings-panel").addEventListener("change", readSettingsControls);
-    if (window.MusicLayer) window.MusicLayer.init();
-    loadShelf();
+
+    // view router: left-rail nav + any [data-view] control
+    $$("[data-view]").forEach(function (b) {
+      b.onclick = function () { navTo(b.getAttribute("data-view")); };
+    });
+    // mobile bottom nav + drawer scrim + save pill
+    $$("#bottom-nav .bn").forEach(function (b) {
+      b.onclick = function () { bottomNav(b.getAttribute("data-nav")); };
+    });
+    $("scrim").onclick = closeDrawers;
+    $("save-pill").onclick = function () { openDrawer("left"); };
+    $("add-save-btn").onclick = function () { showView("saves"); };
+
+    // save read / refresh
     $("upload-btn").onclick = uploadSave;
     $("refresh-btn").onclick = refreshSave;
+
+    // chat
     $("send-btn").onclick = sendMessage;
     $("chat-input").addEventListener("keydown", function (e) { if (e.key === "Enter") sendMessage(); });
-    $("judge-btn").onclick = showJudgment;
+
+    // per-view actions
     $("speak-btn").onclick = speakJudgment;
-    $("chronicle-btn").onclick = showChronicle;
     $("chronicle-download-btn").onclick = downloadChronicle;
-    $("chronicle-close-btn").onclick = function () { $("chronicle-panel").classList.add("hidden"); };
-    $("journal-btn").onclick = showJournal;
     $("journal-inscribe-btn").onclick = inscribeJournal;
     $("journal-download-btn").onclick = function () { if (state.journalMd) downloadText(state.journalMd, "keepsake_journal.md"); };
-    $("journal-close-btn").onclick = function () { $("journal-panel").classList.add("hidden"); };
-    $("timeline-btn").onclick = showTimeline;
-    $("timeline-close-btn").onclick = function () { $("timeline-panel").classList.add("hidden"); };
-    $("council-btn").onclick = showCouncil;
-    $("council-close-btn").onclick = function () { $("council-panel").classList.add("hidden"); };
-    $("constellation-btn").onclick = showConstellation;
-    $("constellation-close-btn").onclick = function () { $("constellation-panel").classList.add("hidden"); };
+
+    // right-rail toggles
     $("reachout-toggle").onchange = function () { setReachOut(this.checked); };
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;
       window.MusicLayer.setEnabled(this.checked);
     };
+
+    document.body.classList.add("on-chat");
+    loadShelf();
+    renderTranscript();   // chat starts with the "read a save" placeholder
   });
 })();

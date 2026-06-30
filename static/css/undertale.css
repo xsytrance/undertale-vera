@@ -1,0 +1,106 @@
+/* ════════════════════════════════════════════════════════════════════════
+   UNDERTALE SKIN — Pass 2 (a skin layer over the Console shell)
+   ------------------------------------------------------------------------
+   Evokes Undertale's UI GRAMMAR: pure-black panels, crisp white pixel
+   borders, square corners, a pixel/mono typeface, and the iconic "* "
+   dialogue marker. Layout still lives in determination.css; this only
+   re-skins surfaces (loaded after it, so it wins).
+
+   We do NOT use Undertale's sprites, fonts, or its red soul heart — the soul
+   stays our reinterpreted ember-gem sigil. This is the look's grammar in our
+   own accent, not copied assets.
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --ink:        #ffffff;
+  --ink-dim:    #b9b9b9;
+  --ember:      #ffd23f;   /* highlight yellow (selection / accents) */
+  --ember-soft: #d8b13a;
+  --brass:      #ffd23f;
+  --brass-edge: #ffffff;
+  --determination: #ff3b3b;
+  --obsidian:       #000000;
+  --obsidian-2:     #000000;
+  --obsidian-panel: #000000;
+  --plate-inner:    #000000;
+  --plate-frame:    #ffffff;
+  --font-display: "Pixelify Sans", "Courier New", monospace;
+  --font-body:    "Pixelify Sans", "Courier New", monospace;
+  --font-mono:    "VT323", "Courier New", monospace;
+}
+
+body { background: #000 !important; color: #fff; letter-spacing: 0; }
+/* the route art fights a stark black UI — keep it as a faint ghost */
+.scene-backdrop { opacity: 0.18 !important; }
+
+/* pixel-box chrome: black fill, white border, square corners */
+.topbar, .rail, .view.active, .bottom-nav, .save-pill, .composer #chat-input,
+.btn, .rail-add, .navitem, .char-card, .shelf-card, .dialogue-vessel,
+.relic-portrait, .route-badge, .recognition, .remembrance, .provenance,
+.bubble, .reach-toast, .settings, .chip, select, input[type="file"] {
+  background: #000 !important;
+  border: 2px solid #fff !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
+}
+.topbar { background: #000 !important; }
+
+/* headings / names / display text → white pixel font, no glow */
+h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-head {
+  color: #fff !important;
+  text-shadow: none !important;
+  font-family: var(--font-display) !important;
+  letter-spacing: 0.02em;
+}
+.muted, .rail-lbl { color: var(--ink-dim) !important; }
+
+/* selection / hover inverts to white-on-black → black-on-white (menu feel) */
+.navitem.sel, .bottom-nav .bn.sel, .char-card.selected, .shelf-card.selected,
+.btn:hover, .rail-add:hover, .save-pill:hover, .speaker-strip .face.selected .relic-portrait {
+  background: #fff !important;
+  color: #000 !important;
+}
+.navitem.sel, .bottom-nav .bn.sel { border-color: #fff !important; }
+.navitem:hover { background: #1a1a1a !important; }
+
+/* dialogue: white text, yellow speaker name, the iconic "* " marker */
+.bubble { color: #fff !important; }
+.bubble .who { color: var(--ember) !important; font-family: var(--font-display) !important; }
+.view-chat .bubble.them > span::before,
+#spoken-box > span::before {
+  content: "* "; color: #fff;
+}
+.bubble.you { color: var(--ink-dim) !important; }
+
+/* buttons / inputs / nav text */
+.btn, .rail-add, .navitem, .save-pill, .bottom-nav .bn, .char-card, .topbar-gear {
+  color: #fff !important; font-family: var(--font-display) !important;
+}
+.composer #chat-input, select, .verdict-line { color: #fff !important; font-family: var(--font-display) !important; }
+.composer #chat-input::placeholder { color: #6f6f6f !important; }
+.topbar-gear { border-radius: 0 !important; }
+.topbar-gear:hover { background: #fff !important; color: #000 !important; transform: none !important; }
+
+/* the soul sigil stays OUR ember-gem (not the red heart); just keep it crisp */
+.soul-sigil { box-shadow: none !important; }
+
+/* route + affinity chips: keep them legible boxes, yellow accent for emphasis */
+.route-badge { color: #fff !important; }
+.route-badge.genocide { color: var(--determination) !important; border-color: var(--determination) !important; }
+.chip.ok, .chip.free, .chip.warn, .chip.sacred { color: #fff !important; }
+
+/* the recognition / echo beats read as white boxes; echo flips to red border */
+.recognition strong { color: var(--ember) !important; }
+.recognition.echo { border-color: var(--determination) !important; }
+.recognition.echo strong { color: var(--determination) !important; }
+
+/* provenance keeps its dashed divider but in white */
+.provenance { border-top: 1px dashed #fff !important; }
+
+/* the empty portrait crest: our sigil, dimmed, no ember glow */
+.relic-portrait.empty::after { background: #fff !important; opacity: 0.35 !important; }
+
+/* the typewriter caret → white block (terminal feel) */
+.ink-reveal { border-right-color: #fff !important; }
