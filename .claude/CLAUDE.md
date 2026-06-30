@@ -15,7 +15,10 @@ in-game characters answer as themselves. A MultiVera instantiation mirroring
 - `prompt_builder.py` — two-bucket grounded system prompts.
 - `character_config.py` — Undertale character registry (ADD-only).
 - `living_memory.py` — pure ask/remember/recall functions (Bucket B).
-- `llm_client.py` — Anthropic Claude client (default `claude-opus-4-8`), mockable.
+- `llm_client.py` — chat backend, mockable. Default local **Ollama**
+  (`UNDERTALE_VERA_BACKEND=ollama`, `OLLAMA_MODEL=llama3.1:8b`); set
+  `UNDERTALE_VERA_BACKEND=anthropic` for Claude (`claude-opus-4-8`). Any backend
+  failure → `LLMUnavailable` → grounded deterministic fallback (never a 500).
 - `inspector.py` — QA harness (Playwright or HTTP-only sweep).
 - `tests/` — Pytest suite. **Always run `pytest -q` before committing.**
 
