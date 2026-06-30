@@ -501,6 +501,12 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 }
 .rail .char-card .relic-portrait { width: 38px; height: 38px; flex: none; margin: 0; }
 
+/* character emblem crest (shown until a real portrait is supplied) */
+.relic-portrait.emblem { display: flex; align-items: center; justify-content: center; padding: 0; }
+.relic-portrait.emblem svg { width: 82%; height: 82%; }
+.bubble-avatar.emblem { display: flex; align-items: center; justify-content: center; }
+.bubble-avatar.emblem svg { width: 84%; height: 84%; }
+
 /* portrait → photo options (View larger · Change · Remove) */
 .portrait-wrap { position: relative; display: inline-flex; flex: none; cursor: pointer; }
 .pbadge {

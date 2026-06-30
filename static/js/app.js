@@ -278,10 +278,37 @@
     if (!u) return "";
     return portraitBust ? (u + (u.indexOf("?") < 0 ? "?" : "&") + "v=" + portraitBust) : u;
   }
+  function emblemSvg(name) { return (window.UV_EMBLEMS && window.UV_EMBLEMS[name]) || ""; }
+  function slug(name) { return (name || "").toLowerCase().replace(/[^a-z0-9]+/g, "-"); }
+
+  // ── Undertale-feel: a short text "blip" per character as dialogue types ────
+  var _ac = null;
+  var BLIP_FREQ = {
+    "Sans": 150, "Papyrus": 300, "Toriel": 300, "Flowey": 380, "Undyne": 240,
+    "Alphys": 420, "Asgore": 175, "Mettaton": 340, "Napstablook": 250,
+  };
+  function blip(name) {
+    if (!(state.settings && state.settings.hud && state.settings.hud.blip)) return;
+    try {
+      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+      _ac = _ac || new AC();
+      if (_ac.state === "suspended") _ac.resume();
+      var o = _ac.createOscillator(), g = _ac.createGain();
+      o.type = "square";
+      o.frequency.value = (BLIP_FREQ[name] || 320) * (0.97 + 0.06 * (((name || "").length * 7 % 5) / 5));
+      var t = _ac.currentTime;
+      g.gain.setValueAtTime(0.045, t);
+      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
+      o.connect(g); g.connect(_ac.destination);
+      o.start(t); o.stop(t + 0.05);
+    } catch (e) { /* audio not available — silent */ }
+  }
   function portraitTag(name) {
     var u = portraitUrl(name);
-    return u
-      ? '<img class="relic-portrait" src="' + u + '" alt="' + name + '" />'
+    if (u) return '<img class="relic-portrait" src="' + u + '" alt="' + name + '" />';
+    var emb = emblemSvg(name);
+    return emb
+      ? '<div class="relic-portrait emblem">' + emb + "</div>"
       : '<div class="relic-portrait empty"></div>';
   }
 
@@ -468,17 +495,25 @@
       var msg = document.createElement("div");
       msg.className = "msg " + (them ? "them" : "you");
 
-      // the speaker's portrait sits beside their reply (crest until art lands)
+      // the speaker's portrait sits beside their reply (emblem crest until art lands)
       if (them) {
         var av = avatarFor(state.character);
-        var avEl = document.createElement(av ? "img" : "div");
-        avEl.className = "bubble-avatar" + (av ? "" : " empty");
-        if (av) { avEl.src = av; avEl.alt = state.character; }
+        var avEl;
+        if (av) {
+          avEl = document.createElement("img");
+          avEl.className = "bubble-avatar"; avEl.src = av; avEl.alt = state.character;
+        } else {
+          avEl = document.createElement("div");
+          var emb = emblemSvg(state.character);
+          avEl.className = "bubble-avatar" + (emb ? " emblem" : " empty");
+          if (emb) avEl.innerHTML = emb;
+        }
         msg.appendChild(avEl);
       }
 
       var b = document.createElement("div");
-      b.className = "bubble " + (them ? "them" : "you");
+      b.className = "bubble " + (them ? "them" : "you") +
+        (them ? " speaker-" + slug(state.character) : "");
       var who = document.createElement("div");
       who.className = "who"; who.textContent = them ? state.character : "you";
       var span = document.createElement("span");
@@ -489,15 +524,25 @@
     });
   }
 
-  function typewriter(span, text) {
+  // append the blinking ▼ "continue" arrow to a finished line of dialogue
+  function dialogueDone(span, name) {
+    var bubble = span.parentNode; if (!bubble) return;
+    bubble.classList.remove("ink-reveal");
+    if (!bubble.classList.contains("them")) return;
+    var prov = bubble.querySelector(".provenance");
+    var arrow = document.createElement("span"); arrow.className = "dialogue-arrow"; arrow.textContent = "▼";
+    bubble.insertBefore(arrow, prov || null);
+  }
+  function typewriter(span, text, name) {
     var ms = (state.settings && state.settings.hud.typewriterMs);
     if (ms == null) ms = 18;
-    if (!ms) { span.textContent = text; return; }   // instant
+    if (!ms) { span.textContent = text; dialogueDone(span, name); return; }   // instant
     span.textContent = ""; span.parentNode.classList.add("ink-reveal");
     var i = 0;
     var timer = setInterval(function () {
       span.textContent = text.slice(0, ++i);
-      if (i >= text.length) { clearInterval(timer); span.parentNode.classList.remove("ink-reveal"); }
+      if (i % 2 === 0 && /\S/.test(text.charAt(i - 1))) blip(name);   // a blip every couple glyphs
+      if (i >= text.length) { clearInterval(timer); dialogueDone(span, name); }
     }, ms);
   }
 
@@ -516,8 +561,8 @@
       renderTranscript();
       var row = $("transcript").lastChild;                 // the .msg row
       var bubble = row.querySelector(".bubble") || row;     // provenance rides the bubble
-      typewriter(bubble.querySelector("span"), res.response);
-      renderProvenance(bubble, res);   // the wall, made visible
+      renderProvenance(bubble, res);   // the wall, made visible (before the arrow)
+      typewriter(bubble.querySelector("span"), res.response, state.character);
     }).catch(function (e) {
       hist.push({ role: "assistant", content: "(error: " + e.message + ")" });
       renderTranscript();
@@ -595,7 +640,7 @@
       box.innerHTML = '<div class="who">' + res.character + "</div>";
       var span = document.createElement("span"); box.appendChild(span);
       box.classList.remove("hidden");
-      typewriter(span, res.spoken);
+      typewriter(span, res.spoken, res.character);
     });
   }
 
@@ -747,7 +792,8 @@
         row.className = "council-voice";
         row.innerHTML =
           (av ? '<img class="bubble-avatar" src="' + av + '" alt="" />'
-              : '<div class="bubble-avatar empty"></div>') +
+              : '<div class="bubble-avatar ' + (emblemSvg(e.character) ? "emblem" : "empty") + '">' +
+                emblemSvg(e.character) + "</div>") +
           '<div class="cv-body"><div class="cv-head">' + e.character +
           ' <span class="chip ' + (STANCE_CLASS[e.stance] || "free") + '">' + e.stance + "</span></div>" +
           '<div class="cv-line"></div></div>';
@@ -783,7 +829,7 @@
   // ── Options menu (response dials + HUD density; persisted) ─────────────────
   var SETTINGS_DEFAULT = {
     options: { verbosity: "normal", intensity: "normal", lore: "normal", meta: "subtle" },
-    hud: { provenance: true, affinity: true, remembrance: true, motion: true, typewriterMs: 18 },
+    hud: { provenance: true, affinity: true, remembrance: true, motion: true, typewriterMs: 18, blip: true },
   };
   function loadSettings() {
     try {
@@ -808,6 +854,7 @@
     $("hud-provenance").checked = h.provenance; $("hud-affinity").checked = h.affinity;
     $("hud-remembrance").checked = h.remembrance; $("hud-motion").checked = h.motion;
     $("hud-typewriter").value = String(h.typewriterMs);
+    $("hud-blip").checked = h.blip;
   }
   function readSettingsControls() {
     state.settings.options = {
@@ -818,6 +865,7 @@
       provenance: $("hud-provenance").checked, affinity: $("hud-affinity").checked,
       remembrance: $("hud-remembrance").checked, motion: $("hud-motion").checked,
       typewriterMs: parseInt($("hud-typewriter").value, 10) || 0,
+      blip: $("hud-blip").checked,
     };
     try { localStorage.setItem("uv_settings", JSON.stringify(state.settings)); } catch (e) {}
     applyHud();

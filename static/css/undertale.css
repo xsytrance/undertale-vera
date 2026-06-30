@@ -114,3 +114,21 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
   .bubble-avatar { width: 30px; height: 30px; flex: 0 0 30px; }
   .msg { gap: 7px; }
 }
+
+/* ── Undertale feel: the blinking ▼ "continue" arrow on a finished line ───── */
+.dialogue-arrow {
+  display: inline-block; margin-left: 6px; color: var(--ember);
+  animation: dlg-blink 0.8s steps(1) infinite;
+}
+@keyframes dlg-blink { 50% { opacity: 0; } }
+
+/* per-character dialogue fonts — the classic jokes, using SYSTEM fonts (not
+   Undertale's own); they degrade gracefully where the font isn't installed. */
+.bubble.them.speaker-sans > span {
+  font-family: "Comic Sans MS", "Comic Sans", "Pixelify Sans", cursive !important;
+  text-transform: lowercase;
+}
+.bubble.them.speaker-papyrus > span {
+  font-family: "Papyrus", "Pixelify Sans", fantasy !important;
+  text-transform: uppercase; letter-spacing: 0.03em;
+}
