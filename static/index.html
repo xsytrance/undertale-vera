@@ -94,10 +94,16 @@
 
       <!-- Chat -->
       <section class="view view-chat active" id="view-chat">
-        <div class="dialogue-vessel">
+        <div class="chat-hero hidden" id="chat-hero">
           <div class="relic-portrait empty" id="chat-portrait" role="img"></div>
-          <div class="dialogue-body">
+          <div class="chat-hero-meta">
             <div class="dialogue-name" id="chat-name">—</div>
+            <div class="chat-hero-title" id="chat-title"></div>
+          </div>
+          <button class="chat-hero-menu" id="chat-hero-menu" aria-label="Menu · features">☰</button>
+        </div>
+        <div class="dialogue-vessel">
+          <div class="dialogue-body">
             <div class="transcript" id="transcript"></div>
           </div>
         </div>

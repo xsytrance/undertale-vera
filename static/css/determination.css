@@ -831,8 +831,25 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
   display: flex; flex-direction: column;
   flex: 1; min-height: 0; max-width: none; width: 100%; margin: 0;
 }
-.view-chat #chat-portrait { display: none; }
 .view-chat .dialogue-body { display: flex; flex-direction: column; min-height: 0; flex: 1; padding: 4px 8px; }
+
+/* character presence banner: fills the top of the chat with who you're talking to */
+.chat-hero {
+  display: flex; align-items: center; gap: 14px;
+  padding: 2px 2px 12px; margin-bottom: 6px; border-bottom: 1px solid var(--plate-frame);
+}
+.chat-hero.hidden { display: none; }
+.chat-hero #chat-portrait { width: 60px; height: 60px; flex: 0 0 auto; margin: 0; }
+.chat-hero-meta { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.chat-hero .dialogue-name { font-size: 1.35rem; margin: 0; line-height: 1.1; }
+.chat-hero-title { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.hero-epithet { font-style: italic; color: var(--ink-dim); font-size: .82rem; }
+.chat-hero-menu {
+  display: none; margin-left: auto; flex: 0 0 auto; cursor: pointer;
+  background: none; border: 1px solid var(--plate-frame); border-radius: 8px;
+  color: var(--ember); font-size: 1.1rem; padding: 6px 11px;
+}
+.chat-hero-menu:hover { border-color: var(--ember); }
 .view-chat .transcript { flex: 1; overflow: auto; }
 /* bubbles fill the available row width before wrapping (percentage, not px) */
 .view-chat .msg { max-width: 100%; }
@@ -900,6 +917,10 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
   body.on-chat.chatting .bottom-nav { display: none; }
   body.on-chat .view-chat.active { padding: 8px 12px 12px; }
   body.on-chat .speaker-strip { padding: 2px 2px 8px; }
+  /* the chrome is gone in immersive chat, so the hero carries the escape hatch */
+  .chat-hero-menu { display: block; }
+  .chat-hero #chat-portrait { width: 48px; height: 48px; }
+  .chat-hero .dialogue-name { font-size: 1.15rem; }
   .view-chat .dialogue-body { padding: 2px; }
   .composer { gap: 8px; margin-top: 10px; }
   .composer #chat-input { padding: 12px 14px; }
