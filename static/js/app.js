@@ -721,6 +721,24 @@
       (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3400); })(s);
     }
   }
+  // NYEH HEH HEH — say "spaghetti" and it rains from the sky (Papyrus approves).
+  var _pastaCooling = false;
+  function spaghettiRain() {
+    if (_pastaCooling) return; _pastaCooling = true;
+    setTimeout(function () { _pastaCooling = false; }, 4000);
+    miniToast("* NYEH HEH HEH! HAVE SOME SPAGHETTI!");
+    var pasta = ["🍝", "🍝", "🍝", "🍅"];
+    for (var i = 0; i < 22; i++) {
+      var s = document.createElement("span"); s.className = "fall-item";
+      s.textContent = pasta[i % pasta.length];
+      s.style.left = Math.floor(Math.random() * 100) + "vw";
+      s.style.fontSize = (16 + Math.floor(Math.random() * 16)) + "px";
+      s.style.animationDelay = (Math.random() * 0.6).toFixed(2) + "s";
+      s.style.animationDuration = (1.6 + Math.random() * 1.6).toFixed(2) + "s";
+      document.body.appendChild(s);
+      (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3800); })(s);
+    }
+  }
   function selectCharacter(c) {
     // no save yet? let them HEAR the voice and nudge them to read a save to talk.
     if (!state.projectId) {
@@ -950,6 +968,7 @@
   function sendMessage() {
     var input = $("chat-input"); var msg = input.value.trim();
     if (!msg || !state.projectId || !state.character) return;
+    if (/spaghetti/i.test(msg)) spaghettiRain();   // secret 5 — Papyrus's favourite word
     var who = state.character;   // capture: the reply belongs to THIS character
     var hist = state.history[who];
     hist.push({ role: "user", content: msg });
