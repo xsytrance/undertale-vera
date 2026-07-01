@@ -31,6 +31,7 @@ import character_disposition
 import chat_style
 import chronicle as chronicle_mod
 import constellation as constellation_mod
+import divergence as divergence_mod
 import council
 import crossave
 import journal
@@ -705,6 +706,45 @@ def get_constellation(db: Session = Depends(get_db)) -> dict[str, Any]:
             constellation_mod.build_divergence(agg.get("kindest"), agg.get("darkest"))
             if agg.get("full_spectrum") else ""
         ),
+    }
+
+
+class DivergenceRequest(BaseModel):
+    project_a: int
+    project_b: int
+    character: str
+
+
+@app.post("/api/divergence")
+def divergence(req: DivergenceRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """A chosen character reflects on the fork between any TWO of the player's saves."""
+    a, b = db.get(Project, req.project_a), db.get(Project, req.project_b)
+    if not a or not b:
+        raise HTTPException(status_code=404, detail="save not found")
+    if not get_character(req.character):
+        raise HTTPException(status_code=404, detail=f"unknown character {req.character!r}")
+    author = get_character(req.character)["name"]
+    save_a, save_b = a.save_data or {}, b.save_data or {}
+    fa, fb = ledger.snapshot_fields_from_truth(save_a), ledger.snapshot_fields_from_truth(save_b)
+    # anchor the voice in file A, then hand the model BOTH files' sacred facts + the fork
+    system_prompt = build_system_prompt(
+        req.character, save_a,
+        disposition_grounding=character_disposition.grounding_from_truth(save_a),
+        relational_grounding=relationships.build_relational_grounding(req.character, save_a),
+    ) + "\n\n" + divergence_mod.two_file_block(fa, fb)
+    source = "llm"
+    try:
+        result = generate_reply(system_prompt, divergence_mod.instruction(), history=[])
+        text = (result.get("text") or "").strip()
+    except LLMUnavailable:
+        text = ""
+    if not text:
+        text = divergence_mod.fallback(author, fa, fb)
+        source = "deterministic_fallback"
+    return {
+        "author": author, "text": text, "grounding_source": source,
+        "a": {"project_id": a.id, "name": fa.get("name"), "route": fa.get("route")},
+        "b": {"project_id": b.id, "name": fb.get("name"), "route": fb.get("route")},
     }
 
 

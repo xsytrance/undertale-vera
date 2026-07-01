@@ -365,6 +365,24 @@ input[type="file"], input[type="text"] {
   color: var(--ink-dim); font-style: italic; line-height: 1.6;
 }
 
+/* ── Divergence picker: pick any two saves, a character speaks to the fork ─── */
+.divergence-tool { margin-top: 22px; padding-top: 16px; border-top: 1px solid var(--plate-frame); }
+.div-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 8px; }
+.div-controls .btn { font-size: .8rem; }
+.div-vs { color: var(--ink-dim); }
+.div-output {
+  margin-top: 14px; min-height: 20px; line-height: 1.55;
+}
+.div-output:not(:empty) {
+  padding: 14px 16px; border: 1px solid var(--plate-frame); border-left: 3px solid #8e7cc3;
+  border-radius: 10px; background: linear-gradient(180deg, rgba(27,24,34,.6), rgba(34,29,24,.4));
+}
+.div-head { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; }
+.div-head .bubble-avatar { width: 34px; height: 34px; border-radius: 6px; object-fit: contain; }
+.div-author { font-family: var(--font-display); color: var(--ember); }
+.div-fork { margin-left: auto; font-size: .74rem; }
+.div-text { white-space: pre-wrap; }
+
 /* provenance overlay — the wall, made visible per reply */
 /* grounding: a small toggle carries the verdict; the detail folds behind it so it
    never crowds the reply */
