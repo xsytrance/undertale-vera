@@ -31,7 +31,9 @@ import character_disposition
 import chat_style
 import chronicle as chronicle_mod
 import constellation as constellation_mod
+import deltarune_parser
 import divergence as divergence_mod
+from deltarune_truth import build_deltarune_truth
 import council
 import crossave
 import journal
@@ -167,12 +169,26 @@ async def upload_save(
     undertale_ini: Optional[UploadFile] = File(default=None),
     db: Session = Depends(get_db),
 ) -> dict[str, Any]:
-    """Parse an uploaded Undertale save (read-only) → SaveTruth → new Project.
+    """Parse an uploaded save (read-only) → SaveTruth → new Project.
 
-    Accepts file0 and/or undertale.ini. Read-only: we never write a save back.
+    Accepts Undertale's file0 and/or undertale.ini — or a Deltarune chapter slot
+    (filech1_0 …) dropped in the file0 field, detected by filename. Read-only:
+    we never write a save back.
     """
     if file0 is None and undertale_ini is None:
         raise HTTPException(status_code=400, detail="Provide file0 and/or undertale.ini")
+
+    # Deltarune: a filech{N}_{slot} in the main slot takes the Dark World path.
+    if file0 is not None and deltarune_parser.looks_like_deltarune(file0.filename):
+        dr_parsed = deltarune_parser.parse_deltarune_save(await file0.read(), file0.filename)
+        truth = build_deltarune_truth(dr_parsed, source_meta={"filename": file0.filename})
+        project = Project(name=truth["play_state"].get("name") or "The Vessel", save_data=truth)
+        db.add(project)
+        db.commit()
+        db.refresh(project)
+        _record_snapshot(db, project.id, truth)
+        return {"project_id": project.id, "save_truth": truth,
+                "validation": {"ok": True, "issues": [], "warnings": truth.get("warnings", [])}}
 
     file0_text = (await file0.read()).decode("utf-8", "replace") if file0 else None
     ini_text = (await undertale_ini.read()).decode("utf-8", "replace") if undertale_ini else None
@@ -256,6 +272,8 @@ def list_projects(db: Session = Depends(get_db)) -> dict[str, Any]:
             "name": p.name,
             "route": (st.get("route") or {}).get("route"),
             "love": (st.get("play_state") or {}).get("love"),
+            "game": st.get("game", "undertale"),      # deltarune saves ride the same shelf
+            "chapter": st.get("chapter"),
             "created_at": p.created_at.isoformat() if p.created_at else None,
         })
     return {"projects": out}
