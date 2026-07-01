@@ -711,3 +711,21 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 
   .view.active { padding: 14px; }
 }
+
+/* ── "Read a save" guidance — which 2 files, and where they live ──────────── */
+.save-help {
+  margin: 12px 0 16px; padding: 12px 14px;
+  border: 1px solid var(--plate-frame); border-left: 2px solid var(--ember);
+  background: rgba(232, 162, 76, 0.05);
+}
+.save-need { margin: 6px 0 4px; }
+.save-files, .save-where { margin: 4px 0 10px; padding-left: 18px; line-height: 1.6; }
+.save-files li, .save-where li { margin: 3px 0; }
+.save-help code {
+  font-family: var(--font-mono); font-size: 0.86em;
+  background: rgba(0, 0, 0, 0.5); border: 1px solid var(--plate-frame);
+  padding: 1px 5px; word-break: break-all;
+}
+.save-tip { margin-top: 6px; }
+.save-inputs label { display: inline-flex; align-items: center; gap: 6px; }
+.save-num { color: var(--ember); font-family: var(--font-display); }

@@ -980,7 +980,7 @@
       var mtog = $("music-toggle");
       if (mtog) {
         mtog.checked = window.MusicLayer.isEnabled();
-        // If music was left on, start the theme now (autoplay-block → resumes on first tap).
+        // If music is on (default), auto-play the theme now (autoplay-block → resumes on first tap).
         if (mtog.checked) window.MusicLayer.startMenu();
       }
     }

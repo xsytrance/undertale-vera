@@ -155,11 +155,31 @@
       <!-- Read / refresh a save -->
       <section class="view" id="view-saves">
         <h2>Read a save</h2>
-        <p class="muted">Read-only. Provide <code>file0</code> and/or <code>undertale.ini</code>.
-          Unknown fields stay null — never guessed.</p>
+        <p class="muted">Read-only — your save is never modified. Unknown fields stay null, never guessed.</p>
+
+        <div class="save-help">
+          <div class="save-need">You need these <strong>2 files</strong> from your Undertale save folder
+            <span class="muted">(either one alone works; both together read the most)</span>:</div>
+          <ul class="save-files">
+            <li><code>file0</code> <span class="muted">— your save: LOVE, room, kills, flags</span></li>
+            <li><code>undertale.ini</code> <span class="muted">— name, play time, settings</span></li>
+          </ul>
+          <div class="save-need">Where they're usually kept:</div>
+          <ul class="save-where">
+            <li><strong>Windows</strong> <code>%LocalAppData%\UNDERTALE\</code>
+              <span class="muted">(= C:\Users\you\AppData\Local\UNDERTALE)</span></li>
+            <li><strong>macOS</strong> <code>~/Library/Application Support/com.tobyfox.undertale/</code></li>
+            <li><strong>Linux</strong> <code>~/.config/UNDERTALE/</code></li>
+            <li><strong>Steam Deck</strong> <code>…/compatdata/391540/pfx/…/AppData/Local/UNDERTALE/</code></li>
+          </ul>
+          <div class="muted save-tip">⚠ The files have no extension — <code>file0</code> is literally "file0", not "file0.txt".</div>
+        </div>
+
+        <div class="row save-inputs">
+          <label><span class="save-num">①</span> file0 <input type="file" id="file0-input" /></label>
+          <label><span class="save-num">②</span> undertale.ini <input type="file" id="ini-input" /></label>
+        </div>
         <div class="row">
-          <label class="muted">file0 <input type="file" id="file0-input" /></label>
-          <label class="muted">undertale.ini <input type="file" id="ini-input" /></label>
           <button class="btn" id="upload-btn">Read save</button>
           <button class="btn hidden" id="refresh-btn">Read a later save (return visit)</button>
         </div>

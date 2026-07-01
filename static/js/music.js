@@ -23,7 +23,7 @@
   "use strict";
 
   var PREF_KEY = "undertale-vera:music:v1";
-  var MENU_TRACK = "a-new-save-file";  // the one bed that ships
+  var MENU_TRACK = "a-new-save-file";  // the one bed that ships (gitignored on the server)
 
   // Static catalog (flavour only; structure is portable).
   var TRACKS = {
