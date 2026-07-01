@@ -529,6 +529,9 @@
       return;
     }
     state.character = c.name;
+    if (window.VoiceLayer && state.settings && state.settings.hud && state.settings.hud.blip) {
+      window.VoiceLayer.ui();   // soft menu-confirm on selecting a speaker
+    }
     if (!state.history[c.name]) state.history[c.name] = [];
     $$("#roster .char-card, #speaker-strip .face").forEach(function (el) {
       el.classList.toggle("selected", el.dataset.name === c.name);
