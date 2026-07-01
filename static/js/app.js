@@ -107,7 +107,8 @@
     if (!state.character) return;
     var el = $("chat-title"); if (!el) return;
     var a = (state.affinities || {})[state.character];
-    var ep = EPITHETS[state.character];
+    var ep = ((state.truth && state.truth.game) === "deltarune" && EPITHETS_DR[state.character])
+        || EPITHETS[state.character];
     el.innerHTML =
       (ep ? '<span class="hero-epithet">' + ep + "</span>" : "") +
       (a ? ' <span class="chip ' + (STANCE_CLASS[a.stance] || "free") + '" title="' + a.basis +
@@ -119,6 +120,16 @@
     "Toriel": "keeper of the ruins", "Undyne": "captain of the guard",
     "Alphys": "the royal scientist", "Asgore": "king of monsters",
     "Mettaton": "star of the underground", "Napstablook": "the quiet one",
+    // Deltarune Ch1
+    "Susie": "the bad guy (allegedly)", "Ralsei": "the lonely prince",
+    "Lancer": "the littlest villain", "Noelle": "the girl from class",
+    "King": "the throne's bitterness", "Rouxls Kaard": "duke of puzzles",
+    "Jevil": "the free one", "Seam": "the seap... the shopkeeper",
+  };
+  // the Hometown faces wear different titles in the Dark World's story
+  var EPITHETS_DR = {
+    "Toriel": "your mom (drives you to school)", "Asgore": "the flower shop",
+    "Alphys": "your teacher", "Sans": "new in town",
   };
   function showView(name) {
     if (state.view === "soundtest" && name !== "soundtest") leaveSoundTest();
@@ -636,7 +647,9 @@
   function portraitTag(name) { return avatarMarkup(name, "relic-portrait"); }
 
   function loadRoster() {
-    api("/api/characters").then(function (res) {
+    // the roster follows the active save's world: Deltarune saves seat the Ch1 cast
+    var game = (state.truth && state.truth.game) === "deltarune" ? "deltarune" : "";
+    api("/api/characters" + (game ? "?game=" + game : "")).then(function (res) {
       state.characters = res.characters;
       renderRoster();
       loadAffinities();   // decorate cards with how each regards you (no-op without a save)
@@ -871,6 +884,10 @@
     "Asgore": "* Howdy. Did you need something?",
     "Mettaton": "* Ooh, a fan! Mind the finish, darling.",
     "Napstablook": "* oh... did you need me... sorry...",
+    "Susie": "* WHAT. ...what?", "Ralsei": "* Oh! Um, hello!",
+    "Lancer": "* HO HO HO! You rang?", "Noelle": "* O-oh! Hi! Sorry! Hi.",
+    "King": "* You DARE prod at the King?", "Rouxls Kaard": "* UNHANDETH ME, WORM.",
+    "Jevil": "* UEE HEE HEE! POKES, POKES!", "Seam": "* Krrr... easy on the stitching, traveller.",
   };
   function selectCharacter(c) {
     // no save yet? let them HEAR the voice and nudge them to read a save to talk.

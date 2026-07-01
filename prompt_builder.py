@@ -114,7 +114,11 @@ def build_system_prompt(
       4. Living-Memory recollections (FREE, clearly labeled out-of-game)
       5. The rules that enforce the wall
     """
-    char = character_override or get_character(character_name) or {
+    # Resolve the persona for the save's world: on a Deltarune save a returning face
+    # (Toriel, Sans, …) speaks as their Hometown self — same soul, another universe.
+    game = (save_truth or {}).get("game")
+    char = character_override or get_character(character_name, game=game) \
+        or get_character(character_name) or {
         "name": character_name,
         "tone": "in-character",
         "personality": [],

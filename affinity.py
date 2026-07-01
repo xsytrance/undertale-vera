@@ -56,5 +56,6 @@ def character_affinity(character_name: str, save_truth: dict[str, Any]) -> dict[
 
 
 def all_affinities(save_truth: dict[str, Any]) -> dict[str, dict[str, str]]:
-    """{character name → affinity} for the whole cast, given a save."""
-    return {c["name"]: character_affinity(c["name"], save_truth) for c in list_characters()}
+    """{character name → affinity} for the save's OWN cast (game-aware)."""
+    game = (save_truth or {}).get("game") or "undertale"
+    return {c["name"]: character_affinity(c["name"], save_truth) for c in list_characters(game)}

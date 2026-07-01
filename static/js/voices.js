@@ -48,6 +48,23 @@
     "Mettaton":    { wave: "square",   freq: 574, jitter: 0.04, dur: 0.080, gain: 0.066, attack: 0.003, vibrato: { rate: 18, depth: 16 }, glide: 1.08, every: 2 },
     // quiet, melancholic, ethereal — soft and muffled, but still there; sparse
     "Napstablook": { wave: "square",   freq: 430, jitter: 0.05, dur: 0.110, gain: 0.058, attack: 0.018, lowpass: 1500, every: 3 },
+    // ── Deltarune Chapter 1 cast ──────────────────────────────────────────
+    // gruff and low, barked more than spoken
+    "Susie":       { wave: "sawtooth", freq: 342, jitter: 0.06, dur: 0.070, gain: 0.068, attack: 0.002, glide: 0.88, lowpass: 1800, every: 2 },
+    // soft, round, warm — a gentle prince
+    "Ralsei":      { wave: "square",   freq: 494, jitter: 0.03, dur: 0.095, gain: 0.062, attack: 0.014, lowpass: 1700, every: 2 },
+    // bouncy little menace, leaping upward
+    "Lancer":      { wave: "square",   freq: 640, jitter: 0.08, dur: 0.055, gain: 0.062, attack: 0.002, glide: 1.35, every: 2 },
+    // soft and flustered, a nervous shimmer
+    "Noelle":      { wave: "square",   freq: 560, jitter: 0.05, dur: 0.085, gain: 0.056, attack: 0.012, vibrato: { rate: 12, depth: 8 }, lowpass: 2100, every: 2 },
+    // deep, regal, muffled thunder
+    "King":        { wave: "square",   freq: 330, jitter: 0.03, dur: 0.115, gain: 0.074, attack: 0.008, lowpass: 1200, glide: 0.92, every: 2 },
+    // pompous mid-range proclamations, wobbling with self-regard
+    "Rouxls Kaard":{ wave: "square",   freq: 520, jitter: 0.05, dur: 0.075, gain: 0.064, attack: 0.004, vibrato: { rate: 15, depth: 12 }, every: 2 },
+    // carousel chaos — high, doubled, unstable
+    "Jevil":       { wave: "sawtooth", freq: 660, jitter: 0.16, dur: 0.055, gain: 0.056, attack: 0.002, vibrato: { rate: 40, depth: 30 }, stutter: 0.45, every: 2 },
+    // dusty, slow, threadbare purr
+    "Seam":        { wave: "square",   freq: 392, jitter: 0.04, dur: 0.120, gain: 0.058, attack: 0.016, lowpass: 1300, every: 3 },
     // anyone else
     "_default":    { wave: "square",   freq: 480, jitter: 0.05, dur: 0.050, gain: 0.060, attack: 0.003, every: 2 }
   };
