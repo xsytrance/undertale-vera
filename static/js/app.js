@@ -703,6 +703,24 @@
     t.onclick = function () { t.classList.add("hidden"); };
     clearTimeout(t._timer); t._timer = setTimeout(function () { t.classList.add("hidden"); }, 3800);
   }
+
+  // ── Easter eggs ────────────────────────────────────────────────────────────
+  // "You are filled with DETERMINATION." — a gold flash + a rain of ember-gems.
+  function determinationBurst(msg) {
+    miniToast(msg || "* You are filled with DETERMINATION.");
+    if (window.VoiceLayer) window.VoiceLayer.ui();
+    var flash = document.createElement("div"); flash.className = "dt-flash";
+    document.body.appendChild(flash);
+    setTimeout(function () { if (flash.parentNode) flash.parentNode.removeChild(flash); }, 950);
+    for (var i = 0; i < 26; i++) {
+      var s = document.createElement("span"); s.className = "dt-gem soul-sigil";
+      s.style.left = Math.floor(Math.random() * 100) + "vw";
+      s.style.animationDelay = (Math.random() * 0.5).toFixed(2) + "s";
+      s.style.animationDuration = (1.4 + Math.random() * 1.6).toFixed(2) + "s";
+      document.body.appendChild(s);
+      (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3400); })(s);
+    }
+  }
   function selectCharacter(c) {
     // no save yet? let them HEAR the voice and nudge them to read a save to talk.
     if (!state.projectId) {
@@ -1349,6 +1367,7 @@
       setSoundTestMode("jam");
       SoundTest.catalog().cast.forEach(function (t) { if (!SoundTest.isActive(t.id)) SoundTest.toggle(t.id); });
       syncSoundTestUI();
+      miniToast("* the whole Underground plays as one.");   // secret 3
     };
     if (none) none.onclick = function () { SoundTest.stopAll(); syncSoundTestUI(); };
     syncSoundTestUI();
@@ -1660,15 +1679,28 @@
     });
     $("scrim").onclick = closeDrawers;
     $("chat-hero-menu").onclick = function () { openDrawer("left"); };   // escape chat → features
-    // a quiet secret: tap the soul five times and it whispers its true name
+    // secret 1 — tap the soul: escalating whispers, then a DETERMINATION burst
     var emberTaps = 0, emberTimer = null, sig = $("header-sigil");
     if (sig) {
       sig.style.cursor = "pointer";
       sig.onclick = function () {
-        clearTimeout(emberTimer); emberTimer = setTimeout(function () { emberTaps = 0; }, 1500);
-        if (++emberTaps >= 5) { emberTaps = 0; miniToast("* file0 — the save still remembers you."); }
+        clearTimeout(emberTimer); emberTimer = setTimeout(function () { emberTaps = 0; }, 1600);
+        var gen = (((state.truth || {}).route || {}).route === "Genocide");
+        switch (++emberTaps) {
+          case 5: miniToast(gen ? "* file0 — it remembers what you did." : "* file0 — the save still remembers you."); break;
+          case 10: miniToast("* ...you're still tapping."); break;
+          case 15: miniToast(gen ? "* stop." : "* okay, you're clearly determined."); break;
+          case 20: emberTaps = 0; determinationBurst(); break;
+        }
       };
     }
+    // secret 2 — the Konami code, anywhere → a DETERMINATION burst
+    var KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"], kpos = 0;
+    document.addEventListener("keydown", function (e) {
+      var k = (e.key || "").length === 1 ? e.key.toLowerCase() : e.key;
+      if (k === KONAMI[kpos]) { if (++kpos === KONAMI.length) { kpos = 0; determinationBurst("* The Underground bends to your DETERMINATION."); } }
+      else { kpos = (k === KONAMI[0]) ? 1 : 0; }
+    });
     $("save-pill").onclick = function () { openDrawer("left"); };
     $("modes-btn").onclick = function (e) {
       e.stopPropagation();
@@ -1737,7 +1769,17 @@
     renderQuote();
     $("quote-refresh").onclick = nextQuote;
     renderLore();
-    $("lore-refresh").onclick = nextLore;
+    // secret 4 — spam the lore ↻ and a hidden page turns
+    var loreSpam = 0, loreSpamT = null;
+    $("lore-refresh").onclick = function () {
+      nextLore();
+      clearTimeout(loreSpamT); loreSpamT = setTimeout(function () { loreSpam = 0; }, 2200);
+      if (++loreSpam >= 7) {
+        loreSpam = 0;
+        var el = $("lore-text"); if (el) el.textContent = "It was never just a save file. It was reading you back.";
+        miniToast("* a hidden page turns.");
+      }
+    };
 
     document.body.classList.add("on-chat");
     loadShelf();
