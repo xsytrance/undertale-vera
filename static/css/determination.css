@@ -568,6 +568,19 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 .ce-face-img.emblem-img { object-fit: contain; padding: 3px; }
 .ce-face:hover { color: var(--ember); }
 .ce-face:hover .ce-face-img { border-color: var(--ember); box-shadow: 0 0 12px rgba(232,162,76,.2); }
+
+/* grounded conversation starters (shown on a fresh conversation) */
+.starters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
+.starters-lbl {
+  width: 100%; font-family: var(--font-mono); font-size: .7rem;
+  color: var(--ink-dim); margin-bottom: 2px;
+}
+.starter-chip {
+  font-family: var(--font-body); font-size: .86rem; padding: 7px 13px; cursor: pointer;
+  color: var(--ember); background: rgba(232,162,76,.06);
+  border: 1px solid var(--plate-frame); border-radius: 999px; text-align: left;
+}
+.starter-chip:hover { border-color: var(--ember); background: rgba(232,162,76,.12); }
 .reports { display: flex; flex-direction: column; gap: 14px; }
 .report-card {
   padding: 14px 16px; border: 1px solid var(--plate-frame); border-left: 3px solid var(--ember);

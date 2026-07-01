@@ -133,6 +133,11 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 .ce-face:hover { color: var(--ember) !important; }
 .ce-face-img { border: 2px solid #fff !important; border-radius: 0 !important; background: #000 !important; }
 .ce-face:hover .ce-face-img { border-color: var(--ember) !important; box-shadow: none !important; }
+.starter-chip {
+  color: #fff !important; background: #000 !important;
+  border: 2px solid #fff !important; border-radius: 0 !important;
+}
+.starter-chip:hover { background: #fff !important; color: #000 !important; }
 .reach-cta { color: #fff !important; }
 .reach-cta:hover { background: #1a1a1a !important; }
 .reach-cta.on { border-left-color: var(--ember) !important; }
