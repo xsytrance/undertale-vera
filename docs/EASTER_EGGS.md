@@ -14,6 +14,9 @@ whisper). Word-eggs are additive: your message still sends normally.
 | 3 | **DETERMINATION burst** | Tap the sigil **20×** — or the **Konami code** anywhere: `↑ ↑ ↓ ↓ ← → ← → B A` | Gold flash + a rain of 26 ember-gems + a blip + whisper |
 | 4 | **The whole Underground** | In **Sound Test**, hit **All** | Whisper: *"the whole Underground plays as one."* |
 | 5 | **A hidden page** | Spam the **Underground · lore ↻** button **7×** fast | A hidden lore line + *"a hidden page turns."* |
+| 6 | **Corner code** (mobile-friendly) | Tap/click the **four screen corners clockwise** (top-left → top-right → bottom-right → bottom-left) within 3s | *"the corners of the world fold inward."* + the DETERMINATION burst |
+| 7 | **Character emote** | **Rapid-tap (5×)** a character's portrait in the chat banner | They react in their own voice + a little bounce (e.g. Sans: *"heh. what?"*, Undyne: *"HEY! Quit poking me, punk!"*) |
+| 8 | **The hidden room** 🕯 | On a **Genocide** save, send a message with **"chara"** | A dark room fades in and something that remembers you speaks. (On other routes: *"a name you shouldn't know."*) |
 
 ## Word eggs — say the magic word in a chat message
 
