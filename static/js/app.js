@@ -15,7 +15,7 @@
   // ── the view router ───────────────────────────────────────────────────────
   // Exactly one stage view is .active at a time. Switching a character or a
   // feature swaps the stage only — the rails never move, nothing scrolls away.
-  var VIEWS = ["chat", "council", "timeline", "journal", "constellation", "chronicle", "judgment", "saves"];
+  var VIEWS = ["chat", "council", "timeline", "journal", "constellation", "chronicle", "judgment", "reports", "saves"];
   function showView(name) {
     state.view = name;
     VIEWS.forEach(function (v) {
@@ -38,6 +38,7 @@
       case "constellation": return showConstellation();
       case "chronicle": return showChronicle();
       case "judgment": return showJudgment();
+      case "reports": return showReports();
       case "saves": return showView("saves");
       default: return showView("chat");
     }
@@ -817,6 +818,161 @@
     });
   }
 
+  // ── Report Cards — a persistent history: request, filter, archive, delete ──
+  function showReports() {
+    if (!state.projectId) return;
+    populateReportSelects();
+    refreshEmailStatus();
+    loadReports();
+    showView("reports");
+  }
+  function populateReportSelects() {
+    var sel = $("report-author"), filt = $("report-filter");
+    if (sel && sel.options.length === 0) {
+      (state.characters || []).forEach(function (c) {
+        var o = document.createElement("option"); o.value = c.name; o.textContent = c.name; sel.appendChild(o);
+      });
+    }
+    if (filt && filt.options.length <= 1) {   // keep the leading "All characters"
+      (state.characters || []).forEach(function (c) {
+        var o = document.createElement("option"); o.value = c.name; o.textContent = c.name; filt.appendChild(o);
+      });
+    }
+  }
+  function reportQuery() {
+    var status = $("report-archived-toggle").checked ? "archived" : "active";
+    var character = $("report-filter").value || "";
+    return "?status=" + status + (character ? "&character=" + encodeURIComponent(character) : "");
+  }
+  function loadReports() {
+    if (!state.projectId) return;
+    api("/api/projects/" + state.projectId + "/reports" + reportQuery()).then(function (res) {
+      state.reportsShown = res.reports || [];
+      renderReportList(res.reports || [], res.counts || {});
+    }).catch(function () {});
+  }
+  function renderReportList(list, counts) {
+    var box = $("reports-list"); box.innerHTML = "";
+    var archived = $("report-archived-toggle").checked;
+    $("report-count").textContent =
+      (counts.active || 0) + " active" + (counts.archived ? " · " + counts.archived + " archived" : "");
+    $("report-download-btn").disabled = !list.length;
+    if (!list.length) {
+      box.innerHTML = '<p class="muted">' +
+        (archived ? "No archived reports." : "No reports yet — ask someone to file one on your run.") + "</p>";
+      return;
+    }
+    list.forEach(function (rep) { box.appendChild(reportCard(rep)); });
+    updateEmailButtons();
+  }
+  function reportCard(rep) {
+    var card = document.createElement("div");
+    card.className = "report-card" + (rep.status === "archived" ? " archived" : "");
+    var head = document.createElement("div"); head.className = "report-head";
+    head.innerHTML = avatarMarkup(rep.author, "bubble-avatar") +
+      '<span class="report-author">' + escHtml(rep.author) + "</span>" +
+      (rep.route_context ? '<span class="report-route muted">· ' + escHtml(rep.route_context) + "</span>" : "") +
+      (rep.verdict ? '<span class="report-verdict">' + escHtml(rep.verdict) + "</span>" : "");
+    var body = document.createElement("div"); body.className = "report-body";
+    body.textContent = rep.body || rep.text || "";
+    var actions = document.createElement("div"); actions.className = "report-actions";
+    actions.appendChild(mkReportBtn("＋ Journal", "btn tiny", function (b) { addReportToJournal(rep, b); }));
+    actions.appendChild(mkReportBtn("✉ Email me", "btn tiny report-email-btn", function (b) { emailReport(rep, b); }));
+    if (rep.status === "archived") {
+      actions.appendChild(mkReportBtn("↩ Restore", "btn tiny", function () { setReportStatus(rep.id, "active"); }));
+    } else {
+      actions.appendChild(mkReportBtn("🗄 Archive", "btn tiny", function () { setReportStatus(rep.id, "archived"); }));
+    }
+    actions.appendChild(mkReportBtn("🗑 Delete", "btn tiny danger", function () { deleteReport(rep.id); }));
+    card.appendChild(head); card.appendChild(body); card.appendChild(actions);
+    return card;
+  }
+  function mkReportBtn(label, cls, onclick) {
+    var b = document.createElement("button"); b.className = cls; b.textContent = label;
+    b.onclick = function () { onclick(b); }; return b;
+  }
+  function reportBusy(busy, label) {
+    ["report-request-btn", "report-full-btn"].forEach(function (id) { $(id).disabled = busy; });
+    if (label !== undefined) $("report-hint").textContent = label;
+  }
+  function requestReport() {
+    if (!state.projectId) return;
+    var who = $("report-author").value; if (!who) return;
+    reportBusy(true, who + " is writing your report…");
+    if ($("report-archived-toggle").checked) $("report-archived-toggle").checked = false;  // reveal the new one
+    api("/api/projects/" + state.projectId + "/report", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ character: who }),
+    }).then(function () { $("report-hint").textContent = ""; loadReports(); })
+      .catch(function (e) { $("report-hint").textContent = "Couldn't get a report: " + e.message; })
+      .then(function () { reportBusy(false); });
+  }
+  function fullReport() {
+    if (!state.projectId) return;
+    var names = (state.characters || []).map(function (c) { return c.name; });
+    if (!names.length) return;
+    if ($("report-archived-toggle").checked) $("report-archived-toggle").checked = false;
+    reportBusy(true);
+    var i = 0;
+    (function next() {
+      if (i >= names.length) { reportBusy(false, ""); loadReports(); return; }
+      var who = names[i++];
+      $("report-hint").textContent = "Collecting reports… (" + i + "/" + names.length + ") — " + who;
+      api("/api/projects/" + state.projectId + "/report", {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ character: who }),
+      }).catch(function () {}).then(next);
+    })();
+  }
+  function setReportStatus(id, status) {
+    api("/api/projects/" + state.projectId + "/reports/" + id, {
+      method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: status }),
+    }).then(loadReports).catch(function () {});
+  }
+  function deleteReport(id) {
+    if (!confirm("Delete this report permanently?")) return;
+    api("/api/projects/" + state.projectId + "/reports/" + id, { method: "DELETE" })
+      .then(loadReports).catch(function () {});
+  }
+  function refreshEmailStatus() {
+    api("/api/email/status").then(function (s) { state.emailStatus = s; updateEmailButtons(); }).catch(function () {});
+  }
+  function updateEmailButtons() {
+    var on = !!(state.emailStatus && state.emailStatus.configured);
+    var hint = (state.emailStatus && state.emailStatus.recipient_hint) || "";
+    $$(".report-email-btn").forEach(function (b) {
+      if (b.dataset.sent === "1") return;   // don't re-enable an already-sent button
+      b.disabled = !on;
+      b.title = on ? ("Email this report to you" + (hint ? " (" + hint + ")" : ""))
+                   : "Email isn't set up — configure AgentMail (AGENTMAIL_API_KEY) to enable";
+    });
+  }
+  function addReportToJournal(rep, btn) {
+    btn.disabled = true; var t = btn.textContent; btn.textContent = "saving…";
+    api("/api/projects/" + state.projectId + "/journal/add", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ author: rep.author, text: rep.text }),
+    }).then(function () { btn.textContent = "✓ In journal"; })
+      .catch(function () { btn.disabled = false; btn.textContent = t; });
+  }
+  function emailReport(rep, btn) {
+    btn.disabled = true; btn.textContent = "sending…";
+    api("/api/projects/" + state.projectId + "/report/email", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ character: rep.author, text: rep.text, verdict: rep.verdict }),
+    }).then(function (res) {
+      if (res.email && res.email.sent) { btn.textContent = "✓ Emailed"; btn.dataset.sent = "1"; }
+      else { btn.disabled = false; btn.textContent = "✉ Email me"; alert("Email not sent: " + ((res.email && res.email.reason) || "unknown")); }
+    }).catch(function (e) { btn.disabled = false; btn.textContent = "✉ Email me"; alert("Email failed: " + e.message); });
+  }
+  function downloadReports() {
+    var list = state.reportsShown || [];
+    if (!list.length) return;
+    var md = "# Report Cards\n\n*The Underground's after-action reports on your run.*\n\n";
+    list.forEach(function (r) {
+      md += "## " + r.author + (r.verdict ? " — *" + r.verdict + "*" : "") + "\n\n" + (r.text || "") + "\n\n";
+    });
+    downloadText(md, "report_cards.md");
+  }
+
   // ── The Timeline (the save's history, with resets marked) ──────────────────
   function showTimeline() {
     if (!state.projectId) return;
@@ -1048,6 +1204,11 @@
     $("chronicle-download-btn").onclick = downloadChronicle;
     $("journal-inscribe-btn").onclick = inscribeJournal;
     $("journal-download-btn").onclick = function () { if (state.journalMd) downloadText(state.journalMd, "keepsake_journal.md"); };
+    $("report-request-btn").onclick = requestReport;
+    $("report-full-btn").onclick = fullReport;
+    $("report-download-btn").onclick = downloadReports;
+    $("report-filter").onchange = loadReports;
+    $("report-archived-toggle").onchange = loadReports;
 
     // "let them reach out" — CTA opens an explainer modal with the yes/no choice
     syncReachCta();

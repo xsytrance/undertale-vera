@@ -114,6 +114,29 @@ class JournalEntry(Base):
     created_at = Column(DateTime, nullable=False, default=_now)
 
 
+class ReportEntry(Base):
+    """A saved Report Card — a character's after-action report on a run.
+
+    Unlike the Keepsake Journal (immutable), reports are a MANAGED working history:
+    the player requests them freely, and can archive or delete their own. It's a
+    derived, regenerable artifact the player owns — pruning it never touches the
+    sacred save truth or the journal. `status` is 'active' or 'archived'.
+    """
+
+    __tablename__ = "report_entries"
+
+    id = Column(Integer, primary_key=True)
+    project_id = Column(
+        Integer, ForeignKey("projects.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    author = Column(String(255), nullable=False, index=True)   # character display name
+    verdict = Column(String(255))                              # the one-line headline
+    text = Column(String, nullable=False)                      # full report (verdict + body)
+    route_context = Column(String(32))                         # the route when written
+    status = Column(String(16), nullable=False, default="active", index=True)  # active | archived
+    created_at = Column(DateTime, nullable=False, default=_now)
+
+
 class CharacterMemory(Base):
     """Per-(project, character) Living Memory. Bucket B — FREE.
 
