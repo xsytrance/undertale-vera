@@ -57,3 +57,42 @@ jobs:
       - name: Lore retrieval gate
         # recall@k over the lore corpus on the deterministic keyword backend.
         run: python -m tools.lore_eval --min 1.0
+
+  frontend:
+    name: frontend smoke
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install playwright
+          python -m playwright install --with-deps chromium
+
+      - name: Start the app
+        # No live model in CI: the LLM host is unreachable (fast connection-refused),
+        # so chat serves its grounded deterministic fallback — which the smoke asserts.
+        env:
+          UNDERTALE_VERA_BACKEND: ollama
+          OLLAMA_HOST: http://127.0.0.1:9
+          UNDERTALE_VERA_DB: sqlite:///./smoke.db
+          ANTHROPIC_API_KEY: ""
+        run: |
+          python -m uvicorn undertale_vera_app:app --host 127.0.0.1 --port 9092 &
+          for i in $(seq 1 40); do curl -sf http://127.0.0.1:9092/ >/dev/null && break; sleep 1; done
+
+      - name: Frontend smoke
+        # Drives the real UI headlessly: every view, chat, Sound Test, master mute,
+        # an easter egg, and zero console/page errors. The front end's merge gate.
+        env:
+          SMOKE_BASE: http://127.0.0.1:9092
+        run: python tools/frontend_smoke.py
