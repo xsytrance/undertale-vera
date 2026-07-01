@@ -721,16 +721,11 @@
       (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3400); })(s);
     }
   }
-  // NYEH HEH HEH — say "spaghetti" and it rains from the sky (Papyrus approves).
-  var _pastaCooling = false;
-  function spaghettiRain() {
-    if (_pastaCooling) return; _pastaCooling = true;
-    setTimeout(function () { _pastaCooling = false; }, 4000);
-    miniToast("* NYEH HEH HEH! HAVE SOME SPAGHETTI!");
-    var pasta = ["🍝", "🍝", "🍝", "🍅"];
-    for (var i = 0; i < 22; i++) {
+  // ── word Easter eggs: say the magic word in chat and something happens ──────
+  function rainItems(chars, count) {
+    for (var i = 0; i < (count || 22); i++) {
       var s = document.createElement("span"); s.className = "fall-item";
-      s.textContent = pasta[i % pasta.length];
+      s.textContent = chars[i % chars.length];
       s.style.left = Math.floor(Math.random() * 100) + "vw";
       s.style.fontSize = (16 + Math.floor(Math.random() * 16)) + "px";
       s.style.animationDelay = (Math.random() * 0.6).toFixed(2) + "s";
@@ -738,6 +733,34 @@
       document.body.appendChild(s);
       (function (el) { setTimeout(function () { if (el.parentNode) el.parentNode.removeChild(el); }, 3800); })(s);
     }
+  }
+  function colorFlash(color) {
+    var f = document.createElement("div"); f.className = "dt-flash"; f.style.background = color;
+    document.body.appendChild(f);
+    setTimeout(function () { if (f.parentNode) f.parentNode.removeChild(f); }, 950);
+  }
+  function discoFlash() { ["#ff3bd0", "#3bd0ff", "#ffd23b"].forEach(function (c, i) { setTimeout(function () { colorFlash(c); }, i * 170); }); }
+
+  var WORD_EGGS = [
+    { re: /spaghetti/i, run: function () { rainItems(["🍝", "🍝", "🍝", "🍅"]); miniToast("* NYEH HEH HEH! HAVE SOME SPAGHETTI!"); } },
+    { re: /\bnyeh+\b/i, run: function () { miniToast("* NYEH HEH HEH HEH!"); } },
+    { re: /\bhowdy\b/i, run: function () { rainItems(["🌼", "🌼", "🔸", "⚪"]); miniToast("* Howdy! I'm FLOWEY. FLOWEY the FLOWER!"); } },
+    { re: /butterscotch/i, run: function () { rainItems(["🥧", "🧈", "🍮"]); miniToast("* (a slice of butterscotch-cinnamon pie appears.)"); } },
+    { re: /(oh,?\s?yes)|\bmettaton\b|gorgeous|fabulous/i, run: function () { discoFlash(); rainItems(["✨", "💎", "⭐", "💖"]); miniToast("* OHHH YES! Simply GORGEOUS, darling!"); } },
+    { re: /megalovania|bad time/i, run: function () { colorFlash("#3aa0ff"); if (window.VoiceLayer) window.VoiceLayer.blip("Sans"); miniToast("* huh. you're gonna have a bad time."); } },
+    { re: /\bundyne\b|suplex/i, run: function () { colorFlash("#2ec9a0"); miniToast("* NGAHHH!! FUHUHUHU!"); } },
+    { re: /annoying dog|\bdoggo\b/i, run: function () { rainItems(["🐶", "🦴"]); miniToast("* (a small white dog trots across the screen, and steals something.)"); } },
+    { re: /determination/i, run: function () { determinationBurst(); } },
+  ];
+  var _eggCooling = false;
+  function runWordEgg(msg) {
+    if (_eggCooling) return;
+    var m = (msg || "").trim(), egg = null;
+    if (/^[.…]{2,}$/.test(m)) egg = function () { colorFlash("#3aa0ff"); miniToast("* ...(sans says nothing. but he's watching.)"); };
+    else { for (var i = 0; i < WORD_EGGS.length; i++) { if (WORD_EGGS[i].re.test(m)) { egg = WORD_EGGS[i].run; break; } } }
+    if (!egg) return;
+    _eggCooling = true; setTimeout(function () { _eggCooling = false; }, 3500);
+    egg();
   }
   function selectCharacter(c) {
     // no save yet? let them HEAR the voice and nudge them to read a save to talk.
@@ -968,7 +991,7 @@
   function sendMessage() {
     var input = $("chat-input"); var msg = input.value.trim();
     if (!msg || !state.projectId || !state.character) return;
-    if (/spaghetti/i.test(msg)) spaghettiRain();   // secret 5 — Papyrus's favourite word
+    runWordEgg(msg);   // secret words → sparks of chaos (message still sends)
     var who = state.character;   // capture: the reply belongs to THIS character
     var hist = state.history[who];
     hist.push({ role: "user", content: msg });
