@@ -67,6 +67,8 @@
 
   // Render one blip from a profile, starting at time `when`.
   function tone(ac, spec, when) {
+    var mg = window.AudioBus ? window.AudioBus.gain() : 1;   // global master volume/mute
+    if (mg <= 0) return;                                     // muted → no blip
     var f0 = spec.freq * (1 + (Math.random() * 2 - 1) * (spec.jitter || 0));
     var dur = spec.dur || 0.05;
     var osc = ac.createOscillator();
@@ -75,7 +77,7 @@
     if (spec.glide) osc.frequency.exponentialRampToValueAtTime(Math.max(20, f0 * spec.glide), when + dur);
 
     var g = ac.createGain();
-    var peak = spec.gain != null ? spec.gain : 0.05;
+    var peak = (spec.gain != null ? spec.gain : 0.05) * mg;
     var atk = Math.min(spec.attack != null ? spec.attack : 0.004, dur * 0.5);
     g.gain.setValueAtTime(0.0001, when);
     g.gain.exponentialRampToValueAtTime(peak, when + atk);

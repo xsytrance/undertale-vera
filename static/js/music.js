@@ -66,7 +66,8 @@
       if (this.audio) return this;
       this.audio = new Audio();
       this.audio.loop = true;
-      this.audio.volume = (this.prefs.volume != null) ? this.prefs.volume : 0.22;
+      if (this.prefs.volume == null) this.prefs.volume = 0.22;
+      this.audio.volume = this.prefs.volume * (window.AudioBus ? window.AudioBus.gain() : 1);
       if (this.prefs.enabled === undefined) this.prefs.enabled = true;  // on by default, quiet
       var self = this;
       // a missing bed → remember it and fall back (route bed → main theme;
@@ -115,8 +116,15 @@
     setVolume: function (v) {
       this.init();
       this.prefs.volume = Math.max(0, Math.min(1, v));
-      this.audio.volume = this.prefs.volume;
+      this.applyMaster();
       savePrefs(this.prefs);
+    },
+
+    // the global master (top-bar volume/mute) scales the music bed on top of its
+    // own gentle level; called on init and whenever the master changes.
+    _master: function () { return window.AudioBus ? window.AudioBus.gain() : 1; },
+    applyMaster: function () {
+      if (this.audio) this.audio.volume = this.prefs.volume * this._master();
     },
 
     // Drive the bed from the live SaveTruth route (if enabled). A route whose bed
