@@ -506,6 +506,28 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 .switch-icon { color: var(--ember); font-size: 1rem; }
 .switch { accent-color: var(--ember); width: 34px; height: 18px; cursor: pointer; }
 
+/* ── save shelf cards (left rail) — a detailed, tactile save slot ─────────── */
+.save-card {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; cursor: pointer;
+  background: linear-gradient(180deg, rgba(232,162,76,.05), rgba(0,0,0,0));
+  border: 1px solid var(--plate-frame); border-left: 3px solid var(--ink-dim);
+  border-radius: 10px; transition: border-color .15s, box-shadow .15s;
+}
+.save-card:hover { border-left-color: var(--ember); box-shadow: 0 0 14px rgba(232,162,76,.12); }
+.save-card.selected { border-left-color: var(--ember); background: linear-gradient(180deg, rgba(232,162,76,.12), rgba(0,0,0,0)); }
+/* the gem dims on resting saves and lights up on the one you're in */
+.save-sigil { flex: 0 0 auto; width: 16px !important; height: 16px !important; opacity: .5; transition: opacity .15s; }
+.save-card:hover .save-sigil { opacity: .8; }
+.save-card.selected .save-sigil { opacity: 1; }
+.save-body { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
+.save-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.save-name {
+  font-family: var(--font-display); color: var(--ember); font-size: .82rem;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.save-meta { font-size: .64rem; color: var(--ink-dim); letter-spacing: .02em; }
+.save-card .route-badge { flex: 0 0 auto; font-size: .58rem; padding: 1px 6px; }
+
 /* ── "let them reach out" CTA (left rail) ─────────────────────────────────── */
 .reach-cta {
   display: flex; align-items: center; gap: 10px; width: 100%; text-align: left;

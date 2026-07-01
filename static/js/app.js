@@ -206,19 +206,35 @@
   }
 
   // ── save shelf (switch between read saves) ───────────────────────────────
+  // A compact "read on <date>" label for a save card (empty if unknown).
+  function fmtSaveDate(iso) {
+    if (!iso) return "";
+    try {
+      var d = new Date(iso);
+      if (isNaN(d.getTime())) return "";
+      return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+    } catch (e) { return ""; }
+  }
   function loadShelf() {
     api("/api/projects").then(function (res) {
       var el = $("shelf"); el.innerHTML = "";
       (res.projects || []).forEach(function (p) {
         var route = p.route || "undetermined";
         var card = document.createElement("div");
-        card.className = "char-card shelf-card";
+        card.className = "save-card" + (p.project_id === state.projectId ? " selected" : "");
         card.dataset.pid = p.project_id;
-        card.classList.toggle("selected", p.project_id === state.projectId);
+        var gen = route === "Genocide";
+        var lv = (p.love === null || p.love === undefined) ? "—" : p.love;
+        var when = fmtSaveDate(p.created_at);
         card.innerHTML =
-          '<div class="name">' + (p.name || "Save #" + p.project_id) + "</div>" +
-          '<span class="route-badge ' + route.toLowerCase() + '" style="font-size:0.68rem;">' +
-          route + "</span>";
+          '<span class="save-sigil soul-sigil' + (gen ? " determined" : "") + '" aria-hidden="true"></span>' +
+          '<span class="save-body">' +
+            '<span class="save-head">' +
+              '<span class="save-name">' + escHtml(p.name || ("Save #" + p.project_id)) + "</span>" +
+              '<span class="route-badge ' + route.toLowerCase() + '">' + route + "</span>" +
+            "</span>" +
+            '<span class="save-meta">LV ' + lv + (when ? " · " + when : "") + "</span>" +
+          "</span>";
         card.onclick = function () { loadProject(p.project_id); };
         el.appendChild(card);
       });
@@ -523,6 +539,20 @@
       msg.appendChild(b);
       t.appendChild(msg);
     });
+    scrollChatToBottom(true);   // land on the latest line when (re)rendering
+  }
+
+  // Keep the newest dialogue in view. Pins whichever element actually scrolls
+  // (the transcript on desktop, the stage on mobile). `force` always jumps to the
+  // bottom (on send / render); otherwise it only follows if already near the end,
+  // so scrolling up to read history isn't yanked away mid-reply.
+  function scrollChatToBottom(force) {
+    [$("transcript"), $("stage")].forEach(function (el) {
+      if (!el) return;
+      if (force || (el.scrollHeight - el.scrollTop - el.clientHeight) < 120) {
+        el.scrollTop = el.scrollHeight;
+      }
+    });
   }
 
   // append the blinking ▼ "continue" arrow to a finished line of dialogue
@@ -533,6 +563,7 @@
     var prov = bubble.querySelector(".provenance");
     var arrow = document.createElement("span"); arrow.className = "dialogue-arrow"; arrow.textContent = "▼";
     bubble.insertBefore(arrow, prov || null);
+    scrollChatToBottom();   // settle on the finished line
   }
   // ── Undertale-feel: *asterisk-marked* words shake for emphasis ────────────
   // Parse a line into clean text (markers stripped) + the char ranges to shake.
@@ -579,6 +610,7 @@
     var timer = setInterval(function () {
       span.textContent = text.slice(0, ++i);
       if (i % every === 0 && /\S/.test(text.charAt(i - 1))) blip(name);   // a blip every few glyphs
+      scrollChatToBottom();   // follow the reply as it types (unless you've scrolled up)
       if (i >= text.length) { clearInterval(timer); applyShake(span, text, parsed.spans); dialogueDone(span, name); }
     }, ms);
   }
@@ -599,6 +631,7 @@
       var row = $("transcript").lastChild;                 // the .msg row
       var bubble = row.querySelector(".bubble") || row;     // provenance rides the bubble
       renderProvenance(bubble, res);   // the wall, made visible (before the arrow)
+      scrollChatToBottom(true);        // pin to the reply before it starts typing
       typewriter(bubble.querySelector("span"), res.response, state.character);
     }).catch(function (e) {
       hist.push({ role: "assistant", content: "(error: " + e.message + ")" });
