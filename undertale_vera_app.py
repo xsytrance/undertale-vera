@@ -37,6 +37,8 @@ import journal
 import milestones
 import proactive
 import relationships
+import reports as reports_mod
+import agentmail_client
 import save_flavor
 import hallucination_guard
 import judgment as judgment_mod
@@ -46,7 +48,9 @@ import provenance as provenance_mod
 import rag_engine
 import scene_resolver
 from avatar_resolver import resolve_avatar, resolve_emblem, PORTRAIT_DIR, _slug as _portrait_slug
-from backend.models import Base, CharacterMemory, Conversation, JournalEntry, Project, SaveSnapshot
+from backend.models import (
+    Base, CharacterMemory, Conversation, JournalEntry, Project, ReportEntry, SaveSnapshot,
+)
 from character_config import get_character, list_characters, normalize_key
 from llm_client import LLMUnavailable, generate_reply
 from prompt_builder import build_system_prompt, emphasis_note
@@ -349,6 +353,207 @@ def inscribe_journal(project_id: int, req: InscribeRequest, db: Session = Depend
                   "text": entry.text, "route_context": entry.route_context},
         "guard": guard,
     }
+
+
+# ── Report Cards (each character's after-action report on your run) ───────────
+
+class ReportRequest(BaseModel):
+    character: str
+    to_journal: bool = False   # also inscribe the report into the Keepsake Journal
+
+
+class EmailReportRequest(BaseModel):
+    character: str
+    to: Optional[str] = None      # override recipient; default = UNDERTALE_VERA_USER_EMAIL
+    text: Optional[str] = None    # email THIS already-shown report; omit to generate fresh
+    verdict: Optional[str] = None
+
+
+class JournalAddRequest(BaseModel):
+    author: str
+    text: str
+    kind: str = "report"          # inscribe an already-shown report into the journal verbatim
+
+
+class ReportStatusRequest(BaseModel):
+    status: str                   # 'active' | 'archived'
+
+
+def _make_report(save_truth: dict[str, Any], character: str) -> dict[str, Any]:
+    """Generate one character's grounded report (FREE voice over SACRED facts)."""
+    author = get_character(character)["name"]
+    system_prompt = build_system_prompt(
+        character, save_truth,
+        disposition_grounding=character_disposition.grounding_from_truth(save_truth),
+        relational_grounding=relationships.build_relational_grounding(character, save_truth),
+    )
+    instruction = reports_mod.report_instruction(save_truth)
+    source = "llm"
+    try:
+        result = generate_reply(system_prompt, instruction, history=[])
+        text = (result.get("text") or "").strip()
+    except LLMUnavailable:
+        text = ""
+    if not text:
+        text = reports_mod.fallback_report(author, save_truth)
+        source = "deterministic_fallback"
+    verdict, body = reports_mod.split_verdict(text)
+    guard = hallucination_guard.check_response(text, save_truth)
+    return {
+        "author": author, "verdict": verdict, "body": body, "text": text,
+        "route_context": (save_truth.get("route") or {}).get("route"),
+        "grounding_source": source, "guard": guard,
+    }
+
+
+def _inscribe_report(db: Session, project_id: int, rep: dict[str, Any]) -> None:
+    """Persist a report into the Keepsake Journal (ADD-only, kind='report')."""
+    prior = db.query(JournalEntry).filter(JournalEntry.project_id == project_id).count()
+    db.add(JournalEntry(
+        project_id=project_id, counter=prior + 1, author=rep["author"], kind="report",
+        text=rep["text"], route_context=rep["route_context"],
+    ))
+    db.commit()
+
+
+def _report_json(r: ReportEntry) -> dict[str, Any]:
+    verdict, body = reports_mod.split_verdict(r.text)
+    return {
+        "id": r.id, "author": r.author, "verdict": r.verdict or verdict, "body": body,
+        "text": r.text, "route_context": r.route_context, "status": r.status,
+        "created_at": r.created_at.isoformat() if r.created_at else None,
+    }
+
+
+@app.post("/api/projects/{project_id}/report")
+def request_report(project_id: int, req: ReportRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """One character's grounded after-action report — saved to history; opt. to journal."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    if not get_character(req.character):
+        raise HTTPException(status_code=404, detail=f"unknown character {req.character!r}")
+    rep = _make_report(project.save_data or {}, req.character)
+    # persist to the managed reports history (the player can archive/delete later)
+    row = ReportEntry(
+        project_id=project_id, author=rep["author"], verdict=rep["verdict"],
+        text=rep["text"], route_context=rep["route_context"], status="active",
+    )
+    db.add(row)
+    db.commit()
+    db.refresh(row)
+    rep["id"] = row.id
+    rep["status"] = row.status
+    rep["created_at"] = row.created_at.isoformat() if row.created_at else None
+    if req.to_journal:
+        _inscribe_report(db, project_id, rep)
+        rep["inscribed"] = True
+    return {"report": rep}
+
+
+@app.get("/api/projects/{project_id}/reports")
+def list_reports(project_id: int, character: Optional[str] = None, status: str = "active",
+                 db: Session = Depends(get_db)) -> dict[str, Any]:
+    """The reports history for a save — newest first; filter by character and status."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    q = db.query(ReportEntry).filter(ReportEntry.project_id == project_id)
+    if status in ("active", "archived"):
+        q = q.filter(ReportEntry.status == status)
+    if character and get_character(character):
+        q = q.filter(ReportEntry.author == get_character(character)["name"])
+    rows = q.order_by(ReportEntry.created_at.desc(), ReportEntry.id.desc()).all()
+    # counts drive the UI's per-character filter + archived toggle
+    all_rows = db.query(ReportEntry).filter(ReportEntry.project_id == project_id).all()
+    counts = {"active": 0, "archived": 0, "by_author": {}}
+    for r in all_rows:
+        counts[r.status] = counts.get(r.status, 0) + 1
+        if r.status == "active":
+            counts["by_author"][r.author] = counts["by_author"].get(r.author, 0) + 1
+    return {"reports": [_report_json(r) for r in rows], "counts": counts}
+
+
+@app.patch("/api/projects/{project_id}/reports/{report_id}")
+def update_report(project_id: int, report_id: int, req: ReportStatusRequest,
+                  db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Archive or restore a report (status = 'active' | 'archived')."""
+    row = db.get(ReportEntry, report_id)
+    if not row or row.project_id != project_id:
+        raise HTTPException(status_code=404, detail="report not found")
+    if req.status not in ("active", "archived"):
+        raise HTTPException(status_code=400, detail="status must be 'active' or 'archived'")
+    row.status = req.status
+    db.commit()
+    db.refresh(row)
+    return {"report": _report_json(row)}
+
+
+@app.delete("/api/projects/{project_id}/reports/{report_id}")
+def delete_report(project_id: int, report_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Delete a report from history (the player owns their reports)."""
+    row = db.get(ReportEntry, report_id)
+    if not row or row.project_id != project_id:
+        raise HTTPException(status_code=404, detail="report not found")
+    db.delete(row)
+    db.commit()
+    return {"ok": True, "deleted": report_id}
+
+
+@app.post("/api/projects/{project_id}/report/full")
+def request_full_report(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Every character files a report — the whole Underground weighs in on your run."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    save_truth = project.save_data or {}
+    out = [_make_report(save_truth, c["name"]) for c in list_characters()]
+    markdown = reports_mod.build_report_markdown(out, project.name or "this save")
+    return {"reports": out, "markdown": markdown}
+
+
+@app.get("/api/email/status")
+def email_status() -> dict[str, Any]:
+    """Whether a character can email the player (drives the UI's email button)."""
+    return agentmail_client.status()
+
+
+@app.post("/api/projects/{project_id}/report/email")
+def email_report(project_id: int, req: EmailReportRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Generate a report and email it to the player, in the character's voice (opt-in)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    if not get_character(req.character):
+        raise HTTPException(status_code=404, detail=f"unknown character {req.character!r}")
+    author = get_character(req.character)["name"]
+    if req.text:   # email the report the user is already looking at, verbatim
+        rep = {"author": author, "verdict": req.verdict or "", "text": req.text}
+    else:
+        rep = _make_report(project.save_data or {}, req.character)
+    subject = f"A report from {rep['author']}" + (f" — {rep['verdict']}" if rep["verdict"] else "")
+    try:
+        sent = agentmail_client.send(subject, rep["text"], to=req.to)
+    except agentmail_client.EmailUnavailable as exc:
+        return {"report": rep, "email": {"sent": False, "reason": str(exc)}}
+    return {"report": rep, "email": sent}
+
+
+@app.post("/api/projects/{project_id}/journal/add")
+def journal_add(project_id: int, req: JournalAddRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Inscribe an already-shown report into the Keepsake Journal, verbatim (ADD-only)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    if not get_character(req.author):
+        raise HTTPException(status_code=404, detail=f"unknown character {req.author!r}")
+    save_truth = project.save_data or {}
+    _inscribe_report(db, project_id, {
+        "author": get_character(req.author)["name"],
+        "text": req.text,
+        "route_context": (save_truth.get("route") or {}).get("route"),
+    })
+    return {"ok": True}
 
 
 # ── proactive contact (the characters reach out to YOU, unprompted) ───────────

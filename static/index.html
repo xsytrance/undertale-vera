@@ -57,6 +57,7 @@
           <button data-view="constellation" id="nav-constellation" class="navitem hidden">🌌 Across Your Saves</button>
           <button data-view="chronicle" class="navitem">📜 The Chronicle</button>
           <button data-view="judgment" class="navitem">⚖ Judgment</button>
+          <button data-view="reports" class="navitem">📋 Report Cards</button>
         </nav>
       </div>
       <div class="rail-sec">
@@ -150,6 +151,26 @@
           <button class="btn" id="speak-btn">Let them say it</button>
         </div>
         <div class="bubble them hidden" id="spoken-box" style="margin-top:12px;"></div>
+      </section>
+
+      <!-- Report Cards -->
+      <section class="view" id="view-reports">
+        <h2>Report Cards <span class="muted">— the Underground's after-action reports on your run</span></h2>
+        <div class="report-controls">
+          <select id="report-author" class="btn" aria-label="Who files the report"></select>
+          <button class="btn" id="report-request-btn">Request a report</button>
+          <button class="btn" id="report-full-btn">Full report (everyone)</button>
+          <button class="btn" id="report-download-btn" disabled>⤓ Download .md</button>
+        </div>
+        <div class="report-filters">
+          <label class="muted">Filter
+            <select id="report-filter" class="btn"><option value="">All characters</option></select>
+          </label>
+          <label class="muted toggle-inline"><input type="checkbox" id="report-archived-toggle" /> Show archived</label>
+          <span class="muted report-count" id="report-count"></span>
+        </div>
+        <p class="muted report-hint" id="report-hint">Pick someone and ask them to file a report on your run — how you did, what you might have done differently, and what they'd have done in your place. Every report is saved here; keep one in your Journal, have them email it to you, or archive/delete it.</p>
+        <div class="reports" id="reports-list"></div>
       </section>
 
       <!-- Read / refresh a save -->
