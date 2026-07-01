@@ -145,6 +145,16 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 .council-voice.cv-free { border-left-color: var(--ink-dim) !important; }
 .cv-talk { color: #fff !important; border: 2px solid #fff !important; border-radius: 0 !important; }
 .cv-talk:hover { background: #fff !important; color: #000 !important; }
+/* timeline readings + judgment facts as pixel boxes; route colours the left edge */
+.tl-node { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+.tl-node.tln-pacifist { border-left-color: var(--ember) !important; }
+.tl-node.tln-neutral  { border-left-color: var(--brass-edge) !important; }
+.tl-node.tln-genocide { border-left-color: var(--determination) !important; }
+.tl-node.current { box-shadow: none !important; }
+.tl-node.current .tl-visit { color: var(--ember) !important; }
+#view-judgment .facts-grid { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+#view-judgment .verdict-line { color: #fff !important; }
+body.route-genocide #view-judgment .verdict-line { color: var(--determination) !important; }
 .reach-cta { color: #fff !important; }
 .reach-cta:hover { background: #1a1a1a !important; }
 .reach-cta.on { border-left-color: var(--ember) !important; }

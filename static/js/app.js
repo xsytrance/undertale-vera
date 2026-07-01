@@ -1175,7 +1175,8 @@
           conn.textContent = reset ? "↩" : "→"; track.appendChild(conn);
         }
         var route = (s.route || "undetermined").toLowerCase();
-        var node = document.createElement("div"); node.className = "tl-node";
+        var node = document.createElement("div");
+        node.className = "tl-node tln-" + route + (i === snaps.length - 1 ? " current" : "");
         node.innerHTML = '<div class="tl-visit">reading #' + s.counter + "</div>" +
           '<span class="route-badge ' + route + '">' + (s.route || "undetermined") + "</span>" +
           '<div class="muted tl-meta">LV ' + (s.love == null ? "—" : s.love) +
