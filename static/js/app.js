@@ -654,6 +654,20 @@
   // ── chat ──────────────────────────────────────────────────────────────────
   function avatarFor(name) { return portraitUrl(name); }
 
+  // a transient "they're typing" bubble; any renderTranscript() clears it
+  function showTyping() {
+    var t = $("transcript"); if (!t || !state.character) return;
+    var msg = document.createElement("div"); msg.className = "msg them typing-row";
+    var holder = document.createElement("div"); holder.innerHTML = avatarMarkup(state.character, "bubble-avatar");
+    if (holder.firstChild) msg.appendChild(holder.firstChild);
+    var b = document.createElement("div"); b.className = "bubble them speaker-" + slug(state.character);
+    b.innerHTML = '<div class="who">' + state.character +
+      '</div><span class="typing-dots"><i></i><i></i><i></i></span>';
+    msg.appendChild(b);
+    t.appendChild(msg);
+    scrollChatToBottom(true);
+  }
+
   function renderTranscript() {
     var t = $("transcript"); t.innerHTML = "";
     // once a speaker is chosen, mobile chat goes immersive (chrome slides away)
@@ -825,6 +839,7 @@
     var hist = state.history[state.character];
     hist.push({ role: "user", content: msg });
     renderTranscript(); input.value = "";
+    showTyping();   // a "…" while we wait on the reply (removed by the next render)
     var body = { character: state.character, message: msg, history: hist.slice(0, -1),
                  options: (state.settings || {}).options };
     api("/api/projects/" + state.projectId + "/chat", {
