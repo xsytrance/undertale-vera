@@ -635,6 +635,18 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 .ce-face:hover { color: var(--ember); }
 .ce-face:hover .ce-face-img { border-color: var(--ember); box-shadow: 0 0 12px rgba(232,162,76,.2); }
 
+/* "they're typing" indicator while a reply is on the way */
+.typing-dots { display: inline-flex; gap: 5px; padding: 4px 0; }
+.typing-dots i {
+  width: 7px; height: 7px; border-radius: 50%; background: var(--ink-dim);
+  animation: typing-bounce 1s infinite ease-in-out;
+}
+.typing-dots i:nth-child(2) { animation-delay: .18s; }
+.typing-dots i:nth-child(3) { animation-delay: .36s; }
+@keyframes typing-bounce { 0%,70%,100% { opacity: .35; transform: translateY(0); } 35% { opacity: 1; transform: translateY(-4px); } }
+.hud-no-motion .typing-dots i { animation: none; }
+@media (prefers-reduced-motion: reduce) { .typing-dots i { animation: none; } }
+
 /* grounded conversation starters (shown on a fresh conversation) */
 .starters { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; align-items: center; }
 .starters-lbl {
