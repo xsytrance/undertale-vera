@@ -121,8 +121,9 @@ body.route-genocide .route-aura {
   animation: dt-fall linear forwards;
 }
 @keyframes dt-fall { to { transform: translateY(112vh) rotate(200deg); opacity: .15; } }
-.hud-no-motion .dt-flash, .hud-no-motion .dt-gem { animation: none !important; opacity: 0 !important; }
-@media (prefers-reduced-motion: reduce) { .dt-flash, .dt-gem { animation: none !important; opacity: 0 !important; } }
+.fall-item { position: fixed; top: -34px; z-index: 9997; pointer-events: none; line-height: 1; animation: dt-fall linear forwards; }
+.hud-no-motion .dt-flash, .hud-no-motion .dt-gem, .hud-no-motion .fall-item { animation: none !important; opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) { .dt-flash, .dt-gem, .fall-item { animation: none !important; opacity: 0 !important; } }
 
 h1, h2, h3, .display {
   font-family: var(--font-display);
