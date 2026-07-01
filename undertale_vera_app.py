@@ -379,6 +379,10 @@ class ReportStatusRequest(BaseModel):
     status: str                   # 'active' | 'archived'
 
 
+class EmailDigestRequest(BaseModel):
+    to: Optional[str] = None      # override recipient; default = UNDERTALE_VERA_USER_EMAIL
+
+
 def _make_report(save_truth: dict[str, Any], character: str) -> dict[str, Any]:
     """Generate one character's grounded report (FREE voice over SACRED facts)."""
     author = get_character(character)["name"]
@@ -537,6 +541,31 @@ def email_report(project_id: int, req: EmailReportRequest, db: Session = Depends
     except agentmail_client.EmailUnavailable as exc:
         return {"report": rep, "email": {"sent": False, "reason": str(exc)}}
     return {"report": rep, "email": sent}
+
+
+@app.post("/api/projects/{project_id}/report/digest/email")
+def email_digest(project_id: int, req: EmailDigestRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
+    """Email the whole cast's collected reports as one digest (opt-in, env-gated)."""
+    project = db.get(Project, project_id)
+    if not project:
+        raise HTTPException(status_code=404, detail="project not found")
+    rows = (
+        db.query(ReportEntry)
+        .filter(ReportEntry.project_id == project_id, ReportEntry.status == "active")
+        .order_by(ReportEntry.created_at.asc(), ReportEntry.id.asc())
+        .all()
+    )
+    if not rows:
+        return {"count": 0, "email": {"sent": False, "reason": "no reports yet — request some first"}}
+    reports = [{"author": r.author, "verdict": r.verdict, "text": r.text} for r in rows]
+    body = reports_mod.build_report_markdown(reports, project.name or "your run")
+    plural = "s" if len(reports) != 1 else ""
+    subject = f"The Underground's report on your run — {len(reports)} voice{plural}"
+    try:
+        sent = agentmail_client.send(subject, body, to=req.to)
+    except agentmail_client.EmailUnavailable as exc:
+        return {"count": len(reports), "email": {"sent": False, "reason": str(exc)}}
+    return {"count": len(reports), "email": sent}
 
 
 @app.post("/api/projects/{project_id}/journal/add")

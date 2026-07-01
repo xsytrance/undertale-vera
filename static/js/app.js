@@ -1018,9 +1018,12 @@
     $("report-count").textContent =
       (counts.active || 0) + " active" + (counts.archived ? " · " + counts.archived + " archived" : "");
     $("report-download-btn").disabled = !list.length;
+    var dig = $("report-digest-btn");   // the list changed → allow a fresh digest
+    if (dig) { dig.dataset.sent = ""; dig.textContent = "✉ Email digest"; }
     if (!list.length) {
       box.innerHTML = '<p class="muted">' +
         (archived ? "No archived reports." : "No reports yet — ask someone to file one on your run.") + "</p>";
+      updateEmailButtons();
       return;
     }
     list.forEach(function (rep) { box.appendChild(reportCard(rep)); });
@@ -1105,6 +1108,22 @@
       b.title = on ? ("Email this report to you" + (hint ? " (" + hint + ")" : ""))
                    : "Email isn't set up — configure AgentMail (AGENTMAIL_API_KEY) to enable";
     });
+    var dig = $("report-digest-btn");
+    if (dig && dig.dataset.sent !== "1") {
+      dig.disabled = !on || !(state.reportsShown && state.reportsShown.length);
+      dig.title = on ? ("Email all your active reports as one digest" + (hint ? " (" + hint + ")" : ""))
+                     : "Email isn't set up — configure AgentMail to enable";
+    }
+  }
+  function emailDigest() {
+    var btn = $("report-digest-btn"); if (!btn) return;
+    btn.disabled = true; var t = btn.textContent; btn.textContent = "sending…";
+    api("/api/projects/" + state.projectId + "/report/digest/email", {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({}),
+    }).then(function (res) {
+      if (res.email && res.email.sent) { btn.textContent = "✓ Digest sent"; btn.dataset.sent = "1"; }
+      else { btn.textContent = t; btn.disabled = false; alert("Digest not sent: " + ((res.email && res.email.reason) || "unknown")); }
+    }).catch(function (e) { btn.textContent = t; btn.disabled = false; alert("Digest failed: " + e.message); });
   }
   function addReportToJournal(rep, btn) {
     btn.disabled = true; var t = btn.textContent; btn.textContent = "saving…";
@@ -1384,6 +1403,7 @@
     $("report-request-btn").onclick = requestReport;
     $("report-full-btn").onclick = fullReport;
     $("report-download-btn").onclick = downloadReports;
+    $("report-digest-btn").onclick = emailDigest;
     $("report-filter").onchange = loadReports;
     $("report-archived-toggle").onchange = loadReports;
 
