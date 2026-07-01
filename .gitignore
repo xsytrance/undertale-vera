@@ -43,6 +43,12 @@ logs/
 .cache/
 .env
 
+# ── LoRA weights + training data (regenerable; never commit) ─────────────────
+*.safetensors
+models/loras/
+dataset/
+train_lora*.py
+
 # ── OS ───────────────────────────────────────────────────────────────────────
 .DS_Store
 Thumbs.db
