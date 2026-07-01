@@ -1660,6 +1660,15 @@
     });
     $("scrim").onclick = closeDrawers;
     $("chat-hero-menu").onclick = function () { openDrawer("left"); };   // escape chat → features
+    // a quiet secret: tap the soul five times and it whispers its true name
+    var emberTaps = 0, emberTimer = null, sig = $("header-sigil");
+    if (sig) {
+      sig.style.cursor = "pointer";
+      sig.onclick = function () {
+        clearTimeout(emberTimer); emberTimer = setTimeout(function () { emberTaps = 0; }, 1500);
+        if (++emberTaps >= 5) { emberTaps = 0; miniToast("* file0 — the save still remembers you."); }
+      };
+    }
     $("save-pill").onclick = function () { openDrawer("left"); };
     $("modes-btn").onclick = function (e) {
       e.stopPropagation();
