@@ -122,6 +122,13 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 .report-card.archived { border-left: 2px solid var(--ink-dim) !important; }
 .btn.tiny.danger { color: var(--determination) !important; }
 .btn.tiny.danger:hover { background: var(--determination) !important; color: #000 !important; }
+/* grounding toggle + quote of the day + chat empty state under the skin */
+.prov-toggle { color: #fff !important; }
+.prov-toggle.open { color: var(--ember) !important; }
+.prov-toggle.warn { color: var(--determination) !important; }
+.quote-text { color: #fff !important; }
+.chat-empty-quote { color: var(--ember) !important; }
+.chat-empty-prompt { color: var(--ink-dim) !important; }
 .reach-cta { color: #fff !important; }
 .reach-cta:hover { background: #1a1a1a !important; }
 .reach-cta.on { border-left-color: var(--ember) !important; }
@@ -141,11 +148,11 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 /* ── mobile density: the pixel font is wide, so tighten the chat on narrow
    screens and shrink the per-message avatar to give text more room ───────── */
 @media (max-width: 860px) {
-  .view-chat .bubble { font-size: 0.92rem; line-height: 1.36; }
-  .view-chat .bubble .who { font-size: 0.7rem; }
-  .composer #chat-input { font-size: 0.95rem; }
-  .bubble-avatar { width: 30px; height: 30px; flex: 0 0 30px; }
-  .msg { gap: 7px; }
+  .view-chat .bubble { font-size: 1.1rem; line-height: 1.42; }
+  .view-chat .bubble .who { font-size: 0.78rem; }
+  .composer #chat-input { font-size: 1.05rem; }
+  .bubble-avatar { width: 32px; height: 32px; flex: 0 0 32px; }
+  .msg { gap: 8px; }
 }
 
 /* ── Undertale feel: the blinking ▼ "continue" arrow on a finished line ───── */

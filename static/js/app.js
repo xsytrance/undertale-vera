@@ -16,6 +16,42 @@
   // Exactly one stage view is .active at a time. Switching a character or a
   // feature swaps the stage only — the rails never move, nothing scrolls away.
   var VIEWS = ["chat", "council", "timeline", "journal", "constellation", "chronicle", "judgment", "reports", "saves"];
+
+  // Original "Determination" aphorisms — OUR lines (not Undertale quotes) — for the
+  // rail's quote-of-the-day and the chat empty state, so the shell never feels bare.
+  var APHORISMS = [
+    "Every save is a promise you make to yourself.",
+    "The Underground remembers what the surface tries to forget.",
+    "Numbers keep score. They don't keep the whole story.",
+    "Determination is just refusing to let the story end.",
+    "Mercy costs nothing and rewrites everything.",
+    "A single choice can echo through every reload.",
+    "The kindest run is rarely the easiest one.",
+    "You can reset the save. You can't reset the memory.",
+    "Dust settles, but it is never truly gone.",
+    "To spare someone is to believe they can still change.",
+    "Every ending was once a beginning you dared to reach.",
+    "Even in the dark, a soul keeps its color.",
+    "What you carry out matters more than what you leave behind.",
+    "Curiosity opened the door; determination walked through it.",
+    "The flowers remember the shape of your resolve.",
+    "Kindness is a courage the Underground never forgets.",
+  ];
+  var _quoteIdx = null;
+  function quoteOfDay() {
+    if (_quoteIdx === null) {
+      var d = new Date();
+      _quoteIdx = (d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % APHORISMS.length;
+    }
+    return APHORISMS[_quoteIdx];
+  }
+  function renderQuote() {
+    var el = $("quote-text"); if (el) el.textContent = "“" + quoteOfDay() + "”";
+  }
+  function nextQuote() {
+    _quoteIdx = ((_quoteIdx === null ? 0 : _quoteIdx) + 1) % APHORISMS.length;
+    renderQuote();
+  }
   function showView(name) {
     state.view = name;
     VIEWS.forEach(function (v) {
@@ -511,10 +547,14 @@
 
   function renderTranscript() {
     var t = $("transcript"); t.innerHTML = "";
+    // once a speaker is chosen, mobile chat goes immersive (chrome slides away)
+    document.body.classList.toggle("chatting", !!state.character);
     if (!state.character) {
-      t.innerHTML = '<p class="muted">' +
+      t.innerHTML = '<div class="chat-empty">' +
+        '<span class="soul-sigil chat-empty-sigil" aria-hidden="true"></span>' +
+        '<p class="chat-empty-prompt">' +
         (state.projectId ? "Pick someone from the cast to talk to." : "Read a save, then pick someone to talk to.") +
-        "</p>";
+        '</p><p class="chat-empty-quote">“' + quoteOfDay() + '”</p></div>';
       return;
     }
     (state.history[state.character] || []).forEach(function (m) {
@@ -561,7 +601,7 @@
     var bubble = span.parentNode; if (!bubble) return;
     bubble.classList.remove("ink-reveal");
     if (!bubble.classList.contains("them")) return;
-    var prov = bubble.querySelector(".provenance");
+    var prov = bubble.querySelector(".grounding");
     var arrow = document.createElement("span"); arrow.className = "dialogue-arrow"; arrow.textContent = "▼";
     bubble.insertBefore(arrow, prov || null);
     scrollChatToBottom();   // settle on the finished line
@@ -648,7 +688,7 @@
   function renderProvenance(bubble, res) {
     var p = res.provenance; if (!p) return;
     var box = document.createElement("div");
-    box.className = "provenance";
+    box.className = "provenance hidden";   // detail is tucked away; a toggle reveals it
     var s = p.sacred, f = p.free;
     box.appendChild(Object.assign(document.createElement("span"),
       { className: "label", textContent: "SACRED" }));
@@ -671,13 +711,23 @@
     (f.lore || []).slice(0, 3).forEach(function (t) { box.appendChild(chip("free", "lore: " + t)); });
     if (f.memory_used) box.appendChild(chip("free", "memory"));
     if (f.remembrance_used) box.appendChild(chip("free", "remembers"));
-    // the guard verdict
-    if (res.guard && res.guard.clean === false) {
-      box.appendChild(chip("warn", "⚠ contradicts save (" + res.guard.issues.length + ")"));
-    } else {
-      box.appendChild(chip("ok", "✓ grounded"));
-    }
-    bubble.appendChild(box);
+    // The guard verdict becomes the toggle's label — the at-a-glance signal — and
+    // the full sacred/free breakdown stays folded behind it so it never crowds the
+    // reply. Tap to expand. (Respects the HUD "Provenance chips" setting via .grounding.)
+    var clean = !(res.guard && res.guard.clean === false);
+    var wrap = document.createElement("div"); wrap.className = "grounding";
+    var toggle = document.createElement("button"); toggle.type = "button";
+    toggle.className = "prov-toggle" + (clean ? "" : " warn");
+    toggle.innerHTML = (clean ? "✓ grounded" : "⚠ check (" + res.guard.issues.length + ")") +
+      ' <span class="prov-caret">ⓘ</span>';
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.onclick = function () {
+      var open = !box.classList.toggle("hidden");
+      toggle.classList.toggle("open", open);
+      toggle.setAttribute("aria-expanded", open ? "true" : "false");
+    };
+    wrap.appendChild(toggle); wrap.appendChild(box);
+    bubble.appendChild(wrap);
   }
 
   // ── judgment ──────────────────────────────────────────────────────────────
@@ -1226,6 +1276,9 @@
       if (!window.MusicLayer) return;
       window.MusicLayer.setEnabled(this.checked);
     };
+
+    renderQuote();
+    $("quote-refresh").onclick = nextQuote;
 
     document.body.classList.add("on-chat");
     loadShelf();
