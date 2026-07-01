@@ -115,8 +115,38 @@
     var st = $("stage"); if (st) st.scrollTop = 0;
   }
 
+  // First-time explainers — a one-shot modal the first time you open each feature.
+  var FEATURES = {
+    council: { icon: "🗣", title: "The Council",
+      body: "The whole Underground reacts to your run at once — every character's stance and in-voice line, side by side. The contrast is the story: who grieves, who gloats. Tap a face to hear them, or “talk” to jump into a chat." },
+    timeline: { icon: "🕰", title: "The Timeline",
+      body: "Every reading of your save, in order, tinted by the route each time. Where the numbers went backward, a ↩ marks a reset — so you can see the whole shape of your journey, changes and all." },
+    journal: { icon: "📖", title: "The Keepsake Journal",
+      body: "A book the characters fill in their own voice, grounded in what your save actually shows. Ask someone to write you a page, keep reports here, and carry it out as markdown." },
+    constellation: { icon: "🌌", title: "Across Your Saves",
+      body: "The whole shape of you across every save you've shown — your moral range, and where your paths diverge. It appears once you've read more than one save." },
+    chronicle: { icon: "📜", title: "The Chronicle",
+      body: "The full written record of your journey so far, assembled from your save's truth — readable here and exportable as markdown to keep." },
+    judgment: { icon: "⚖", title: "Judgment",
+      body: "You'll be judged for your every action. The verdict is grounded in exactly what your save shows — nothing invented — and you can ask a character to say it to your face." },
+    reports: { icon: "📋", title: "Report Cards",
+      body: "Each character files an after-action report on your run: how you did, what you might've done differently, and what THEY would have done. Keep a history, save favourites to your Journal, or have them emailed to you." },
+  };
+  function maybeIntro(key) {
+    var f = FEATURES[key]; if (!f) return;
+    var seen; try { seen = localStorage.getItem("uv_seen_" + key) === "1"; } catch (e) { seen = false; }
+    if (seen) return;
+    try { localStorage.setItem("uv_seen_" + key, "1"); } catch (e) {}
+    $("feature-modal-icon").textContent = f.icon;
+    $("feature-modal-title").textContent = f.title;
+    $("feature-modal-body").textContent = f.body;
+    $("feature-modal").classList.remove("hidden");
+  }
+  function closeFeatureModal() { $("feature-modal").classList.add("hidden"); }
+
   // nav button → fetch+render the feature, then reveal its view (or just switch)
   function navTo(name) {
+    maybeIntro(name);   // one-shot explainer the first time (no-op for chat/saves)
     switch (name) {
       case "council": return showCouncil();
       case "timeline": return showTimeline();
@@ -1436,8 +1466,12 @@
     $("reach-no").onclick = function () { setReachOut(false); closeReachModal(); };
     $("reach-freq").onchange = function () { setReachFreq(this.value); };
     $("reach-modal").addEventListener("click", function (e) { if (e.target === this) closeReachModal(); });
+    $("feature-modal-ok").onclick = closeFeatureModal;
+    $("feature-modal").addEventListener("click", function (e) { if (e.target === this) closeFeatureModal(); });
     document.addEventListener("keydown", function (e) {
-      if (e.key === "Escape" && !$("reach-modal").classList.contains("hidden")) closeReachModal();
+      if (e.key !== "Escape") return;
+      if (!$("reach-modal").classList.contains("hidden")) closeReachModal();
+      if (!$("feature-modal").classList.contains("hidden")) closeFeatureModal();
     });
 
     // ambient music toggle
