@@ -262,7 +262,13 @@
   function closeFeatureModal() { $("feature-modal").classList.add("hidden"); releaseFocus($("feature-modal")); }
 
   // nav button → fetch+render the feature, then reveal its view (or just switch)
+  var NEEDS_SAVE = { council: 1, timeline: 1, journal: 1, constellation: 1, chronicle: 1, judgment: 1, reports: 1 };
   function navTo(name) {
+    // these modes need a save; without one, guide the player to read one first
+    if (NEEDS_SAVE[name] && !state.projectId) {
+      miniToast("Read a save first to open " + name.charAt(0).toUpperCase() + name.slice(1) + ".");
+      return showView("saves");
+    }
     maybeIntro(name);   // one-shot explainer the first time (no-op for chat/saves)
     switch (name) {
       case "council": return showCouncil();
