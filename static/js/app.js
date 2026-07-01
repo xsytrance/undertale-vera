@@ -52,6 +52,37 @@
     _quoteIdx = ((_quoteIdx === null ? 0 : _quoteIdx) + 1) % APHORISMS.length;
     renderQuote();
   }
+
+  // Underground lore — our own compact framing of the world's rules, for flavour.
+  var LORE = [
+    "LOVE is an acronym — Level Of Violence — a measure of distance from mercy.",
+    "EXP here stands for Execution Points: the more you kill, the more you gain.",
+    "Monsters are made largely of magic; a human soul is, by comparison, staggeringly dense.",
+    "SAVE points run on Determination — the will to bend the world by sheer refusal.",
+    "Sparing an enemy ends a fight without ending a life.",
+    "A monster's dust is said to settle on whoever loved them last.",
+    "Seven human souls, it's said, are enough to bring a barrier down.",
+    "Every reset, the world forgets. A rare few never do.",
+    "The kindest path asks you to fight nothing — only to understand.",
+    "A flower without a soul cannot feel love — only its absence.",
+    "Determination lets a soul persist where a body would give out.",
+    "Kill enough, and even the numbers start to feel like a choice.",
+  ];
+  var _loreIdx = null;
+  function loreOfDay() {
+    if (_loreIdx === null) {
+      var d = new Date();
+      _loreIdx = (d.getFullYear() * 181 + d.getMonth() * 29 + d.getDate() + 3) % LORE.length;
+    }
+    return LORE[_loreIdx];
+  }
+  function renderLore() {
+    var el = $("lore-text"); if (el) el.textContent = loreOfDay();
+  }
+  function nextLore() {
+    _loreIdx = ((_loreIdx === null ? 0 : _loreIdx) + 1) % LORE.length;
+    renderLore();
+  }
   function showView(name) {
     state.view = name;
     VIEWS.forEach(function (v) {
@@ -1367,6 +1398,8 @@
 
     renderQuote();
     $("quote-refresh").onclick = nextQuote;
+    renderLore();
+    $("lore-refresh").onclick = nextLore;
 
     document.body.classList.add("on-chat");
     loadShelf();
