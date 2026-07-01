@@ -151,6 +151,7 @@
 
   // ── SaveTruth summary + route-aware music ────────────────────────────────
   function renderTruth(truth, visit, remembrance) {
+    state.truth = truth;   // kept for save-aware conversation starters
     var play = truth.play_state || {};
     var route = (truth.route || {}).route || "undetermined";
     var conf = (truth.route || {}).confidence || "unknown";
@@ -610,7 +611,45 @@
       msg.appendChild(b);
       t.appendChild(msg);
     });
+    // a fresh conversation? offer a few grounded starters so the input's never blank
+    if ((state.history[state.character] || []).length === 0) {
+      var box = document.createElement("div"); box.className = "starters";
+      var lbl = document.createElement("div"); lbl.className = "starters-lbl";
+      lbl.textContent = "Ask " + state.character + "…"; box.appendChild(lbl);
+      starterPrompts(state.character).forEach(function (q) {
+        var c = document.createElement("button"); c.className = "starter-chip"; c.type = "button";
+        c.textContent = q;
+        c.onclick = function () { $("chat-input").value = q; sendMessage(); };
+        box.appendChild(c);
+      });
+      t.appendChild(box);
+    }
     scrollChatToBottom(true);   // land on the latest line when (re)rendering
+  }
+
+  // Save-aware conversation starters — generic openers plus a couple keyed to the
+  // real route / LOVE and the speaker, so the grounding shows from the first tap.
+  function starterPrompts(name) {
+    var t = state.truth || {};
+    var route = ((t.route) || {}).route;
+    var love = ((t.play_state) || {}).love;
+    var s = ["How do you feel about my run?"];
+    if (route && route !== "undetermined") s.push("What does my " + route + " path say about me?");
+    if (love !== null && love !== undefined) s.push("What do you make of my LOVE?");
+    s.push("Do you remember what I did?");
+    var flavor = {
+      Sans: "you've been watching, haven't you?",
+      Flowey: "are you enjoying this?",
+      Toriel: "would you have guided me differently?",
+      Papyrus: "did i do a cool job?",
+      Undyne: "was i strong enough?",
+      Alphys: "were you keeping notes on me?",
+      Asgore: "do you forgive me?",
+      Mettaton: "was my run good television?",
+      Napstablook: "was any of it… okay?",
+    };
+    if (flavor[name]) s.push(flavor[name]);
+    return s.slice(0, 4);
   }
 
   // Keep the newest dialogue in view. Pins whichever element actually scrolls
