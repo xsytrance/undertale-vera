@@ -109,6 +109,21 @@ body.route-genocide .route-aura {
 }
 .hud-no-motion .route-aura { transition: none; }
 
+/* ── Easter egg: the DETERMINATION burst — gold flash + a rain of ember-gems ── */
+.dt-flash {
+  position: fixed; inset: 0; z-index: 9998; pointer-events: none;
+  background: var(--ember); opacity: 0; animation: dt-flash-anim .95s steps(1) 1;
+}
+@keyframes dt-flash-anim { 0% { opacity: 0; } 10% { opacity: .5; } 26% { opacity: .12; } 42% { opacity: .4; } 100% { opacity: 0; } }
+.dt-gem {
+  position: fixed; top: -32px; z-index: 9997; pointer-events: none;
+  width: 18px !important; height: 18px !important;
+  animation: dt-fall linear forwards;
+}
+@keyframes dt-fall { to { transform: translateY(112vh) rotate(200deg); opacity: .15; } }
+.hud-no-motion .dt-flash, .hud-no-motion .dt-gem { animation: none !important; opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) { .dt-flash, .dt-gem { animation: none !important; opacity: 0 !important; } }
+
 h1, h2, h3, .display {
   font-family: var(--font-display);
   color: var(--brass-edge);
