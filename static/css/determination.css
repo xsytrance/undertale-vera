@@ -91,6 +91,24 @@ body {
 /* when real art is loaded, let it carry the image; the ::after wash still applies */
 .scene-backdrop.has-art { opacity: 0.85; }
 
+/* route atmosphere: a faint, edge-only aura the colour of the player's path. Sits
+   above the console but is transparent through the centre and click-through, so it
+   tints the frame without touching legibility or interaction. */
+.route-aura {
+  position: fixed; inset: 0; z-index: 3; pointer-events: none;
+  opacity: 0; transition: opacity 1s ease, background 1s ease;
+}
+body.route-pacifist .route-aura {
+  opacity: 1; background: radial-gradient(135% 105% at 50% 45%, transparent 60%, rgba(232,162,76,.10));
+}
+body.route-neutral .route-aura {
+  opacity: 1; background: radial-gradient(135% 105% at 50% 45%, transparent 60%, rgba(110,140,178,.09));
+}
+body.route-genocide .route-aura {
+  opacity: 1; background: radial-gradient(135% 105% at 50% 42%, transparent 54%, rgba(209,47,62,.16));
+}
+.hud-no-motion .route-aura { transition: none; }
+
 h1, h2, h3, .display {
   font-family: var(--font-display);
   color: var(--brass-edge);
