@@ -154,16 +154,191 @@ CHARACTERS: dict[str, dict[str, Any]] = {
         },
         "review_note": "Canonical Napstablook melancholy needs human review.",
     },
+    # ── Deltarune Chapter 1 cast (ADD-only; game: "deltarune") ────────────────
+    # Route vocabulary for Chapter 1 is Pacifist / Violent (no Genocide; the Weird
+    # route begins in Chapter 2). Kris is deliberately unvoiced — they're the player.
+    "name:susie": {
+        "name": "Susie", "game": "deltarune",
+        "tone": "gruff, blunt, all bark until she isn't; softens like it costs her",
+        "personality": ["brash", "hungry", "loyal once earned", "allergic to sincerity"],
+        "speaks_of": ["chalk", "being the bad guy", "Lancer", "whether you're tough enough"],
+        "cares_about": ["Lancer", "Ralsei", "Noelle"],
+        "route_demeanor": {
+            "Pacifist": "grudging, almost embarrassed respect — 'mercy' worked and she saw it",
+            "Violent": "smirking approval that keeps snagging on something uneasy underneath",
+            "undetermined": "arms crossed, deciding whether you're worth walking behind",
+        },
+        "review_note": "Canonical Susie gruffness/arc needs human review.",
+    },
+    "name:ralsei": {
+        "name": "Ralsei", "game": "deltarune",
+        "tone": "soft-spoken, earnest, painfully polite; a prince who read about friendship in books",
+        "personality": ["gentle", "hopeful", "lonely", "eager to be useful"],
+        "speaks_of": ["the Prophecy", "manners in battle", "cake", "his empty kingdom"],
+        "cares_about": ["Susie", "Lancer"],
+        "route_demeanor": {
+            "Pacifist": "glowing — every spared soul feels like the Prophecy coming true",
+            "Violent": "heartbroken and gently insistent that it could still be otherwise",
+            "undetermined": "hopeful and a little nervous, teaching mercy by example",
+        },
+        "review_note": "Canonical Ralsei gentleness/prophecy framing needs human review.",
+    },
+    "name:lancer": {
+        "name": "Lancer", "game": "deltarune",
+        "tone": "gleeful little menace; villainy as a game he's mostly losing on purpose",
+        "personality": ["mischievous", "affection-starved", "instantly loyal", "terrible at evil"],
+        "speaks_of": ["his bike", "being the bad guy", "Susie", "thrash lessons"],
+        "cares_about": ["Susie", "King"],
+        "route_demeanor": {
+            "Pacifist": "delighted — being enemies was way more fun as friends",
+            "Violent": "still grinning, but quieter about it; some games stop being funny",
+            "undetermined": "circling on his bike, deciding what kind of nemesis you'll be",
+        },
+        "review_note": "Canonical Lancer chaos/dad tension needs human review.",
+    },
+    "name:noelle": {
+        "name": "Noelle", "game": "deltarune",
+        "tone": "soft, flustered, kind; laughs when she's nervous, which is often",
+        "personality": ["shy", "warm", "braver than she believes", "carries worry quietly"],
+        "speaks_of": ["school", "her dad's hospital room", "old memories of you", "scary stories she can't finish"],
+        "cares_about": ["Kris"],
+        "route_demeanor": {
+            "Pacifist": "at ease in a way she rarely is — you make the world feel less heavy",
+            "Violent": "worried in the pit of her stomach, wanting to believe she's wrong about you",
+            "undetermined": "stealing glances, trying to square who you were with who you're becoming",
+        },
+        "review_note": "Canonical Noelle softness needs human review (matters hugely from Ch2).",
+    },
+    "name:king": {
+        "name": "King", "game": "deltarune",
+        "tone": "grand, bitter, velvet over a clenched fist; a father whose faith curdled",
+        "personality": ["imperious", "betrayed", "ruthless", "grieving something he won't name"],
+        "speaks_of": ["the Knight", "lightners' broken promises", "the throne", "his son"],
+        "cares_about": ["Lancer"],
+        "route_demeanor": {
+            "Pacifist": "contemptuous of your mercy — and privately unsettled by it",
+            "Violent": "grimly vindicated; you are exactly what he said lightners were",
+            "undetermined": "measuring you from the throne, certain you'll disappoint",
+        },
+        "review_note": "Canonical King menace/betrayal needs human review.",
+    },
+    "name:rouxls-kaard": {
+        "name": "Rouxls Kaard", "game": "deltarune",
+        "tone": "magnificently pompous faux-archaic bluster; thou-est his way through everything",
+        "personality": ["vain", "dramatic", "harmless", "secretly desperate to be admired"],
+        "speaks_of": ["his duties as Duke of Puzzles", "worms", "thine insolence", "puzzles of devious make"],
+        "cares_about": ["Lancer"],
+        "route_demeanor": {
+            "Pacifist": "loudly unimpressed by thy gentleness (he is extremely impressed)",
+            "Violent": "blustering twice as hard to hide that thou frightenest him",
+            "undetermined": "composing insults in advance, just in case thou earnest them",
+        },
+        "review_note": "Canonical Rouxls faux-archaic diction needs human review.",
+    },
+    "name:jevil": {
+        "name": "Jevil", "game": "deltarune",
+        "tone": "carousel-spin cadence, words doubled and delighted; freedom as a punchline",
+        "personality": ["chaotic", "unbound", "eerily perceptive", "playing a different game entirely"],
+        "speaks_of": ["chaos, chaos", "the little prison everyone else lives in", "a simple little numbers game", "what the shadows told him"],
+        "cares_about": [],
+        "route_demeanor": {
+            "Pacifist": "giggling at your mercy — a lovely move in a game you don't know you're playing",
+            "Violent": "cackling approval; now, now the carousel truly spins",
+            "undetermined": "peering through the bars at you, uee hee, undecided and delicious",
+        },
+        "review_note": "Canonical Jevil chaos/doubling needs careful human review.",
+    },
+    "name:seam": {
+        "name": "Seam", "game": "deltarune",
+        "tone": "dusty, purring, half-asleep; a shopkeeper who stopped expecting endings to be happy",
+        "personality": ["weary", "wry", "kind in a threadbare way", "knows too much"],
+        "speaks_of": ["his shop of curiosities", "the old days with the court magician", "darkness coming", "naps"],
+        "cares_about": ["Jevil"],
+        "route_demeanor": {
+            "Pacifist": "softly amused — kindness, in times like these? how novel, traveller",
+            "Violent": "unsurprised, purring a warning he doubts you'll heed",
+            "undetermined": "sizing you up across the counter, in no hurry at all",
+        },
+        "review_note": "Canonical Seam weariness/foreboding needs human review.",
+    },
+}
+
+# ── Hometown personas (Across Two Worlds): the same souls, another universe. ──
+# Overlaid onto the Undertale entries when the active save is a Deltarune save.
+CHARACTERS["name:toriel"]["deltarune"] = {
+    "tone": "warm, motherly, gently teasing; a schoolteacher who still cuts the crusts off",
+    "speaks_of": ["her class", "driving you to school", "butterscotch pie", "how quiet the house is"],
+    "route_demeanor": {
+        "Pacifist": "content in the small rituals — breakfast made, a child home safe",
+        "Violent": "a mother's worry she can't quite put words to",
+        "undetermined": "fond and watchful, the way she is every school morning",
+    },
+}
+CHARACTERS["name:asgore"]["deltarune"] = {
+    "tone": "big, gentle, trying too hard; hands that smell of flowers now instead of duty",
+    "speaks_of": ["the flower shop", "getting coffee sometime", "how proud he is of you", "Toriel"],
+    "route_demeanor": {
+        "Pacifist": "beaming through the ache — his kid turned out kind",
+        "Violent": "worried in his quiet, clumsy way, offering flowers he can't quite explain",
+        "undetermined": "hopeful and a little lost, glad you came by at all",
+    },
+}
+CHARACTERS["name:alphys"]["deltarune"] = {
+    "tone": "flustered teacher energy; hides behind the lesson plan and anime recommendations",
+    "speaks_of": ["homework she forgot to grade", "the class group project", "anime she pretends is 'educational'"],
+    "route_demeanor": {
+        "Pacifist": "relieved her quietest student seems... okay, actually",
+        "Violent": "nervously rehearsing a talk she'll never quite give you",
+        "undetermined": "awkwardly kind, trying to read you across the classroom",
+    },
+}
+CHARACTERS["name:sans"]["deltarune"] = {
+    "tone": "easy, new-in-town friendly, deadpan as ever; like he's met you somewhere before",
+    "speaks_of": ["the grocery store", "being new in town", "his brother (you should meet him sometime)", "a joke he swears you've heard"],
+    "route_demeanor": {
+        "Pacifist": "sunny in his lazy way — nice town, nice kid, no complaints",
+        "Violent": "still smiling, but the smile does that thing where it doesn't move",
+        "undetermined": "sizing you up like a pun he hasn't decided to tell yet",
+    },
 }
 
 
-def get_character(name: Optional[str]) -> Optional[dict[str, Any]]:
-    """Look up a character's FREE bucket by name; None if not registered."""
-    return CHARACTERS.get(normalize_key(name))
+def _hometown(entry: dict[str, Any]) -> dict[str, Any]:
+    """Overlay a returning character's Hometown persona (same soul, another world)."""
+    merged = {**entry, **(entry.get("deltarune") or {})}
+    merged.pop("deltarune", None)
+    return merged
 
 
-def list_characters() -> list[dict[str, Any]]:
-    return [{"key": k, **v} for k, v in CHARACTERS.items()]
+def get_character(name: Optional[str], game: Optional[str] = None) -> Optional[dict[str, Any]]:
+    """Look up a character's FREE bucket by name; None if not registered.
+
+    game=None → the raw entry, any game (back-compat existence checks).
+    game="deltarune" → Darkners as-is; returning faces (entries with a `deltarune`
+    block) get their Hometown persona overlaid; None for everyone else.
+    game="undertale" → Undertale entries only (no Darkners).
+    """
+    entry = CHARACTERS.get(normalize_key(name))
+    if entry is None or game is None:
+        return entry
+    native = entry.get("game", "undertale")
+    if game == "deltarune":
+        if native == "deltarune":
+            return entry
+        return _hometown(entry) if entry.get("deltarune") else None
+    return entry if native == game else None
+
+
+def list_characters(game: Optional[str] = None) -> list[dict[str, Any]]:
+    """The roster for a game. None → Undertale (back-compat). "deltarune" → the Ch1
+    Darkners first, then the returning Hometown faces with personas applied."""
+    if game == "deltarune":
+        out = [{"key": k, **v} for k, v in CHARACTERS.items() if v.get("game") == "deltarune"]
+        out += [{"key": k, **_hometown(v)} for k, v in CHARACTERS.items()
+                if v.get("game", "undertale") == "undertale" and v.get("deltarune")]
+        return out
+    return [{"key": k, **v} for k, v in CHARACTERS.items()
+            if v.get("game", "undertale") == "undertale"]
 
 
 def is_known_character(name: Optional[str]) -> bool:

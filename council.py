@@ -29,7 +29,8 @@ _FATE_CLAUSE = {
 
 def _line(name: str, save_truth: dict[str, Any], route: str) -> str:
     """A character's one-line reaction: their route demeanor + a relational clause."""
-    char = next((c for c in list_characters() if c["name"] == name), {})
+    game = (save_truth or {}).get("game") or "undertale"
+    char = next((c for c in list_characters(game) if c["name"] == name), {})
     demeanor = (char.get("route_demeanor") or {}).get(route) \
         or (char.get("route_demeanor") or {}).get("undetermined") or ""
     line = (demeanor[:1].upper() + demeanor[1:]).rstrip(".") + "." if demeanor else ""
@@ -44,8 +45,9 @@ def _line(name: str, save_truth: dict[str, Any], route: str) -> str:
 def build_council(save_truth: dict[str, Any]) -> list[dict[str, Any]]:
     """Every character's stance + in-voice reaction to the run (deterministic)."""
     route = ((save_truth or {}).get("route") or {}).get("route") or "undetermined"
+    game = (save_truth or {}).get("game") or "undertale"
     council: list[dict[str, Any]] = []
-    for c in list_characters():
+    for c in list_characters(game):
         name = c["name"]
         aff = affinity_mod.character_affinity(name, save_truth)
         council.append({

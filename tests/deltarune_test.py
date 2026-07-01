@@ -90,3 +90,56 @@ def test_deltarune_chat_stays_grounded(monkeypatch):
                 json={"character": "toriel", "message": "hi", "history": []})
     assert "undetermined" in seen["prompt"].lower() or "not yet" in seen["prompt"].lower()
     assert "Kris" in seen["prompt"]   # the sacred name rides the same wall
+
+
+# ── the Chapter 1 cast (game-aware registry) ─────────────────────────────────
+
+def test_deltarune_roster_composition():
+    from character_config import list_characters
+    dr = list_characters("deltarune")
+    names = {c["name"] for c in dr}
+    # 8 Darkners/Lightners + 4 returning Hometown faces
+    assert {"Susie", "Ralsei", "Lancer", "Noelle", "King", "Rouxls Kaard", "Jevil", "Seam"} <= names
+    assert {"Toriel", "Asgore", "Alphys", "Sans"} <= names
+    assert len(dr) == 12
+    # Darkners never leak into the Undertale roster (back-compat default too)
+    ut = {c["name"] for c in list_characters()}
+    assert "Susie" not in ut and "Jevil" not in ut and "Sans" in ut
+
+
+def test_hometown_persona_overlay():
+    from character_config import get_character
+    dr_toriel = get_character("toriel", game="deltarune")
+    assert "schoolteacher" in dr_toriel["tone"]
+    assert any("school" in s for s in dr_toriel["speaks_of"])
+    assert "deltarune" not in dr_toriel          # overlay applied, block consumed
+    ut_toriel = get_character("toriel", game="undertale")
+    assert "motherly" in ut_toriel["tone"] and "schoolteacher" not in ut_toriel["tone"]
+    assert get_character("susie", game="undertale") is None   # no Darkners in Undertale
+
+
+def test_characters_endpoint_game_param():
+    names = {c["name"] for c in client.get("/api/characters", params={"game": "deltarune"}).json()["characters"]}
+    assert "Susie" in names and "Jevil" in names and "Papyrus" not in names
+    default = {c["name"] for c in client.get("/api/characters").json()["characters"]}
+    assert "Susie" not in default and "Papyrus" in default
+
+
+def test_deltarune_save_gets_deltarune_council_and_affinities():
+    pid = client.post("/api/upload", files={"file0": ("filech1_0", _read("filech1_0"))}).json()["project_id"]
+    council = client.get(f"/api/projects/{pid}/council").json()["council"]
+    names = {v["character"] for v in council}
+    assert "Susie" in names and "Ralsei" in names and "Papyrus" not in names
+    aff = client.get(f"/api/projects/{pid}/affinities").json()["affinities"]
+    assert "Jevil" in aff and "Mettaton" not in aff
+
+
+def test_deltarune_chat_uses_hometown_persona(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(appmod, "generate_reply",
+                        lambda sp, um, **k: seen.update(prompt=sp) or {"text": "ok", "model": "m"})
+    pid = client.post("/api/upload", files={"file0": ("filech1_0", _read("filech1_0"))}).json()["project_id"]
+    client.post(f"/api/projects/{pid}/chat", json={"character": "toriel", "message": "hi", "history": []})
+    assert "schoolteacher" in seen["prompt"]          # Hometown Toriel, not Ruins Toriel
+    client.post(f"/api/projects/{pid}/chat", json={"character": "susie", "message": "hi", "history": []})
+    assert "bark" in seen["prompt"]                    # Susie's own voice

@@ -530,7 +530,8 @@ def request_full_report(project_id: int, db: Session = Depends(get_db)) -> dict[
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     save_truth = project.save_data or {}
-    out = [_make_report(save_truth, c["name"]) for c in list_characters()]
+    out = [_make_report(save_truth, c["name"])
+           for c in list_characters(save_truth.get("game") or "undertale")]
     markdown = reports_mod.build_report_markdown(out, project.name or "this save")
     return {"reports": out, "markdown": markdown}
 
@@ -863,8 +864,9 @@ def lore(q: str = "", character: Optional[str] = None, route: Optional[str] = No
 
 
 @app.get("/api/characters")
-def get_characters() -> dict[str, Any]:
-    chars = list_characters()
+def get_characters(game: Optional[str] = None) -> dict[str, Any]:
+    """The roster. ?game=deltarune → the Ch1 cast (Darkners + Hometown faces)."""
+    chars = list_characters(game if game in ("undertale", "deltarune") else None)
     for c in chars:
         c["avatar_url"] = resolve_avatar(c)
         c["emblem_url"] = resolve_emblem(c)
