@@ -867,6 +867,9 @@
     span.textContent = ""; span.parentNode.classList.add("ink-reveal");
     var i = 0, every = blipEvery(name);   // cadence is per-character (voices.js)
     var timer = setInterval(function () {
+      // stop the moment this line leaves the DOM (you switched characters / re-rendered)
+      // — no more typing, and crucially no more blips in the old character's voice
+      if (!span.isConnected) { clearInterval(timer); return; }
       span.textContent = text.slice(0, ++i);
       if (i % every === 0 && /\S/.test(text.charAt(i - 1))) blip(name);   // a blip every few glyphs
       scrollChatToBottom();   // follow the reply as it types (unless you've scrolled up)
@@ -877,25 +880,27 @@
   function sendMessage() {
     var input = $("chat-input"); var msg = input.value.trim();
     if (!msg || !state.projectId || !state.character) return;
-    var hist = state.history[state.character];
+    var who = state.character;   // capture: the reply belongs to THIS character
+    var hist = state.history[who];
     hist.push({ role: "user", content: msg });
     renderTranscript(); input.value = "";
     showTyping();   // a "…" while we wait on the reply (removed by the next render)
-    var body = { character: state.character, message: msg, history: hist.slice(0, -1),
+    var body = { character: who, message: msg, history: hist.slice(0, -1),
                  options: (state.settings || {}).options };
     api("/api/projects/" + state.projectId + "/chat", {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body),
     }).then(function (res) {
-      hist.push({ role: "assistant", content: res.response });
+      hist.push({ role: "assistant", content: res.response });   // always saved to their history
+      if (state.character !== who) return;   // switched away → it's stored, don't type it into the new chat
       renderTranscript();
       var row = $("transcript").lastChild;                 // the .msg row
       var bubble = row.querySelector(".bubble") || row;     // provenance rides the bubble
       renderProvenance(bubble, res);   // the wall, made visible (before the arrow)
       scrollChatToBottom(true);        // pin to the reply before it starts typing
-      typewriter(bubble.querySelector("span"), res.response, state.character);
+      typewriter(bubble.querySelector("span"), res.response, who);
     }).catch(function (e) {
       hist.push({ role: "assistant", content: "(error: " + e.message + ")" });
-      renderTranscript();
+      if (state.character === who) renderTranscript();
     });
   }
 
