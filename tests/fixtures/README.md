@@ -15,3 +15,7 @@ Everything else is preserved raw and left `null` — never guessed.
 | `file0_genocide` + `undertale_genocide.ini` | LOVE 20 → Genocide (high) |
 | `file0_neutral`  + `undertale_neutral.ini`  | LOVE 6, some kills → Neutral (medium) |
 | `file0_ambiguous` (no ini)                  | unreadable LOVE → undetermined |
+
+- `filech1_0` — SYNTHETIC Deltarune Chapter 1 slot (not from a real game): line 1
+  name, line 11 Dark Dollars per public docs; all other lines are filler the parser
+  must preserve raw. Replace/augment with real saves to expand the field map.

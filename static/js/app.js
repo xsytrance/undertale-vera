@@ -313,7 +313,8 @@
     var fd = new FormData();
     var f0 = $("file0-input").files[0];
     var ini = $("ini-input").files[0];
-    if (f0) fd.append("file0", f0, "file0");
+    // keep the real filename — the backend detects Deltarune slots (filech1_0…) by name
+    if (f0) fd.append("file0", f0, f0.name || "file0");
     if (ini) fd.append("undertale_ini", ini, "undertale.ini");
     return (f0 || ini) ? fd : null;
   }
@@ -476,14 +477,16 @@
         var gen = route === "Genocide";
         var lv = (p.love === null || p.love === undefined) ? "—" : p.love;
         var when = fmtSaveDate(p.created_at);
+        var dr = p.game === "deltarune";   // a Dark World save on the same shelf
         card.innerHTML =
-          '<span class="save-sigil soul-sigil' + (gen ? " determined" : "") + '" aria-hidden="true"></span>' +
+          '<span class="save-sigil soul-sigil' + (gen ? " determined" : "") + (dr ? " dark-world" : "") + '" aria-hidden="true"></span>' +
           '<span class="save-body">' +
             '<span class="save-head">' +
               '<span class="save-name">' + escHtml(p.name || ("Save #" + p.project_id)) + "</span>" +
-              '<span class="route-badge ' + route.toLowerCase() + '">' + route + "</span>" +
+              (dr ? '<span class="route-badge dark-world">DR·CH' + (p.chapter || "?") + "</span>"
+                  : '<span class="route-badge ' + route.toLowerCase() + '">' + route + "</span>") +
             "</span>" +
-            '<span class="save-meta">LV ' + lv + (when ? " · " + when : "") + "</span>" +
+            '<span class="save-meta">' + (dr ? "Dark World" : "LV " + lv) + (when ? " · " + when : "") + "</span>" +
           "</span>";
         card.onclick = function () { loadProject(p.project_id); };
         el.appendChild(card);
