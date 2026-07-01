@@ -1769,12 +1769,18 @@
         }
       };
     }
-    // secret 2 — the Konami code, anywhere → a DETERMINATION burst
+    // secret 2 — the Konami code on a keyboard (PC), anywhere → a DETERMINATION burst
     var KONAMI = ["ArrowUp", "ArrowUp", "ArrowDown", "ArrowDown", "ArrowLeft", "ArrowRight", "ArrowLeft", "ArrowRight", "b", "a"], kpos = 0;
     document.addEventListener("keydown", function (e) {
       var k = (e.key || "").length === 1 ? e.key.toLowerCase() : e.key;
-      if (k === KONAMI[kpos]) { if (++kpos === KONAMI.length) { kpos = 0; determinationBurst("* The Underground bends to your DETERMINATION."); } }
-      else { kpos = (k === KONAMI[0]) ? 1 : 0; }
+      if (k === KONAMI[kpos]) {
+        kpos++;
+        // once you're clearly entering the code, stop the arrows scrolling/moving focus
+        if (kpos >= 2 && k.indexOf("Arrow") === 0) e.preventDefault();
+        if (kpos === KONAMI.length) { kpos = 0; determinationBurst("* The Underground bends to your DETERMINATION."); }
+      } else {
+        kpos = (k === KONAMI[0]) ? 1 : 0;
+      }
     });
     // secret — the corner code (works on touch): tap the four corners clockwise
     var corners = [], cornerT = null, SEQ = "TL,TR,BR,BL";
