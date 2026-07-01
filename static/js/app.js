@@ -312,26 +312,14 @@
   function hasAnyImage(name) { var c = charByName(name); return !!(c && (c.avatar_url || c.emblem_url)); }
 
   // ── Undertale-feel: a short text "blip" per character as dialogue types ────
-  var _ac = null;
-  var BLIP_FREQ = {
-    "Sans": 150, "Papyrus": 300, "Toriel": 300, "Flowey": 380, "Undyne": 240,
-    "Alphys": 420, "Asgore": 175, "Mettaton": 340, "Napstablook": 250,
-  };
+  // Each character has its own synthesized voice (see voices.js). This wrapper
+  // just honours the Options "Text blip" toggle; the synthesis lives in VoiceLayer.
   function blip(name) {
     if (!(state.settings && state.settings.hud && state.settings.hud.blip)) return;
-    try {
-      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-      _ac = _ac || new AC();
-      if (_ac.state === "suspended") _ac.resume();
-      var o = _ac.createOscillator(), g = _ac.createGain();
-      o.type = "square";
-      o.frequency.value = (BLIP_FREQ[name] || 320) * (0.97 + 0.06 * (((name || "").length * 7 % 5) / 5));
-      var t = _ac.currentTime;
-      g.gain.setValueAtTime(0.045, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
-      o.connect(g); g.connect(_ac.destination);
-      o.start(t); o.stop(t + 0.05);
-    } catch (e) { /* audio not available — silent */ }
+    if (window.VoiceLayer) window.VoiceLayer.blip(name);
+  }
+  function blipEvery(name) {
+    return (window.VoiceLayer && window.VoiceLayer.blipEvery(name)) || 2;
   }
   function portraitTag(name) { return avatarMarkup(name, "relic-portrait"); }
 
@@ -428,6 +416,7 @@
     var m = document.createElement("div"); m.id = "portrait-menu"; m.className = "portrait-menu";
     var items = [];
     if (anyImg) items.push(["🔍 View larger", function () { openLightbox(name); }]);
+    items.push(["🔊 Hear voice", function () { if (window.VoiceLayer) window.VoiceLayer.preview(name); }]);
     items.push([hasPhoto ? "✎ Change image" : "✎ Add image", function () { changePortrait(name); }]);
     if (hasPhoto) items.push(["✕ Remove image", function () { resetPortrait(name); }]);
     items.forEach(function (it) {
@@ -586,10 +575,10 @@
     if (ms == null) ms = 18;
     if (!ms) { applyShake(span, text, parsed.spans); dialogueDone(span, name); return; }   // instant
     span.textContent = ""; span.parentNode.classList.add("ink-reveal");
-    var i = 0;
+    var i = 0, every = blipEvery(name);   // cadence is per-character (voices.js)
     var timer = setInterval(function () {
       span.textContent = text.slice(0, ++i);
-      if (i % 2 === 0 && /\S/.test(text.charAt(i - 1))) blip(name);   // a blip every couple glyphs
+      if (i % every === 0 && /\S/.test(text.charAt(i - 1))) blip(name);   // a blip every few glyphs
       if (i >= text.length) { clearInterval(timer); applyShake(span, text, parsed.spans); dialogueDone(span, name); }
     }, ms);
   }
