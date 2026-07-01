@@ -105,11 +105,15 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 /* the typewriter caret → white block (terminal feel) */
 .ink-reveal { border-right-color: #fff !important; }
 
-/* ── skin: reach-out CTA, ambient switch, opt-in modal → pixel boxes ───────── */
-.reach-cta, .switch-row, .modal, .modal-btn {
+/* ── skin: save cards, reach-out CTA, ambient switch, opt-in modal → pixel boxes */
+.save-card, .reach-cta, .switch-row, .modal, .modal-btn {
   background: #000 !important; border: 2px solid #fff !important;
   border-radius: 0 !important; box-shadow: none !important;
 }
+.save-card:hover { background: #1a1a1a !important; }
+.save-card.selected { border-left-color: var(--ember) !important; }
+.save-name { color: #fff !important; }
+.save-meta { color: var(--ink-dim) !important; }
 .reach-cta { color: #fff !important; }
 .reach-cta:hover { background: #1a1a1a !important; }
 .reach-cta.on { border-left-color: var(--ember) !important; }

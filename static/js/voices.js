@@ -25,27 +25,31 @@
   "use strict";
 
   // Per-character voices — tuned by feeling, not by the game's actual sounds.
+  // Phone speakers roll off bass and can't reproduce pure sines, so every voice
+  // keeps its fundamental above ~330 Hz and uses a harmonic-rich wave (square /
+  // sawtooth); the "soft" characters get their warmth from a lowpass filter that
+  // rounds the harmonics off rather than from a quiet sine that vanishes on a phone.
   var VOICES = {
-    // low, lazy, unbothered — a soft round tone that sags downward
-    "Sans":        { wave: "triangle", freq: 172, jitter: 0.04, dur: 0.075, gain: 0.050, attack: 0.005, glide: 0.86, every: 2 },
+    // low, lazy, unbothered — a rounded low tone that sags downward
+    "Sans":        { wave: "square",   freq: 340, jitter: 0.04, dur: 0.085, gain: 0.062, attack: 0.006, glide: 0.80, lowpass: 1500, every: 2 },
     // loud, bombastic, HEROIC — a punchy chip that leaps upward
-    "Papyrus":     { wave: "square",   freq: 300, jitter: 0.03, dur: 0.070, gain: 0.060, attack: 0.002, glide: 1.50, every: 2 },
+    "Papyrus":     { wave: "square",   freq: 500, jitter: 0.03, dur: 0.070, gain: 0.075, attack: 0.002, glide: 1.42, every: 2 },
     // saccharine and wrong — bright, harsh, unstable wobble
-    "Flowey":      { wave: "sawtooth", freq: 384, jitter: 0.14, dur: 0.060, gain: 0.045, attack: 0.002, vibrato: { rate: 34, depth: 22 }, every: 2 },
-    // warm, gentle, motherly — a soft swell that lingers
-    "Toriel":      { wave: "sine",     freq: 262, jitter: 0.03, dur: 0.100, gain: 0.055, attack: 0.012, every: 2 },
+    "Flowey":      { wave: "sawtooth", freq: 636, jitter: 0.13, dur: 0.060, gain: 0.052, attack: 0.002, vibrato: { rate: 34, depth: 26 }, every: 2 },
+    // warm, gentle, motherly — a rounded swell that lingers (lowpass = warmth)
+    "Toriel":      { wave: "square",   freq: 466, jitter: 0.03, dur: 0.095, gain: 0.072, attack: 0.012, lowpass: 1900, every: 2 },
     // fierce, aggressive — harsh and fast, snapping upward
-    "Undyne":      { wave: "sawtooth", freq: 236, jitter: 0.05, dur: 0.055, gain: 0.065, attack: 0.001, glide: 1.12, every: 2 },
+    "Undyne":      { wave: "sawtooth", freq: 452, jitter: 0.05, dur: 0.055, gain: 0.075, attack: 0.001, glide: 1.12, every: 2 },
     // nervous, anxious — short and high, prone to stammering doubles
-    "Alphys":      { wave: "square",   freq: 360, jitter: 0.10, dur: 0.045, gain: 0.045, attack: 0.002, stutter: 0.35, every: 2 },
-    // deep, sorrowful, regal — low and muffled, sinking slowly
-    "Asgore":      { wave: "triangle", freq: 156, jitter: 0.03, dur: 0.110, gain: 0.060, attack: 0.010, lowpass: 900, glide: 0.94, every: 2 },
+    "Alphys":      { wave: "square",   freq: 610, jitter: 0.10, dur: 0.045, gain: 0.056, attack: 0.002, stutter: 0.35, every: 2 },
+    // deep, sorrowful, regal — the lowest voice, muffled, sinking slowly
+    "Asgore":      { wave: "square",   freq: 330, jitter: 0.03, dur: 0.110, gain: 0.074, attack: 0.010, lowpass: 1300, glide: 0.90, every: 2 },
     // glam, theatrical, electric — bright with a showy shimmer
-    "Mettaton":    { wave: "square",   freq: 332, jitter: 0.04, dur: 0.080, gain: 0.060, attack: 0.003, vibrato: { rate: 18, depth: 14 }, glide: 1.10, every: 2 },
-    // quiet, melancholic, ethereal — soft, muffled, sparse
-    "Napstablook": { wave: "sine",     freq: 248, jitter: 0.05, dur: 0.130, gain: 0.030, attack: 0.020, lowpass: 700, every: 3 },
+    "Mettaton":    { wave: "square",   freq: 574, jitter: 0.04, dur: 0.080, gain: 0.066, attack: 0.003, vibrato: { rate: 18, depth: 16 }, glide: 1.08, every: 2 },
+    // quiet, melancholic, ethereal — soft and muffled, but still there; sparse
+    "Napstablook": { wave: "square",   freq: 430, jitter: 0.05, dur: 0.110, gain: 0.058, attack: 0.018, lowpass: 1500, every: 3 },
     // anyone else
-    "_default":    { wave: "square",   freq: 320, jitter: 0.05, dur: 0.050, gain: 0.050, attack: 0.003, every: 2 }
+    "_default":    { wave: "square",   freq: 480, jitter: 0.05, dur: 0.050, gain: 0.060, attack: 0.003, every: 2 }
   };
 
   var _ac = null, _master = null;
