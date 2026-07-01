@@ -1134,15 +1134,31 @@
     if (!state.projectId) return;
     api("/api/projects/" + state.projectId + "/council").then(function (res) {
       var box = $("council-list"); box.innerHTML = "";
-      (res.council || []).forEach(function (e) {
+      var route = ((state.truth || {}).route || {}).route;
+      var intro = document.createElement("p"); intro.className = "council-intro muted";
+      intro.textContent = (route && route !== "undetermined")
+        ? "The whole Underground reacts to your " + route + " run — grief and anger speak loudest."
+        : "The whole Underground reacts to your run.";
+      box.appendChild(intro);
+      (res.council || []).forEach(function (e, i) {
+        var sc = STANCE_CLASS[e.stance] || "free";
         var row = document.createElement("div");
-        row.className = "council-voice";
+        row.className = "council-voice cv-" + sc;
+        row.style.animationDelay = (i * 55) + "ms";
         row.innerHTML =
-          avatarMarkup(e.character, "bubble-avatar") +
-          '<div class="cv-body"><div class="cv-head">' + e.character +
-          ' <span class="chip ' + (STANCE_CLASS[e.stance] || "free") + '">' + e.stance + "</span></div>" +
+          '<button class="cv-face" type="button" title="Hear ' + escHtml(e.character) + '">' +
+            avatarMarkup(e.character, "bubble-avatar") + "</button>" +
+          '<div class="cv-body"><div class="cv-head">' + escHtml(e.character) +
+          ' <span class="chip ' + sc + '">' + e.stance + "</span>" +
+          '<button class="cv-talk" type="button">💬 talk</button></div>' +
           '<div class="cv-line"></div></div>';
         row.querySelector(".cv-line").textContent = e.line;
+        row.querySelector(".cv-face").onclick = function () {
+          if (window.VoiceLayer) window.VoiceLayer.preview(e.character);
+        };
+        row.querySelector(".cv-talk").onclick = function () {
+          var c = charByName(e.character); if (c) selectCharacter(c);
+        };
         box.appendChild(row);
       });
       showView("council");

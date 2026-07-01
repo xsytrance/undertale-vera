@@ -406,11 +406,34 @@ input[type="file"], input[type="text"] {
 
 /* ── The Council (whole-cast reaction) ────────────────────────────────────── */
 .council { display: flex; flex-direction: column; gap: 12px; }
-.council-voice { display: flex; gap: 12px; align-items: flex-start;
-  padding: 8px 10px; border-radius: 8px; background: rgba(21,19,28,0.5);
-  border-left: 3px solid var(--brass); }
-.council-voice .cv-head { font-family: var(--font-display); color: var(--ember); margin-bottom: 3px; }
+.council-intro { margin: 0 0 12px; font-size: .84rem; line-height: 1.5; }
+.council-voice {
+  display: flex; gap: 12px; align-items: flex-start;
+  padding: 10px 12px; border-radius: 8px; background: rgba(21,19,28,0.5);
+  border-left: 3px solid var(--brass);
+  animation: cv-in .32s ease both;
+}
+@keyframes cv-in { from { opacity: 0; transform: translateY(7px); } to { opacity: 1; transform: none; } }
+/* the room reads at a glance: grief/anger flare red, warmth glows ember */
+.council-voice.cv-warn { border-left-color: var(--determination); }
+.council-voice.cv-ok   { border-left-color: var(--ember); }
+.council-voice.cv-free { border-left-color: var(--ink-dim); }
+.council-voice .bubble-avatar { width: 46px; height: 46px; }
+.cv-face { background: none; border: none; padding: 0; cursor: pointer; flex: 0 0 auto; }
+.cv-face:hover .bubble-avatar { border-color: var(--ember); box-shadow: 0 0 12px rgba(232,162,76,.25); }
+.council-voice .cv-body { flex: 1; min-width: 0; }
+.council-voice .cv-head {
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
+  font-family: var(--font-display); color: var(--ember); margin-bottom: 4px;
+}
+.cv-talk {
+  margin-left: auto; font-size: .68rem; cursor: pointer; color: var(--ink-dim);
+  background: none; border: 1px solid var(--plate-frame); border-radius: 999px; padding: 2px 9px;
+}
+.cv-talk:hover { color: var(--ember); border-color: var(--ember); }
 .council-voice .cv-line { font-family: var(--font-body); line-height: 1.45; color: var(--ink); }
+.hud-no-motion .council-voice { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .council-voice { animation: none !important; } }
 
 /* ── compact Options menu (one gear, its own panel) ───────────────────────── */
 .settings-gear {
