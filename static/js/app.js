@@ -631,6 +631,8 @@
     renderHeroTitle();
     var p = $("chat-portrait");
     if (p) p.outerHTML = avatarMarkup(c.name, "relic-portrait", "chat-portrait");
+    // their own theme while you talk to them (falls back to the route bed if absent)
+    if (window.MusicLayer && $("music-toggle").checked) window.MusicLayer.setCharacter(slug(c.name));
     showView("chat");
     renderTranscript();   // show what we have immediately (placeholder or local history)
     // Load the persisted transcript so the conversation survives a reload. Only
