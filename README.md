@@ -20,8 +20,8 @@ Scaffold + grounded character chat:
 - **Grounded chat** (`prompt_builder.py` + `llm_client.py`) — the two-bucket wall:
   SaveTruth sacred, character voice + Living Memory free. Claude `claude-opus-4-8`.
 - **Living Memory** (`living_memory.py`) — ask / remember / recall across sessions.
-- **Determination Chronicle** style layer (`static/`) + ComfyUI pixel-portrait
-  pipeline (`comfy_workflows/`).
+- **Ember** — the front-end shell + Undertale-flavoured style layer (`static/`) +
+  ComfyUI pixel-portrait pipeline (`comfy_workflows/`).
 - **Inspector** (`inspector.py`) — inherited QA harness, sweeps day one.
 
 ## Run
