@@ -215,9 +215,10 @@
     if (window.SceneLayer) window.SceneLayer.setRoute(route);
     // tint the header sigil red on the Genocide beat.
     $("header-sigil").className = "soul-sigil" + (route === "Genocide" ? " determined" : "");
-    // Genocide feel: destabilise the dialogue (root class) + one blood-red flash
-    // fired only when the route first resolves to Genocide, not on every render.
-    document.body.classList.toggle("route-genocide", route === "Genocide");
+    // Route atmosphere: the whole console takes on a faint aura the colour of the
+    // path (warm for Pacifist, cool for Neutral, blood-red for Genocide). Genocide
+    // also destabilises the dialogue (route-genocide) + a one-shot flash on entry.
+    setBodyRoute(route);
     if (route === "Genocide" && state.lastRoute !== "Genocide") flashGenocide();
     state.lastRoute = route;
     // if "let them reach out" is on, resume the proactive timer now a save is live
@@ -227,6 +228,13 @@
   }
   function row(k, v) { return '<div class="k">' + k + "</div><div>" + v + "</div>"; }
 
+  // set the single active route-* class on <body> (drives the aura + genocide feel)
+  function setBodyRoute(route) {
+    var b = document.body, r = (route || "undetermined").toLowerCase();
+    ["pacifist", "neutral", "genocide", "undetermined"].forEach(function (x) {
+      b.classList.toggle("route-" + x, x === r);
+    });
+  }
   // one-shot blood-red flash on entering Genocide (CSS gates it under motion prefs)
   function flashGenocide() {
     var el = $("screen-flash"); if (!el) return;
