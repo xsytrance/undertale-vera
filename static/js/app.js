@@ -756,12 +756,45 @@
   function runWordEgg(msg) {
     if (_eggCooling) return;
     var m = (msg || "").trim(), egg = null;
+    var gen = (((state.truth || {}).route || {}).route === "Genocide");
     if (/^[.…]{2,}$/.test(m)) egg = function () { colorFlash("#3aa0ff"); miniToast("* ...(sans says nothing. but he's watching.)"); };
+    else if (/\bchara\b/i.test(m)) egg = gen ? openHiddenRoom : function () { miniToast("* a name you shouldn't know."); };
     else { for (var i = 0; i < WORD_EGGS.length; i++) { if (WORD_EGGS[i].re.test(m)) { egg = WORD_EGGS[i].run; break; } } }
     if (!egg) return;
     _eggCooling = true; setTimeout(function () { _eggCooling = false; }, 3500);
     egg();
   }
+
+  // A hidden room — only reachable on a Genocide save (say "chara"). It knows you.
+  function openHiddenRoom() {
+    if ($("hidden-room")) return;
+    var ov = document.createElement("div"); ov.id = "hidden-room"; ov.className = "hidden-room";
+    ov.innerHTML = '<div class="hr-box"><span class="soul-sigil determined hr-sigil" aria-hidden="true"></span>' +
+      '<div class="hr-lines" id="hr-lines"></div><div class="hr-close">(click anywhere to leave)</div></div>';
+    document.body.appendChild(ov);
+    ov.onclick = function () { if (ov.parentNode) ov.parentNode.removeChild(ov); };
+    var lines = ["...", "so you found me.", "the one who remembers this place.", "we are the same, you and i.", "...", "shall we go further?"];
+    var el = $("hr-lines"), i = 0;
+    (function next() {
+      if (i >= lines.length || !$("hidden-room")) return;
+      var p = document.createElement("div"); p.className = "hr-line"; p.textContent = "* " + lines[i++];
+      el.appendChild(p);
+      setTimeout(next, 1150);
+    })();
+  }
+
+  // Rapid-tap a character's portrait in the chat banner and they react.
+  var EMOTES = {
+    "Sans": "* heh. what?",
+    "Papyrus": "* NYEH?! YOU REQUIRE THE GREAT PAPYRUS?",
+    "Flowey": "* Hee hee hee. Poking me?",
+    "Toriel": "* Oh! Hello, my child.",
+    "Undyne": "* HEY! Quit poking me, punk!",
+    "Alphys": "* A-ah! W-what is it?!",
+    "Asgore": "* Howdy. Did you need something?",
+    "Mettaton": "* Ooh, a fan! Mind the finish, darling.",
+    "Napstablook": "* oh... did you need me... sorry...",
+  };
   function selectCharacter(c) {
     // no save yet? let them HEAR the voice and nudge them to read a save to talk.
     if (!state.projectId) {
@@ -1742,6 +1775,30 @@
       var k = (e.key || "").length === 1 ? e.key.toLowerCase() : e.key;
       if (k === KONAMI[kpos]) { if (++kpos === KONAMI.length) { kpos = 0; determinationBurst("* The Underground bends to your DETERMINATION."); } }
       else { kpos = (k === KONAMI[0]) ? 1 : 0; }
+    });
+    // secret — the corner code (works on touch): tap the four corners clockwise
+    var corners = [], cornerT = null, SEQ = "TL,TR,BR,BL";
+    document.addEventListener("pointerdown", function (e) {
+      var x = e.clientX, y = e.clientY, W = innerWidth, H = innerHeight, m = 72;
+      var c = (x < m && y < m) ? "TL" : (x > W - m && y < m) ? "TR" :
+              (x > W - m && y > H - m) ? "BR" : (x < m && y > H - m) ? "BL" : null;
+      if (!c) return;
+      clearTimeout(cornerT); cornerT = setTimeout(function () { corners = []; }, 3000);
+      corners.push(c); if (corners.length > 4) corners.shift();
+      if (corners.join() === SEQ) { corners = []; determinationBurst("* the corners of the world fold inward."); }
+    });
+    // secret — rapid-tap a character's portrait in the chat banner → they react
+    var emoteTaps = 0, emoteT = null;
+    $("chat-hero").addEventListener("click", function (e) {
+      var port = e.target.closest && e.target.closest(".relic-portrait");
+      if (!port || !state.character) return;
+      clearTimeout(emoteT); emoteT = setTimeout(function () { emoteTaps = 0; }, 1200);
+      if (++emoteTaps >= 5) {
+        emoteTaps = 0;
+        miniToast(EMOTES[state.character] || "* ...?");
+        if (window.VoiceLayer) window.VoiceLayer.preview(state.character);
+        port.classList.remove("emote-bounce"); void port.offsetWidth; port.classList.add("emote-bounce");
+      }
     });
     $("save-pill").onclick = function () { openDrawer("left"); };
     $("modes-btn").onclick = function (e) {

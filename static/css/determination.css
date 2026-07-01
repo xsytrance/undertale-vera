@@ -125,6 +125,25 @@ body.route-genocide .route-aura {
 .hud-no-motion .dt-flash, .hud-no-motion .dt-gem, .hud-no-motion .fall-item { animation: none !important; opacity: 0 !important; }
 @media (prefers-reduced-motion: reduce) { .dt-flash, .dt-gem, .fall-item { animation: none !important; opacity: 0 !important; } }
 
+/* Easter egg: the Genocide-only hidden room + rapid-tap character emote */
+.hidden-room {
+  position: fixed; inset: 0; z-index: 9990; cursor: pointer;
+  background: radial-gradient(circle at 50% 40%, rgba(40,6,10,.97), #050203 75%);
+  display: flex; align-items: center; justify-content: center; animation: hr-in .4s ease;
+}
+@keyframes hr-in { from { opacity: 0; } to { opacity: 1; } }
+.hr-box { text-align: center; max-width: 480px; padding: 24px; }
+.hr-sigil { width: 40px !important; height: 40px !important; margin-bottom: 22px; animation: hr-pulse 2.2s ease-in-out infinite; }
+@keyframes hr-pulse { 50% { transform: scale(1.15); filter: brightness(1.4); } }
+.hr-lines { display: flex; flex-direction: column; gap: 12px; min-height: 210px; }
+.hr-line { color: #d98a90; font-family: var(--font-mono); font-size: 1rem; animation: hr-line-in .5s ease; }
+@keyframes hr-line-in { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+.hr-close { margin-top: 26px; color: #6b3a3e; font-family: var(--font-mono); font-size: .76rem; }
+.emote-bounce { animation: emote-bounce .5s ease; }
+@keyframes emote-bounce { 0%,100% { transform: translateY(0); } 30% { transform: translateY(-8px); } 55% { transform: translateY(2px); } }
+.hud-no-motion .hidden-room, .hud-no-motion .hr-sigil, .hud-no-motion .hr-line, .hud-no-motion .emote-bounce { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .hidden-room, .hr-sigil, .hr-line, .emote-bounce { animation: none !important; } }
+
 h1, h2, h3, .display {
   font-family: var(--font-display);
   color: var(--brass-edge);
