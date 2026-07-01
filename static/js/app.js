@@ -15,7 +15,7 @@
   // ── the view router ───────────────────────────────────────────────────────
   // Exactly one stage view is .active at a time. Switching a character or a
   // feature swaps the stage only — the rails never move, nothing scrolls away.
-  var VIEWS = ["chat", "council", "timeline", "journal", "constellation", "chronicle", "judgment", "reports", "saves"];
+  var VIEWS = ["chat", "council", "timeline", "journal", "constellation", "chronicle", "judgment", "reports", "soundtest", "saves"];
 
   // Original "Determination" aphorisms — OUR lines (not Undertale quotes) — for the
   // rail's quote-of-the-day and the chat empty state, so the shell never feels bare.
@@ -103,6 +103,7 @@
     "Mettaton": "star of the underground", "Napstablook": "the quiet one",
   };
   function showView(name) {
+    if (state.view === "soundtest" && name !== "soundtest") leaveSoundTest();
     state.view = name;
     VIEWS.forEach(function (v) {
       var el = $("view-" + v); if (el) el.classList.toggle("active", v === name);
@@ -131,6 +132,8 @@
       body: "You'll be judged for your every action. The verdict is grounded in exactly what your save shows — nothing invented — and you can ask a character to say it to your face." },
     reports: { icon: "📋", title: "Report Cards",
       body: "Each character files an after-action report on your run: how you did, what you might've done differently, and what THEY would have done. Keep a history, save favourites to your Journal, or have them emailed to you." },
+    soundtest: { icon: "🎵", title: "Sound Test",
+      body: "Play the whole soundtrack — the main theme, the three route beds, and every character's theme. Switch to Jam mode to layer any characters together (all, some, or none) and let them collide. A visualizer reacts to whatever's playing." },
   };
   function maybeIntro(key) {
     var f = FEATURES[key]; if (!f) return;
@@ -155,6 +158,7 @@
       case "chronicle": return showChronicle();
       case "judgment": return showJudgment();
       case "reports": return showReports();
+      case "soundtest": return showSoundTest();
       case "saves": return showView("saves");
       default: return showView("chat");
     }
@@ -1220,6 +1224,114 @@
     downloadText(md, "report_cards.md");
   }
 
+  // ── Sound Test (interactive soundtrack: jukebox · jam · visualizer) ────────
+  var _stMusicWasPlaying = false, _stRAF = null;
+  function showSoundTest() {
+    if (!window.SoundTest) return;
+    buildSoundTest();
+    if (window.MusicLayer && MusicLayer.audio) {   // hush the ambient bed while here
+      _stMusicWasPlaying = !MusicLayer.audio.paused;
+      if (_stMusicWasPlaying) MusicLayer.audio.pause();
+    }
+    showView("soundtest");
+    startVisualizer();
+  }
+  function leaveSoundTest() {
+    stopVisualizer();
+    if (window.SoundTest) SoundTest.stopAll();
+    syncSoundTestUI();
+    if (_stMusicWasPlaying && window.MusicLayer && MusicLayer._resume) MusicLayer._resume();
+    _stMusicWasPlaying = false;
+  }
+  function buildSoundTest() {
+    var g = $("st-groups"); if (!g) return;
+    g.innerHTML = "";
+    var cat = SoundTest.catalog();
+    g.appendChild(stGroup("Main", cat.main, "main"));
+    g.appendChild(stGroup("Routes", cat.routes, "routes"));
+    g.appendChild(stGroup("The Cast", cat.cast, "cast"));
+    var all = $("st-all"), none = $("st-none");
+    if (all) all.onclick = function () {
+      setSoundTestMode("jam");
+      SoundTest.catalog().cast.forEach(function (t) { if (!SoundTest.isActive(t.id)) SoundTest.toggle(t.id); });
+      syncSoundTestUI();
+    };
+    if (none) none.onclick = function () { SoundTest.stopAll(); syncSoundTestUI(); };
+    syncSoundTestUI();
+  }
+  function stGroup(title, tracks, kind) {
+    var sec = document.createElement("div"); sec.className = "st-group st-group-" + kind;
+    var head = document.createElement("div"); head.className = "rail-lbl st-group-head"; head.textContent = title;
+    if (kind === "cast") {
+      var an = document.createElement("span"); an.className = "st-allnone";
+      an.innerHTML = '<button class="btn tiny" id="st-all">All</button><button class="btn tiny" id="st-none">None</button>';
+      head.appendChild(an);
+    }
+    sec.appendChild(head);
+    var grid = document.createElement("div"); grid.className = "st-grid";
+    tracks.forEach(function (t) { grid.appendChild(stCard(t, kind)); });
+    sec.appendChild(grid);
+    return sec;
+  }
+  function stCard(t, kind) {
+    var card = document.createElement("button"); card.type = "button";
+    card.className = "st-card st-" + kind + (t.route ? " tln-" + t.route : "");
+    card.dataset.id = t.id;
+    var art = (kind === "cast")
+      ? avatarMarkup(t.name, "st-card-art")
+      : '<span class="soul-sigil st-card-sigil' + (t.route === "genocide" ? " determined" : "") + '"></span>';
+    card.innerHTML = art + '<span class="st-card-label">' + escHtml(t.label) + "</span>" +
+      '<span class="st-card-state">▶</span>';
+    card.onclick = function () { soundtestClick(t.id); };
+    return card;
+  }
+  function soundtestClick(id) {
+    if (SoundTest.mode === "jukebox") {
+      if (SoundTest.isActive(id)) SoundTest.stopAll(); else SoundTest.playSolo(id);
+    } else { SoundTest.toggle(id); }
+    syncSoundTestUI();
+  }
+  function setSoundTestMode(mode) {
+    if (window.SoundTest) SoundTest.mode = mode;
+    $$(".st-mode").forEach(function (b) { b.classList.toggle("sel", b.dataset.mode === mode); });
+  }
+  function syncSoundTestUI() {
+    var labels = [];
+    $$(".st-card").forEach(function (c) {
+      var on = window.SoundTest && SoundTest.isActive(c.dataset.id);
+      c.classList.toggle("playing", !!on);
+      var st = c.querySelector(".st-card-state"); if (st) st.textContent = on ? "⏸" : "▶";
+      if (on) { var l = c.querySelector(".st-card-label"); if (l) labels.push(l.textContent); }
+    });
+    var np = $("st-np-label");
+    if (np) np.textContent = labels.length
+      ? labels.join("  ·  ") + (labels.length > 1 ? "   — " + labels.length + " jamming" : "")
+      : "— nothing playing —";
+  }
+  function startVisualizer() { stopVisualizer(); drawViz(); }
+  function stopVisualizer() { if (_stRAF) cancelAnimationFrame(_stRAF); _stRAF = null; }
+  function drawViz() {
+    _stRAF = requestAnimationFrame(drawViz);
+    var canvas = $("st-canvas"); if (!canvas || !window.SoundTest) return;
+    var g = canvas.getContext("2d"), W = canvas.width, H = canvas.height;
+    g.clearRect(0, 0, W, H);
+    var data = SoundTest.bars();
+    if (data) {
+      var n = data.length, bw = W / n;
+      for (var i = 0; i < n; i++) {
+        var v = data[i] / 255, h = v * H;
+        g.fillStyle = "rgba(232,162,76," + (0.3 + 0.7 * v) + ")";
+        g.fillRect(i * bw + 1, H - h, bw - 2, h);
+      }
+    }
+    var sigil = $("st-sigil");
+    if (sigil) {
+      var lvl = SoundTest.level();
+      sigil.style.transform = "scale(" + (1 + lvl * 0.7) + ")";
+      sigil.style.filter = "brightness(" + (1 + lvl * 0.9) + ")";
+    }
+  }
+
   // ── The Timeline (the save's history, with resets marked) ──────────────────
   function showTimeline() {
     if (!state.projectId) return;
@@ -1475,6 +1587,11 @@
     $("report-digest-btn").onclick = emailDigest;
     $("report-filter").onchange = loadReports;
     $("report-archived-toggle").onchange = loadReports;
+    // Sound Test controls
+    $$(".st-mode").forEach(function (b) { b.onclick = function () { setSoundTestMode(b.dataset.mode); }; });
+    $("st-stop").onclick = function () { if (window.SoundTest) SoundTest.stopAll(); syncSoundTestUI(); };
+    $("st-vol").oninput = function () { if (window.SoundTest) SoundTest.setMasterVolume(this.value / 100); };
+    $("st-loop").onchange = function () { if (window.SoundTest) SoundTest.setLoop(this.checked); };
 
     // "let them reach out" — CTA opens an explainer modal with the yes/no choice
     syncReachCta();

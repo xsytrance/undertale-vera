@@ -130,6 +130,18 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 .chat-empty-quote { color: var(--ember) !important; }
 .chat-empty-prompt { color: var(--ink-dim) !important; }
 .typing-dots i { background: #fff !important; }
+/* Sound Test → pixel boxes; route/playing colours the left edge */
+.st-nowplaying, .st-card { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+.st-card.playing { border-left-color: var(--ember) !important; box-shadow: none !important; background: #000 !important; }
+.st-card.tln-pacifist { border-left-color: var(--ember) !important; }
+.st-card.tln-neutral { border-left-color: var(--brass-edge) !important; }
+.st-card.tln-genocide { border-left-color: var(--determination) !important; }
+.st-card-art { border: 2px solid #fff !important; border-radius: 0 !important; background: #000 !important; }
+.st-card-label { color: #fff !important; }
+.st-np-label { color: var(--ink-dim) !important; }
+.st-modes { border: 2px solid #fff !important; border-radius: 0 !important; }
+.st-mode { color: #fff !important; }
+.st-mode.sel { background: #fff !important; color: #000 !important; }
 .chat-hero .dialogue-name { color: #fff !important; }
 .hero-epithet { color: var(--ink-dim) !important; }
 .chat-hero-menu { color: #fff !important; border: 2px solid #fff !important; border-radius: 0 !important; }
