@@ -130,6 +130,13 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 .chat-empty-quote { color: var(--ember) !important; }
 .chat-empty-prompt { color: var(--ink-dim) !important; }
 .typing-dots i { background: #fff !important; }
+/* top-bar Modes button + dropdown → pixel boxes */
+.topbar-modes { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; color: var(--ember) !important; }
+.topbar-modes:hover { background: #fff !important; color: #000 !important; box-shadow: none !important; }
+.modes-menu { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+.modes-item { color: #fff !important; }
+.modes-item:hover { background: #fff !important; color: #000 !important; }
+.modes-item.sel { color: var(--ember) !important; }
 /* Sound Test → pixel boxes; route/playing colours the left edge */
 .st-nowplaying, .st-card { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
 .st-card.playing { border-left-color: var(--ember) !important; box-shadow: none !important; background: #000 !important; }

@@ -116,6 +116,42 @@
     var st = $("stage"); if (st) st.scrollTop = 0;
   }
 
+  // Top-bar "Modes" menu — every mode, one click away, never buried under saves.
+  var MODES = [
+    { view: "chat", label: "💬 Chat" },
+    { view: "council", label: "🗣 The Council" },
+    { view: "timeline", label: "🕰 Timeline" },
+    { view: "journal", label: "📖 Keepsake Journal" },
+    { view: "constellation", label: "🌌 Across Your Saves", needsMulti: true },
+    { view: "chronicle", label: "📜 The Chronicle" },
+    { view: "judgment", label: "⚖ Judgment" },
+    { view: "reports", label: "📋 Report Cards" },
+    { view: "soundtest", label: "🎵 Sound Test" },
+  ];
+  function closeModesMenu() {
+    var m = $("modes-menu"); if (m) m.parentNode.removeChild(m);
+    var btn = $("modes-btn"); if (btn) btn.setAttribute("aria-expanded", "false");
+    document.removeEventListener("click", closeModesMenu, true);
+  }
+  function openModesMenu(anchor) {
+    closeModesMenu();
+    var m = document.createElement("div"); m.id = "modes-menu"; m.className = "modes-menu"; m.setAttribute("role", "menu");
+    MODES.forEach(function (md) {
+      if (md.needsMulti && !state.multiSave) return;
+      var b = document.createElement("button");
+      b.className = "modes-item" + (state.view === md.view ? " sel" : "");
+      b.textContent = md.label;
+      b.onclick = function (e) { e.stopPropagation(); closeModesMenu(); navTo(md.view); };
+      m.appendChild(b);
+    });
+    document.body.appendChild(m);
+    var r = anchor.getBoundingClientRect();
+    m.style.top = (r.bottom + 6) + "px";
+    m.style.right = Math.max(6, window.innerWidth - r.right) + "px";
+    anchor.setAttribute("aria-expanded", "true");
+    setTimeout(function () { document.addEventListener("click", closeModesMenu, true); }, 0);
+  }
+
   // First-time explainers — a one-shot modal the first time you open each feature.
   var FEATURES = {
     council: { icon: "🗣", title: "The Council",
@@ -372,8 +408,9 @@
         el.innerHTML = '<p class="muted" style="font-size:.78rem;">No saves yet.</p>';
       }
       // "Across Your Saves" only means something once there's more than one save.
+      state.multiSave = (res.projects || []).length >= 2;   // gates "Across Your Saves"
       var navC = $("nav-constellation");
-      if (navC) navC.classList.toggle("hidden", (res.projects || []).length < 2);
+      if (navC) navC.classList.toggle("hidden", !state.multiSave);
     });
   }
 
@@ -1566,6 +1603,10 @@
     $("scrim").onclick = closeDrawers;
     $("chat-hero-menu").onclick = function () { openDrawer("left"); };   // escape chat → features
     $("save-pill").onclick = function () { openDrawer("left"); };
+    $("modes-btn").onclick = function (e) {
+      e.stopPropagation();
+      if ($("modes-menu")) closeModesMenu(); else openModesMenu(this);
+    };
     $("add-save-btn").onclick = function () { showView("saves"); };
 
     // save read / refresh
@@ -1604,6 +1645,7 @@
     $("feature-modal").addEventListener("click", function (e) { if (e.target === this) closeFeatureModal(); });
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
+      if ($("modes-menu")) closeModesMenu();
       if (!$("reach-modal").classList.contains("hidden")) closeReachModal();
       if (!$("feature-modal").classList.contains("hidden")) closeFeatureModal();
     });
