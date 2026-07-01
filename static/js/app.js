@@ -380,7 +380,8 @@
     api("/api/characters").then(function (res) {
       state.characters = res.characters;
       renderRoster();
-      loadAffinities();   // decorate cards with how each regards you
+      loadAffinities();   // decorate cards with how each regards you (no-op without a save)
+      if (!state.character) renderTranscript();   // fill the welcome's cast row once loaded
     });
   }
 
@@ -511,7 +512,21 @@
     });
   }
 
+  // a brief, tappable nudge (reuses the reach-toast surface)
+  function miniToast(msg) {
+    var t = $("reach-toast"); if (!t) return;
+    t.innerHTML = ""; t.textContent = msg;
+    t.classList.remove("hidden");
+    t.onclick = function () { t.classList.add("hidden"); };
+    clearTimeout(t._timer); t._timer = setTimeout(function () { t.classList.add("hidden"); }, 3800);
+  }
   function selectCharacter(c) {
+    // no save yet? let them HEAR the voice and nudge them to read a save to talk.
+    if (!state.projectId) {
+      if (window.VoiceLayer) window.VoiceLayer.preview(c.name);
+      miniToast("Read a save to talk to " + c.name + " — tap “＋ Read a save”.");
+      return;
+    }
     state.character = c.name;
     if (!state.history[c.name]) state.history[c.name] = [];
     $$("#roster .char-card, #speaker-strip .face").forEach(function (el) {
@@ -550,11 +565,26 @@
     // once a speaker is chosen, mobile chat goes immersive (chrome slides away)
     document.body.classList.toggle("chatting", !!state.character);
     if (!state.character) {
+      var cast = state.characters || [];
+      var castHtml = cast.map(function (c) {
+        return '<button class="ce-face" type="button" data-name="' + escHtml(c.name) + '" title="' +
+          (state.projectId ? "Talk to " : "Hear ") + escHtml(c.name) + '">' +
+          avatarMarkup(c.name, "ce-face-img") + "<span>" + escHtml(c.name) + "</span></button>";
+      }).join("");
       t.innerHTML = '<div class="chat-empty">' +
         '<span class="soul-sigil chat-empty-sigil" aria-hidden="true"></span>' +
         '<p class="chat-empty-prompt">' +
-        (state.projectId ? "Pick someone from the cast to talk to." : "Read a save, then pick someone to talk to.") +
-        '</p><p class="chat-empty-quote">“' + quoteOfDay() + '”</p></div>';
+        (state.projectId ? "Pick someone to talk to." : "Read a save to begin — or tap a face to hear their voice.") +
+        "</p>" +
+        (cast.length ? '<div class="chat-empty-cast">' + castHtml + "</div>" : "") +
+        '<p class="chat-empty-quote">“' + quoteOfDay() + '”</p></div>';
+      $$(".ce-face").forEach(function (btn) {
+        btn.onclick = function () {
+          var c = charByName(btn.dataset.name);
+          if (state.projectId && c) selectCharacter(c);
+          else if (window.VoiceLayer) window.VoiceLayer.preview(btn.dataset.name);
+        };
+      });
       return;
     }
     (state.history[state.character] || []).forEach(function (m) {
@@ -1282,6 +1312,7 @@
 
     document.body.classList.add("on-chat");
     loadShelf();
-    renderTranscript();   // chat starts with the "read a save" placeholder
+    loadRoster();          // meet the cast right away (voices previewable before a save)
+    renderTranscript();   // chat starts with the welcome (cast row fills once loaded)
   });
 })();
