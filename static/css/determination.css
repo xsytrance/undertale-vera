@@ -40,6 +40,27 @@
 
 * { box-sizing: border-box; }
 
+/* ── global polish: in-palette scrollbars, keyboard focus rings, view fade ──── */
+* { scrollbar-width: thin; scrollbar-color: var(--plate-frame) transparent; }
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: var(--plate-frame); border-radius: 8px;
+  border: 2px solid transparent; background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover { background: var(--brass); background-clip: padding-box; }
+
+/* a clear ember ring for keyboard users only (mouse clicks stay clean) */
+:focus-visible { outline: 2px solid var(--ember); outline-offset: 2px; }
+
+/* a subtle rise+fade when a view becomes active */
+.view.active { animation: view-in .24s ease; }
+@keyframes view-in { from { opacity: .35; transform: translateY(5px); } to { opacity: 1; transform: none; } }
+/* tactile press on buttons */
+.btn:active, .st-card:active, .save-card:active, .reach-cta:active { transform: translateY(1px); }
+.hud-no-motion .view.active { animation: none; }
+@media (prefers-reduced-motion: reduce) { .view.active { animation: none; } }
+
 body {
   margin: 0;
   min-height: 100vh;
