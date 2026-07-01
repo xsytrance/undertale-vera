@@ -25,19 +25,26 @@
   var PREF_KEY = "undertale-vera:music:v1";
   var MENU_TRACK = "a-new-save-file";  // the one bed that ships (gitignored on the server)
 
-  // Static catalog (flavour only; structure is portable).
+  // Static catalog (flavour only; structure is portable). The route beds are
+  // optional — drop the files on the server to hear them; until then the layer
+  // falls back to the main theme (see the 'error' handler in init), so a missing
+  // bed is silent-safe rather than a 404 into no music.
   var TRACKS = {
-    "a-new-save-file": { title: "A New Save File", url: "/audio/a-new-save-file.mp3", ambient: true }
+    "a-new-save-file": { title: "A New Save File", url: "/audio/a-new-save-file.mp3", ambient: true },
+    "route-pacifist":  { title: "Mercy",          url: "/audio/route-pacifist.mp3",  ambient: true },
+    "route-neutral":   { title: "The In-Between",  url: "/audio/route-neutral.mp3",   ambient: true },
+    "route-genocide":  { title: "Dust",            url: "/audio/route-genocide.mp3",  ambient: true }
   };
 
-  // Per-route bed. Every route points at the main theme today; swap individual
-  // entries here (plus a TRACKS entry + the audio file) to add route beds.
+  // Per-route bed. Each route prefers its own track; if that file isn't present
+  // it falls back to the main theme (and remembers, to avoid restart churn).
   var ROUTE_TRACK = {
-    Pacifist: MENU_TRACK,
-    Neutral: MENU_TRACK,
-    Genocide: MENU_TRACK,
+    Pacifist: "route-pacifist",
+    Neutral: "route-neutral",
+    Genocide: "route-genocide",
     undetermined: MENU_TRACK
   };
+  var _failed = {};   // track ids whose audio file 404'd this session
 
   function loadPrefs() {
     try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; }
@@ -60,6 +67,14 @@
       this.audio.loop = true;
       this.audio.volume = (this.prefs.volume != null) ? this.prefs.volume : 0.22;
       if (this.prefs.enabled === undefined) this.prefs.enabled = true;  // on by default, quiet
+      var self = this;
+      // a missing route bed → remember it and fall back to the main theme
+      this.audio.addEventListener("error", function () {
+        if (self.current && self.current !== MENU_TRACK) {
+          _failed[self.current] = true;
+          self.play(MENU_TRACK);
+        }
+      });
       return this;
     },
 
@@ -101,9 +116,12 @@
       savePrefs(this.prefs);
     },
 
-    // Drive the bed from the live SaveTruth route (if enabled).
+    // Drive the bed from the live SaveTruth route (if enabled). A route whose bed
+    // is known-missing plays the main theme directly (no 404, no restart churn).
     setRoute: function (route) {
-      this.play(ROUTE_TRACK[route] || ROUTE_TRACK.undetermined);
+      var id = ROUTE_TRACK[route] || ROUTE_TRACK.undetermined;
+      if (_failed[id]) id = MENU_TRACK;
+      this.play(id);
     },
 
     // Attempt playback; on autoplay block, arm a one-shot gesture retry.
