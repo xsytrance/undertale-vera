@@ -16,6 +16,9 @@
        in over it when present (static/assets/scenes/<route>.png, gitignored). -->
   <div id="scene-backdrop" class="scene-backdrop scene-undetermined" aria-hidden="true"></div>
 
+  <!-- brief blood-red flash fired once when a save resolves to the Genocide route -->
+  <div id="screen-flash" class="screen-flash" aria-hidden="true"></div>
+
   <!-- ░░░ THE CONSOLE — a persistent app shell ░░░
        Top bar · left rail (saves + cast + views) · stage (one active view) ·
        right rail (the save). On mobile the rails become drawers and a bottom
@@ -55,6 +58,17 @@
           <button data-view="chronicle" class="navitem">📜 The Chronicle</button>
           <button data-view="judgment" class="navitem">⚖ Judgment</button>
         </nav>
+      </div>
+      <div class="rail-sec">
+        <div class="rail-lbl">Company</div>
+        <button class="reach-cta" id="reach-cta" aria-haspopup="dialog">
+          <span class="reach-cta-icon">✉</span>
+          <span class="reach-cta-body">
+            <span class="reach-cta-title">Let them reach out</span>
+            <span class="reach-cta-sub">the cast can message you first</span>
+          </span>
+          <span class="reach-cta-state" id="reach-cta-state">Off</span>
+        </button>
       </div>
     </aside>
 
@@ -149,9 +163,12 @@
       <div style="margin-top:10px;"><span class="route-badge" id="route-badge"></span></div>
       <div class="remembrance hidden" id="remembrance-box"></div>
       <div class="recognition hidden" id="recognition-box" role="note"></div>
-      <div class="rail-sec" style="margin-top:14px;">
-        <label class="muted toggle"><input type="checkbox" id="music-toggle" /> ambient music (route-aware)</label>
-        <label class="muted toggle"><input type="checkbox" id="reachout-toggle" /> let them reach out to you</label>
+      <div class="rail-sec rail-ambient" style="margin-top:16px;">
+        <div class="rail-lbl">Ambient</div>
+        <label class="switch-row" for="music-toggle">
+          <span class="switch-note"><span class="switch-icon">♪</span> Theme music</span>
+          <input type="checkbox" id="music-toggle" class="switch" />
+        </label>
       </div>
     </aside>
 
@@ -184,6 +201,23 @@
       <label>Backdrop motion <input type="checkbox" id="hud-motion" checked /></label>
       <label>Typewriter <select id="hud-typewriter"><option value="0">instant</option><option value="18" selected>normal</option><option value="42">slow</option></select></label>
       <label>Text blip <input type="checkbox" id="hud-blip" checked /></label>
+    </div>
+  </div>
+
+  <!-- "let them reach out" explainer + opt-in modal -->
+  <div id="reach-modal" class="modal-scrim hidden" role="dialog" aria-modal="true" aria-labelledby="reach-modal-title">
+    <div class="modal">
+      <div class="modal-icon">✉</div>
+      <h2 id="reach-modal-title">Let them reach out to you</h2>
+      <p>Turn this on and the Underground stops waiting to be spoken to. Every so often, whoever
+         has the most at stake in your save — grief and anger speak loudest — will send you an
+         <em>unprompted</em> message, in their own voice, about what your save actually shows.</p>
+      <p class="modal-fine">Same wall as chat: they colour <em>how</em> they speak, never invent
+         <em>what</em> your save says. Tap a message to answer it — and switch this off anytime.</p>
+      <div class="modal-actions">
+        <button class="modal-btn ghost" id="reach-no">No, keep quiet</button>
+        <button class="modal-btn primary" id="reach-yes">Yes, let them</button>
+      </div>
     </div>
   </div>
 
