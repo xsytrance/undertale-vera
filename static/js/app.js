@@ -9,6 +9,24 @@
 
   var state = { projectId: null, character: null, characters: [], history: {}, view: "chat" };
 
+  // Global audio master — the top-bar volume/mute every sound respects (the music
+  // bed, typing/character voices, UI blips, and the Sound Test). gain() returns 0
+  // when muted; each audio layer multiplies its own output by it.
+  var AudioBus = {
+    volume: 1, muted: false, _fns: [],
+    load: function () {
+      try { var s = JSON.parse(localStorage.getItem("uv_audio") || "{}");
+        if (s.volume != null) this.volume = s.volume; if (s.muted != null) this.muted = s.muted; } catch (e) {}
+    },
+    save: function () { try { localStorage.setItem("uv_audio", JSON.stringify({ volume: this.volume, muted: this.muted })); } catch (e) {} },
+    gain: function () { return this.muted ? 0 : this.volume; },
+    setVolume: function (v) { this.volume = Math.max(0, Math.min(1, v)); if (this.volume > 0) this.muted = false; this.save(); this._notify(); },
+    setMuted: function (m) { this.muted = !!m; this.save(); this._notify(); },
+    onChange: function (fn) { this._fns.push(fn); },
+    _notify: function () { var g = this.gain(); this._fns.forEach(function (fn) { try { fn(g); } catch (e) {} }); },
+  };
+  window.AudioBus = AudioBus;
+
   function $(id) { return document.getElementById(id); }
   function $$(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
 
@@ -150,6 +168,40 @@
     m.style.right = Math.max(6, window.innerWidth - r.right) + "px";
     anchor.setAttribute("aria-expanded", "true");
     setTimeout(function () { document.addEventListener("click", closeModesMenu, true); }, 0);
+  }
+
+  // Top-bar master volume + mute popover.
+  function updateAudioBtn() {
+    var b = $("audio-btn"); if (!b) return;
+    b.textContent = (AudioBus.muted || AudioBus.volume === 0) ? "🔇" : (AudioBus.volume < 0.5 ? "🔉" : "🔊");
+    b.setAttribute("aria-label", AudioBus.muted ? "Muted" : "Volume");
+  }
+  function closeAudioMenu() {
+    var m = $("audio-menu"); if (m) m.parentNode.removeChild(m);
+    var btn = $("audio-btn"); if (btn) btn.setAttribute("aria-expanded", "false");
+    document.removeEventListener("click", closeAudioMenu, false);
+  }
+  function openAudioMenu(anchor) {
+    closeAudioMenu();
+    var m = document.createElement("div"); m.id = "audio-menu"; m.className = "audio-menu";
+    m.innerHTML =
+      '<button class="audio-mute" id="audio-mute" type="button"></button>' +
+      '<label class="audio-slider">Volume <input type="range" id="audio-vol" min="0" max="100" /></label>';
+    m.addEventListener("click", function (e) { e.stopPropagation(); });   // don't close on inner clicks
+    document.body.appendChild(m);
+    var r = anchor.getBoundingClientRect();
+    m.style.top = (r.bottom + 6) + "px";
+    m.style.right = Math.max(6, window.innerWidth - r.right) + "px";
+    anchor.setAttribute("aria-expanded", "true");
+    function refresh() {
+      var mu = $("audio-mute"), v = $("audio-vol"); if (!mu || !v) return;
+      mu.textContent = AudioBus.muted ? "🔇 Unmute all" : "🔊 Mute all";
+      v.value = Math.round(AudioBus.volume * 100); v.disabled = AudioBus.muted;
+    }
+    refresh();
+    $("audio-mute").onclick = function () { AudioBus.setMuted(!AudioBus.muted); updateAudioBtn(); refresh(); };
+    $("audio-vol").oninput = function () { AudioBus.setVolume(this.value / 100); updateAudioBtn(); };
+    setTimeout(function () { document.addEventListener("click", closeAudioMenu, false); }, 0);
   }
 
   // First-time explainers — a one-shot modal the first time you open each feature.
@@ -1580,6 +1632,7 @@
 
   window.addEventListener("DOMContentLoaded", function () {
     state.settings = loadSettings();
+    AudioBus.load();   // load the master volume/mute before any audio inits
     syncSettingsControls();
     applyHud();
     if (window.MusicLayer) {
@@ -1611,6 +1664,16 @@
     $("modes-btn").onclick = function (e) {
       e.stopPropagation();
       if ($("modes-menu")) closeModesMenu(); else openModesMenu(this);
+    };
+    // global audio master (volume + mute) — every layer reads AudioBus.gain()
+    AudioBus.onChange(function () {
+      if (window.MusicLayer && MusicLayer.applyMaster) MusicLayer.applyMaster();
+      if (window.SoundTest && SoundTest.applyMaster) SoundTest.applyMaster();
+    });
+    updateAudioBtn();
+    $("audio-btn").onclick = function (e) {
+      e.stopPropagation();
+      if ($("audio-menu")) closeAudioMenu(); else openAudioMenu(this);
     };
     $("add-save-btn").onclick = function () { showView("saves"); };
 
@@ -1651,6 +1714,7 @@
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
       if ($("modes-menu")) closeModesMenu();
+      if ($("audio-menu")) closeAudioMenu();
       if (!$("reach-modal").classList.contains("hidden")) closeReachModal();
       if (!$("feature-modal").classList.contains("hidden")) closeFeatureModal();
     });

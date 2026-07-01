@@ -45,7 +45,7 @@
       var AC = window.AudioContext || window.webkitAudioContext;
       if (!AC) return null;
       this.ctx = new AC();
-      this.master = this.ctx.createGain(); this.master.gain.value = this.masterVol;
+      this.master = this.ctx.createGain(); this.master.gain.value = this.masterVol * this._bus();
       this.analyser = this.ctx.createAnalyser(); this.analyser.fftSize = 128;
       this.freq = new Uint8Array(this.analyser.frequencyBinCount);
       this.master.connect(this.analyser); this.analyser.connect(this.ctx.destination);
@@ -83,7 +83,9 @@
     isActive: function (id) { return !!this.active[id]; },
     activeIds: function () { var out = []; for (var id in this.active) out.push(id); return out; },
     setLoop: function (on) { this.loop = !!on; for (var id in this.nodes) this.nodes[id].audio.loop = this.loop; },
-    setMasterVolume: function (v) { this.masterVol = Math.max(0, Math.min(1, v)); if (this.master) this.master.gain.value = this.masterVol; },
+    _bus: function () { return window.AudioBus ? window.AudioBus.gain() : 1; },   // global master
+    applyMaster: function () { if (this.master) this.master.gain.value = this.masterVol * this._bus(); },
+    setMasterVolume: function (v) { this.masterVol = Math.max(0, Math.min(1, v)); this.applyMaster(); },
 
     // visualizer feeds
     bars: function () { if (!this.analyser) return null; this.analyser.getByteFrequencyData(this.freq); return this.freq; },
