@@ -850,27 +850,62 @@
   }
 
   // ── Proactive contact (they reach out to you) ──────────────────────────────
-  // Opt-in and persisted: once you say yes, the cast keeps reaching out across
-  // visits (resuming quietly on load; an immediate hello only on a fresh yes).
+  // Opt-in and persisted as a cadence: Muted / Rarely / Sometimes / Often. Once
+  // you've turned it on at least once, a quick cadence control appears in the rail
+  // so you can dial it down or mute entirely without reopening the explainer.
   var reachTimer = null;
-  function reachOn() {
-    try { return localStorage.getItem("uv_reachout") === "1"; } catch (e) { return false; }
+  var REACH_MS = { rare: 300000, normal: 180000, often: 90000 };   // base gap per cadence
+  var REACH_LABEL = { off: "Off", rare: "Rarely", normal: "Sometimes", often: "Often" };
+  function reachFreq() {
+    try {
+      var f = localStorage.getItem("uv_reach_freq");
+      if (f) return f;
+      if (localStorage.getItem("uv_reachout") === "1") return "normal";  // migrate old on/off pref
+    } catch (e) {}
+    return "off";
   }
-  function setReachOut(on) {
-    try { localStorage.setItem("uv_reachout", on ? "1" : "0"); } catch (e) {}
-    syncReachCta();
-    if (reachTimer) { clearInterval(reachTimer); reachTimer = null; }
-    if (on) startReachTimer(true);   // a fresh yes → break the silence right away
+  function reachOn() { return reachFreq() !== "off"; }
+  function reachSeen() {
+    try { return localStorage.getItem("uv_reach_seen") === "1" || localStorage.getItem("uv_reachout") === "1"; }
+    catch (e) { return false; }
+  }
+  function writeReachFreq(freq) {
+    try {
+      localStorage.setItem("uv_reach_freq", freq);
+      if (freq !== "off") localStorage.setItem("uv_reach_seen", "1");
+    } catch (e) {}
+  }
+  function stopReachTimer() { if (reachTimer) { clearTimeout(reachTimer); reachTimer = null; } }
+  function reachInterval() {
+    var base = REACH_MS[reachFreq()] || REACH_MS.normal;
+    return Math.round(base * (0.7 + Math.random() * 0.6));   // ±30% jitter so it never feels clockwork
+  }
+  function scheduleReach() {
+    reachTimer = setTimeout(function () { reachOutNow(); scheduleReach(); }, reachInterval());
   }
   function startReachTimer(immediate) {
     if (reachTimer || !reachOn() || !state.projectId) return;
     if (immediate) reachOutNow();
-    reachTimer = setInterval(reachOutNow, 60000);
+    scheduleReach();
+  }
+  // modal yes/no — a fresh yes breaks the silence right away
+  function setReachOut(on) {
+    writeReachFreq(on ? "normal" : "off");
+    syncReachCta(); stopReachTimer();
+    if (on) startReachTimer(true);
+  }
+  // quick cadence control (incl. Muted) — re-cadence only, no immediate hello
+  function setReachFreq(freq) {
+    writeReachFreq(freq);
+    syncReachCta(); stopReachTimer();
+    if (reachOn()) startReachTimer(false);
   }
   function syncReachCta() {
-    var on = reachOn(), cta = $("reach-cta");
-    if (cta) cta.classList.toggle("on", on);
-    var st = $("reach-cta-state"); if (st) st.textContent = on ? "On" : "Off";
+    var freq = reachFreq();
+    var cta = $("reach-cta"); if (cta) cta.classList.toggle("on", freq !== "off");
+    var st = $("reach-cta-state"); if (st) st.textContent = REACH_LABEL[freq] || "Off";
+    var row = $("reach-freq-row"); if (row) row.classList.toggle("hidden", !reachSeen());
+    var sel = $("reach-freq"); if (sel) sel.value = freq;
   }
   function openReachModal() { $("reach-modal").classList.remove("hidden"); }
   function closeReachModal() { $("reach-modal").classList.add("hidden"); }
@@ -883,7 +918,8 @@
   function showReachToast(character, message) {
     var t = $("reach-toast");
     t.innerHTML = "<strong>" + character + "</strong> reached out — <em>tap to answer</em><br/><span></span>";
-    t.querySelector("span").textContent = message;
+    var parsed = parseEmphasis(message);   // strip *markers*, shake the emphatic word
+    applyShake(t.querySelector("span"), parsed.text, parsed.spans);
     t.classList.remove("hidden");
     t.onclick = function () { t.classList.add("hidden"); openCharacter(character); };
     clearTimeout(t._timer);
@@ -996,6 +1032,7 @@
     $("reach-cta").onclick = openReachModal;
     $("reach-yes").onclick = function () { setReachOut(true); closeReachModal(); };
     $("reach-no").onclick = function () { setReachOut(false); closeReachModal(); };
+    $("reach-freq").onchange = function () { setReachFreq(this.value); };
     $("reach-modal").addEventListener("click", function (e) { if (e.target === this) closeReachModal(); });
     document.addEventListener("keydown", function (e) {
       if (e.key === "Escape" && !$("reach-modal").classList.contains("hidden")) closeReachModal();

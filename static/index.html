@@ -64,11 +64,22 @@
         <button class="reach-cta" id="reach-cta" aria-haspopup="dialog">
           <span class="reach-cta-icon">✉</span>
           <span class="reach-cta-body">
-            <span class="reach-cta-title">Let them reach out</span>
-            <span class="reach-cta-sub">the cast can message you first</span>
+            <span class="reach-cta-head">
+              <span class="reach-cta-title">Reach out</span>
+              <span class="reach-cta-state" id="reach-cta-state">Off</span>
+            </span>
+            <span class="reach-cta-sub">the cast messages you first</span>
           </span>
-          <span class="reach-cta-state" id="reach-cta-state">Off</span>
         </button>
+        <label class="reach-freq hidden" id="reach-freq-row">
+          <span>How often</span>
+          <select id="reach-freq">
+            <option value="often">Often</option>
+            <option value="normal">Sometimes</option>
+            <option value="rare">Rarely</option>
+            <option value="off">Muted</option>
+          </select>
+        </label>
       </div>
     </aside>
 
@@ -213,7 +224,8 @@
          has the most at stake in your save — grief and anger speak loudest — will send you an
          <em>unprompted</em> message, in their own voice, about what your save actually shows.</p>
       <p class="modal-fine">Same wall as chat: they colour <em>how</em> they speak, never invent
-         <em>what</em> your save says. Tap a message to answer it — and switch this off anytime.</p>
+         <em>what</em> your save says. Tap a message to answer it. Afterwards you can set how often
+         they reach out — or mute them entirely — right here in the rail.</p>
       <div class="modal-actions">
         <button class="modal-btn ghost" id="reach-no">No, keep quiet</button>
         <button class="modal-btn primary" id="reach-yes">Yes, let them</button>

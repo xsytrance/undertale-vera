@@ -200,3 +200,19 @@ def build_system_prompt(
     )
 
     return "\n\n".join(sections)
+
+
+def emphasis_note() -> str:
+    """A FREE-bucket display cue: invite one shaken word of emphasis, chat-only.
+
+    Chat renders *asterisk-marked* words with an Undertale-style shake and strips
+    the markers. This is pure voice/formatting — it never asserts a save-fact — and
+    is appended ONLY on the chat path (proactive/council/journal render plain text,
+    so we must not tempt asterisks there).
+    """
+    return (
+        "EMPHASIS (free, optional display cue): to give a single word real weight, "
+        "you may wrap it in *asterisks*, like *this*. Use it at most once or twice, "
+        "for a word that truly carries feeling. It is a visual flourish only — never "
+        "use it on, or to assert, any save-fact."
+    )

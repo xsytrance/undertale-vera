@@ -516,15 +516,26 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 }
 .reach-cta:hover { border-left-color: var(--ember); box-shadow: 0 0 14px rgba(232,162,76,.12); }
 .reach-cta.on { border-left-color: var(--ember); background: linear-gradient(180deg, rgba(232,162,76,.12), rgba(0,0,0,0)); }
-.reach-cta-icon { font-size: 1.15rem; color: var(--ember); flex: 0 0 auto; }
-.reach-cta-body { display: flex; flex-direction: column; gap: 2px; flex: 1 1 auto; min-width: 0; }
-.reach-cta-title { font-size: .82rem; font-family: var(--font-display); color: var(--ink); }
-.reach-cta-sub { font-size: .68rem; color: var(--ink-dim); }
+.reach-cta-icon { font-size: 1.1rem; color: var(--ember); flex: 0 0 auto; }
+.reach-cta-body { display: flex; flex-direction: column; gap: 3px; flex: 1 1 auto; min-width: 0; }
+.reach-cta-head { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.reach-cta-title { font-size: .78rem; font-family: var(--font-display); color: var(--ink); white-space: nowrap; }
+.reach-cta-sub { font-size: .66rem; color: var(--ink-dim); line-height: 1.25; }
 .reach-cta-state {
-  flex: 0 0 auto; font-size: .62rem; letter-spacing: .1em; text-transform: uppercase;
-  color: var(--ink-dim); border: 1px solid var(--plate-frame); border-radius: 999px; padding: 2px 8px;
+  flex: 0 0 auto; font-size: .56rem; letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-dim); border: 1px solid var(--plate-frame); border-radius: 999px; padding: 2px 7px;
 }
 .reach-cta.on .reach-cta-state { color: var(--ember); border-color: var(--ember-soft); }
+/* quick cadence control — revealed once reach-out has been used at least once */
+.reach-freq {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  margin-top: 8px; padding: 0 2px; font-size: .72rem; color: var(--ink-dim);
+}
+.reach-freq.hidden { display: none; }
+.reach-freq select {
+  font-size: .72rem; padding: 3px 6px; color: var(--ink);
+  background: none; border: 1px solid var(--plate-frame); border-radius: 6px; cursor: pointer;
+}
 
 /* ── modal (explainer + opt-in) ───────────────────────────────────────────── */
 .modal-scrim {
