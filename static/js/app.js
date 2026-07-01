@@ -146,10 +146,25 @@
     if (window.SceneLayer) window.SceneLayer.setRoute(route);
     // tint the header sigil red on the Genocide beat.
     $("header-sigil").className = "soul-sigil" + (route === "Genocide" ? " determined" : "");
+    // Genocide feel: destabilise the dialogue (root class) + one blood-red flash
+    // fired only when the route first resolves to Genocide, not on every render.
+    document.body.classList.toggle("route-genocide", route === "Genocide");
+    if (route === "Genocide" && state.lastRoute !== "Genocide") flashGenocide();
+    state.lastRoute = route;
+    // if "let them reach out" is on, resume the proactive timer now a save is live
+    startReachTimer(false);
     // New Game+: does anything here know you from another save you've shown?
     loadRecognition();
   }
   function row(k, v) { return '<div class="k">' + k + "</div><div>" + v + "</div>"; }
+
+  // one-shot blood-red flash on entering Genocide (CSS gates it under motion prefs)
+  function flashGenocide() {
+    var el = $("screen-flash"); if (!el) return;
+    el.classList.remove("fire");
+    void el.offsetWidth;            // force reflow so the animation restarts
+    el.classList.add("fire");
+  }
 
   // New Game+ / cross-save recognition: a quiet beat when this save has siblings.
   // Honours the Options "Save/reset talk" dial — off means stay in the fiction.
@@ -297,26 +312,14 @@
   function hasAnyImage(name) { var c = charByName(name); return !!(c && (c.avatar_url || c.emblem_url)); }
 
   // ── Undertale-feel: a short text "blip" per character as dialogue types ────
-  var _ac = null;
-  var BLIP_FREQ = {
-    "Sans": 150, "Papyrus": 300, "Toriel": 300, "Flowey": 380, "Undyne": 240,
-    "Alphys": 420, "Asgore": 175, "Mettaton": 340, "Napstablook": 250,
-  };
+  // Each character has its own synthesized voice (see voices.js). This wrapper
+  // just honours the Options "Text blip" toggle; the synthesis lives in VoiceLayer.
   function blip(name) {
     if (!(state.settings && state.settings.hud && state.settings.hud.blip)) return;
-    try {
-      var AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-      _ac = _ac || new AC();
-      if (_ac.state === "suspended") _ac.resume();
-      var o = _ac.createOscillator(), g = _ac.createGain();
-      o.type = "square";
-      o.frequency.value = (BLIP_FREQ[name] || 320) * (0.97 + 0.06 * (((name || "").length * 7 % 5) / 5));
-      var t = _ac.currentTime;
-      g.gain.setValueAtTime(0.045, t);
-      g.gain.exponentialRampToValueAtTime(0.0001, t + 0.045);
-      o.connect(g); g.connect(_ac.destination);
-      o.start(t); o.stop(t + 0.05);
-    } catch (e) { /* audio not available — silent */ }
+    if (window.VoiceLayer) window.VoiceLayer.blip(name);
+  }
+  function blipEvery(name) {
+    return (window.VoiceLayer && window.VoiceLayer.blipEvery(name)) || 2;
   }
   function portraitTag(name) { return avatarMarkup(name, "relic-portrait"); }
 
@@ -413,6 +416,7 @@
     var m = document.createElement("div"); m.id = "portrait-menu"; m.className = "portrait-menu";
     var items = [];
     if (anyImg) items.push(["🔍 View larger", function () { openLightbox(name); }]);
+    items.push(["🔊 Hear voice", function () { if (window.VoiceLayer) window.VoiceLayer.preview(name); }]);
     items.push([hasPhoto ? "✎ Change image" : "✎ Add image", function () { changePortrait(name); }]);
     if (hasPhoto) items.push(["✕ Remove image", function () { resetPortrait(name); }]);
     items.forEach(function (it) {
@@ -530,16 +534,52 @@
     var arrow = document.createElement("span"); arrow.className = "dialogue-arrow"; arrow.textContent = "▼";
     bubble.insertBefore(arrow, prov || null);
   }
+  // ── Undertale-feel: *asterisk-marked* words shake for emphasis ────────────
+  // Parse a line into clean text (markers stripped) + the char ranges to shake.
+  // The markers never render; the shake activates when the line finishes typing.
+  function parseEmphasis(text) {
+    var spans = [], clean = "", last = 0, re = /\*([^*\n]+)\*/g, m;
+    while ((m = re.exec(text))) {
+      clean += text.slice(last, m.index);
+      var s = clean.length;
+      clean += m[1];
+      spans.push({ s: s, e: clean.length });
+      last = re.lastIndex;
+    }
+    clean += text.slice(last);
+    return { text: clean, spans: spans };
+  }
+  function escHtml(s) {
+    return s.replace(/[&<>"]/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c];
+    });
+  }
+  // Swap a finished line's plain text for shake-wrapped HTML (motion permitting).
+  function applyShake(el, text, spans) {
+    var motion = !(state.settings && state.settings.hud && state.settings.hud.motion === false);
+    if (!spans.length || !motion) { el.textContent = text; return; }
+    var html = "", cur = 0;
+    spans.forEach(function (r) {
+      html += escHtml(text.slice(cur, r.s));
+      html += '<span class="shake">' + escHtml(text.slice(r.s, r.e)) + "</span>";
+      cur = r.e;
+    });
+    html += escHtml(text.slice(cur));
+    el.innerHTML = html;
+  }
+
   function typewriter(span, text, name) {
+    var parsed = parseEmphasis(text);
+    text = parsed.text;
     var ms = (state.settings && state.settings.hud.typewriterMs);
     if (ms == null) ms = 18;
-    if (!ms) { span.textContent = text; dialogueDone(span, name); return; }   // instant
+    if (!ms) { applyShake(span, text, parsed.spans); dialogueDone(span, name); return; }   // instant
     span.textContent = ""; span.parentNode.classList.add("ink-reveal");
-    var i = 0;
+    var i = 0, every = blipEvery(name);   // cadence is per-character (voices.js)
     var timer = setInterval(function () {
       span.textContent = text.slice(0, ++i);
-      if (i % 2 === 0 && /\S/.test(text.charAt(i - 1))) blip(name);   // a blip every couple glyphs
-      if (i >= text.length) { clearInterval(timer); dialogueDone(span, name); }
+      if (i % every === 0 && /\S/.test(text.charAt(i - 1))) blip(name);   // a blip every few glyphs
+      if (i >= text.length) { clearInterval(timer); applyShake(span, text, parsed.spans); dialogueDone(span, name); }
     }, ms);
   }
 
@@ -799,11 +839,65 @@
   }
 
   // ── Proactive contact (they reach out to you) ──────────────────────────────
+  // Opt-in and persisted as a cadence: Muted / Rarely / Sometimes / Often. Once
+  // you've turned it on at least once, a quick cadence control appears in the rail
+  // so you can dial it down or mute entirely without reopening the explainer.
   var reachTimer = null;
-  function setReachOut(on) {
-    if (reachTimer) { clearInterval(reachTimer); reachTimer = null; }
-    if (on && state.projectId) { reachOutNow(); reachTimer = setInterval(reachOutNow, 60000); }
+  var REACH_MS = { rare: 300000, normal: 180000, often: 90000 };   // base gap per cadence
+  var REACH_LABEL = { off: "Off", rare: "Rarely", normal: "Sometimes", often: "Often" };
+  function reachFreq() {
+    try {
+      var f = localStorage.getItem("uv_reach_freq");
+      if (f) return f;
+      if (localStorage.getItem("uv_reachout") === "1") return "normal";  // migrate old on/off pref
+    } catch (e) {}
+    return "off";
   }
+  function reachOn() { return reachFreq() !== "off"; }
+  function reachSeen() {
+    try { return localStorage.getItem("uv_reach_seen") === "1" || localStorage.getItem("uv_reachout") === "1"; }
+    catch (e) { return false; }
+  }
+  function writeReachFreq(freq) {
+    try {
+      localStorage.setItem("uv_reach_freq", freq);
+      if (freq !== "off") localStorage.setItem("uv_reach_seen", "1");
+    } catch (e) {}
+  }
+  function stopReachTimer() { if (reachTimer) { clearTimeout(reachTimer); reachTimer = null; } }
+  function reachInterval() {
+    var base = REACH_MS[reachFreq()] || REACH_MS.normal;
+    return Math.round(base * (0.7 + Math.random() * 0.6));   // ±30% jitter so it never feels clockwork
+  }
+  function scheduleReach() {
+    reachTimer = setTimeout(function () { reachOutNow(); scheduleReach(); }, reachInterval());
+  }
+  function startReachTimer(immediate) {
+    if (reachTimer || !reachOn() || !state.projectId) return;
+    if (immediate) reachOutNow();
+    scheduleReach();
+  }
+  // modal yes/no — a fresh yes breaks the silence right away
+  function setReachOut(on) {
+    writeReachFreq(on ? "normal" : "off");
+    syncReachCta(); stopReachTimer();
+    if (on) startReachTimer(true);
+  }
+  // quick cadence control (incl. Muted) — re-cadence only, no immediate hello
+  function setReachFreq(freq) {
+    writeReachFreq(freq);
+    syncReachCta(); stopReachTimer();
+    if (reachOn()) startReachTimer(false);
+  }
+  function syncReachCta() {
+    var freq = reachFreq();
+    var cta = $("reach-cta"); if (cta) cta.classList.toggle("on", freq !== "off");
+    var st = $("reach-cta-state"); if (st) st.textContent = REACH_LABEL[freq] || "Off";
+    var row = $("reach-freq-row"); if (row) row.classList.toggle("hidden", !reachSeen());
+    var sel = $("reach-freq"); if (sel) sel.value = freq;
+  }
+  function openReachModal() { $("reach-modal").classList.remove("hidden"); }
+  function closeReachModal() { $("reach-modal").classList.add("hidden"); }
   function reachOutNow() {
     if (!state.projectId) return;
     api("/api/projects/" + state.projectId + "/reach-out", {
@@ -813,7 +907,8 @@
   function showReachToast(character, message) {
     var t = $("reach-toast");
     t.innerHTML = "<strong>" + character + "</strong> reached out — <em>tap to answer</em><br/><span></span>";
-    t.querySelector("span").textContent = message;
+    var parsed = parseEmphasis(message);   // strip *markers*, shake the emphatic word
+    applyShake(t.querySelector("span"), parsed.text, parsed.spans);
     t.classList.remove("hidden");
     t.onclick = function () { t.classList.add("hidden"); openCharacter(character); };
     clearTimeout(t._timer);
@@ -882,8 +977,12 @@
     applyHud();
     if (window.MusicLayer) {
       window.MusicLayer.init();
-      $("music-toggle").checked = window.MusicLayer.isEnabled();
-      window.MusicLayer.startMenu();   // auto-play the main theme (gesture fallback inside)
+      var mtog = $("music-toggle");
+      if (mtog) {
+        mtog.checked = window.MusicLayer.isEnabled();
+        // If music is on (default), auto-play the theme now (autoplay-block → resumes on first tap).
+        if (mtog.checked) window.MusicLayer.startMenu();
+      }
     }
 
     // options drawer
@@ -917,8 +1016,18 @@
     $("journal-inscribe-btn").onclick = inscribeJournal;
     $("journal-download-btn").onclick = function () { if (state.journalMd) downloadText(state.journalMd, "keepsake_journal.md"); };
 
-    // right-rail toggles
-    $("reachout-toggle").onchange = function () { setReachOut(this.checked); };
+    // "let them reach out" — CTA opens an explainer modal with the yes/no choice
+    syncReachCta();
+    $("reach-cta").onclick = openReachModal;
+    $("reach-yes").onclick = function () { setReachOut(true); closeReachModal(); };
+    $("reach-no").onclick = function () { setReachOut(false); closeReachModal(); };
+    $("reach-freq").onchange = function () { setReachFreq(this.value); };
+    $("reach-modal").addEventListener("click", function (e) { if (e.target === this) closeReachModal(); });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !$("reach-modal").classList.contains("hidden")) closeReachModal();
+    });
+
+    // ambient music toggle
     $("music-toggle").onchange = function () {
       if (!window.MusicLayer) return;
       window.MusicLayer.setEnabled(this.checked);

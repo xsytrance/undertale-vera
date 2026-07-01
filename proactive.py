@@ -53,5 +53,5 @@ def fallback_reach_out(character_name: str, save_truth: dict[str, Any]) -> str:
     route = ((save_truth or {}).get("route") or {}).get("route") or "undetermined"
     name = play.get("name") or "you"
     if route == "undetermined":
-        return f"hey, {name}. it's {character_name}. your save hasn't shown me which way you'll go yet. just reaching out."
-    return f"hey, {name}. it's {character_name}. your save reads as a {route} path — i couldn't not say something."
+        return f"hey, {name}. it's {character_name}. your save hasn't shown me which way you'll go yet. i just wanted to *reach out*."
+    return f"hey, {name}. it's {character_name}. your save reads as a {route} path — i *couldn't not* say something."

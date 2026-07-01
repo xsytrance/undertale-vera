@@ -4,37 +4,39 @@
    Ported PATTERN from fft-psx-vera's MusicProvider (frontend/src/lib/music.tsx):
    a single shared <audio> element, a static track/screen catalog, localStorage
    preferences, autoplay-block handling, and per-screen track selection. Ported
-   from React context to dependency-free vanilla JS so the Spine-0 static shell
-   carries it with no build step.
+   from React context to dependency-free vanilla JS so the static shell carries
+   it with no build step.
 
    Audio files themselves are gitignored (see .gitignore) — this is the layer,
    not the soundtrack. Tracks point at /audio/<id>.mp3 and degrade silently when
    a file is absent (autoplay/404 handled).
 
-   NEXT BEAT (see ROADMAP): route-aware music — swap the ambient bed by the
-   SaveTruth route. The hook (MusicLayer.setRoute) is stubbed here.
+   Only one bed ships today: the main theme, "A New Save File". ROUTE_TRACK keeps
+   the per-route seam so route-specific beds are a one-line change later — every
+   route points at the main theme so save-loads never 404.
+
+   Autoplay: browsers block audio.play() until the first user gesture. play()
+   arms a one-shot document listener on the block and resumes on the first tap
+   or key, so "enable music" reliably starts the theme even mid-page.
    ════════════════════════════════════════════════════════════════════════ */
 (function () {
   "use strict";
 
   var PREF_KEY = "undertale-vera:music:v1";
-
-  // The main theme — a user-supplied track that auto-plays on load. Audio files
-  // are gitignored; drop the file at static/audio/a-new-save-file.mp3 on the server.
-  var MENU_TRACK = "a-new-save-file";
+  var MENU_TRACK = "a-new-save-file";  // the one bed that ships (gitignored on the server)
 
   // Static catalog (flavour only; structure is portable).
   var TRACKS = {
-    "a-new-save-file": { title: "A New Save File", url: "/audio/a-new-save-file.mp3", ambient: true },
-    "ember-field":   { title: "Ember Field",   url: "/audio/ember-field.mp3",   ambient: true },
-    "obsidian-calm": { title: "Obsidian Calm",  url: "/audio/obsidian-calm.mp3", ambient: true },
-    "determination": { title: "Determination",  url: "/audio/determination.mp3", ambient: false }
+    "a-new-save-file": { title: "A New Save File", url: "/audio/a-new-save-file.mp3", ambient: true }
   };
 
-  // Per-route bed. For now every route keeps the main theme playing — the route
-  // track files don't exist yet, and switching to a 404 would cut the music.
+  // Per-route bed. Every route points at the main theme today; swap individual
+  // entries here (plus a TRACKS entry + the audio file) to add route beds.
   var ROUTE_TRACK = {
-    Pacifist: MENU_TRACK, Neutral: MENU_TRACK, Genocide: MENU_TRACK, undetermined: MENU_TRACK
+    Pacifist: MENU_TRACK,
+    Neutral: MENU_TRACK,
+    Genocide: MENU_TRACK,
+    undetermined: MENU_TRACK
   };
 
   function loadPrefs() {
@@ -50,55 +52,46 @@
     prefs: loadPrefs(),
     current: null,
     blocked: false,
+    _armed: false,
 
     init: function () {
       if (this.audio) return this;
       this.audio = new Audio();
       this.audio.loop = true;
-      this.audio.volume = (this.prefs.volume != null) ? this.prefs.volume : 0.5;
-      if (this.prefs.enabled === undefined) this.prefs.enabled = true;
+      this.audio.volume = (this.prefs.volume != null) ? this.prefs.volume : 0.22;
+      if (this.prefs.enabled === undefined) this.prefs.enabled = true;  // on by default, quiet
       return this;
+    },
+
+    isEnabled: function () {
+      this.init();
+      return !!this.prefs.enabled;
     },
 
     play: function (trackId) {
       this.init();
       var track = TRACKS[trackId];
       if (!track || !this.prefs.enabled) return;
-      if (this.current !== trackId) { this.current = trackId; this.audio.src = track.url; }
-      if (!this.audio.paused) return;   // already playing this track — don't restart
-      var self = this;
-      var p = this.audio.play();
-      if (p && p.catch) {
-        p.catch(function () { self.blocked = true; });  // autoplay blocked → start on first gesture
+      if (this.current !== trackId) {
+        this.current = trackId;
+        this.audio.src = track.url;
       }
+      this._resume();
     },
 
-    isEnabled: function () { this.init(); return this.prefs.enabled !== false; },
-
-    // Auto-play the main theme. Browsers block autoplay until a user gesture, so
-    // we try immediately AND start on the first interaction (one-shot listeners).
+    // Start the default bed (used when the user flips music on, even before a
+    // save is loaded / a route is known).
     startMenu: function () {
-      this.init();
-      if (this.prefs.volume == null) this.setVolume(0.4);   // a reasonable default
-      var self = this;
       this.play(MENU_TRACK);
-      function kick() {
-        ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
-          document.removeEventListener(ev, kick, true);
-        });
-        self.play(MENU_TRACK);
-      }
-      ["pointerdown", "keydown", "touchstart"].forEach(function (ev) {
-        document.addEventListener(ev, kick, true);
-      });
     },
 
     setEnabled: function (on) {
       this.init();
       this.prefs.enabled = !!on;
       savePrefs(this.prefs);
-      if (!on) { this.audio.pause(); }
-      else { this.play(this.current || MENU_TRACK); }   // enabling with nothing queued starts the theme
+      if (!on) { this.audio.pause(); return; }
+      if (this.current) this._resume();
+      else this.startMenu();
     },
 
     setVolume: function (v) {
@@ -108,10 +101,34 @@
       savePrefs(this.prefs);
     },
 
-    // route-aware-music seed for the NEXT beat.
+    // Drive the bed from the live SaveTruth route (if enabled).
     setRoute: function (route) {
-      var trackId = ROUTE_TRACK[route] || ROUTE_TRACK.undetermined;
-      this.play(trackId);
+      this.play(ROUTE_TRACK[route] || ROUTE_TRACK.undetermined);
+    },
+
+    // Attempt playback; on autoplay block, arm a one-shot gesture retry.
+    _resume: function () {
+      if (!this.audio || !this.prefs.enabled || !this.current) return;
+      var self = this;
+      var p = this.audio.play();
+      if (p && p.then) {
+        p.then(function () { self.blocked = false; })
+         .catch(function () { self.blocked = true; self._armGesture(); });
+      }
+    },
+
+    _armGesture: function () {
+      if (this._armed) return;
+      this._armed = true;
+      var self = this;
+      function go() {
+        self._armed = false;
+        document.removeEventListener("pointerdown", go, true);
+        document.removeEventListener("keydown", go, true);
+        self._resume();
+      }
+      document.addEventListener("pointerdown", go, true);
+      document.addEventListener("keydown", go, true);
     }
   };
 

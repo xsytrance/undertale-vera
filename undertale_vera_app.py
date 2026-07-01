@@ -49,7 +49,7 @@ from avatar_resolver import resolve_avatar, resolve_emblem, PORTRAIT_DIR, _slug 
 from backend.models import Base, CharacterMemory, Conversation, JournalEntry, Project, SaveSnapshot
 from character_config import get_character, list_characters, normalize_key
 from llm_client import LLMUnavailable, generate_reply
-from prompt_builder import build_system_prompt
+from prompt_builder import build_system_prompt, emphasis_note
 from save_parser import parse_undertale_save
 from save_truth import build_save_truth, validate_save_truth
 
@@ -759,6 +759,8 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         anomaly_grounding=anomaly_grounding,
         style_grounding=style_grounding,
     )
+    # Chat-only FREE display cue: allow one shaken word of emphasis (see prompt_builder).
+    system_prompt += "\n\n" + emphasis_note()
 
     grounding_source = "llm"
     try:

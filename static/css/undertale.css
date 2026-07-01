@@ -105,6 +105,27 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 /* the typewriter caret → white block (terminal feel) */
 .ink-reveal { border-right-color: #fff !important; }
 
+/* ── skin: reach-out CTA, ambient switch, opt-in modal → pixel boxes ───────── */
+.reach-cta, .switch-row, .modal, .modal-btn {
+  background: #000 !important; border: 2px solid #fff !important;
+  border-radius: 0 !important; box-shadow: none !important;
+}
+.reach-cta { color: #fff !important; }
+.reach-cta:hover { background: #1a1a1a !important; }
+.reach-cta.on { border-left-color: var(--ember) !important; }
+.reach-cta-title { color: #fff !important; font-family: var(--font-display) !important; }
+.reach-cta-sub, .reach-cta-state { color: var(--ink-dim) !important; }
+.reach-cta-icon, .reach-cta.on .reach-cta-state { color: var(--ember) !important; }
+.switch-note { color: #fff !important; }
+.switch-icon { color: var(--ember) !important; }
+.modal { border-top: 2px solid #fff !important; }
+.modal h2, .modal-icon { color: var(--ember) !important; }
+.modal p { color: #fff !important; }
+.modal .modal-fine { color: var(--ink-dim) !important; }
+.modal-btn { color: #fff !important; font-family: var(--font-display) !important; }
+.modal-btn.primary { background: #fff !important; color: #000 !important; }
+.modal-btn.primary:hover, .modal-btn.ghost:hover { background: #fff !important; color: #000 !important; }
+
 /* ── mobile density: the pixel font is wide, so tighten the chat on narrow
    screens and shrink the per-message avatar to give text more room ───────── */
 @media (max-width: 860px) {
@@ -121,6 +142,55 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
   animation: dlg-blink 0.8s steps(1) infinite;
 }
 @keyframes dlg-blink { 50% { opacity: 0; } }
+
+/* ── Undertale feel: emphasis shake, Genocide instability, route flash ────────
+   The shake wraps *asterisk-marked* words (see parseEmphasis in app.js). The
+   wobble destabilises every dialogue line on the Genocide route. The flash fires
+   once when a save resolves to Genocide. All three respect the HUD motion toggle
+   (.hud-no-motion) and the OS prefers-reduced-motion setting. */
+.shake {
+  display: inline-block;
+  animation: uv-shake 0.3s steps(2) infinite;
+}
+@keyframes uv-shake {
+  0%, 100% { transform: translate(0, 0); }
+  25%      { transform: translate(0.9px, -0.9px); }
+  50%      { transform: translate(-0.9px, 0.7px); }
+  75%      { transform: translate(0.7px, 0.9px); }
+}
+
+/* the Genocide route destabilises the dialogue — a slow, unsettling wobble */
+.route-genocide .bubble.them > span {
+  animation: uv-wobble 2.6s ease-in-out infinite;
+}
+@keyframes uv-wobble {
+  0%, 100% { transform: translateY(0) skewX(0deg); }
+  50%      { transform: translateY(0.5px) skewX(-0.5deg); }
+}
+
+/* a brief blood-red screen flash when the Genocide route is entered */
+.screen-flash {
+  position: fixed; inset: 0; z-index: 9999; pointer-events: none;
+  background: var(--determination, #d12f3e); opacity: 0;
+}
+.screen-flash.fire { animation: uv-flash 0.55s steps(1) 1; }
+@keyframes uv-flash {
+  0%   { opacity: 0; }
+  10%  { opacity: 0.55; }
+  30%  { opacity: 0.12; }
+  45%  { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+/* honour the HUD motion toggle and the OS reduced-motion preference */
+.hud-no-motion .shake,
+.hud-no-motion .route-genocide .bubble.them > span { animation: none !important; }
+.hud-no-motion .screen-flash.fire { animation: none !important; opacity: 0 !important; }
+@media (prefers-reduced-motion: reduce) {
+  .shake,
+  .route-genocide .bubble.them > span,
+  .screen-flash.fire { animation: none !important; }
+}
 
 /* per-character dialogue fonts — the classic jokes, using SYSTEM fonts (not
    Undertale's own); they degrade gracefully where the font isn't installed. */
