@@ -61,6 +61,7 @@
           <button data-view="chronicle" class="navitem">📜 The Chronicle</button>
           <button data-view="judgment" class="navitem">⚖ Judgment</button>
           <button data-view="reports" class="navitem">📋 Report Cards</button>
+          <button data-view="soundtest" class="navitem">🎵 Sound Test</button>
         </nav>
       </div>
       <div class="rail-sec">
@@ -181,6 +182,26 @@
         </div>
         <p class="muted report-hint" id="report-hint">Pick someone and ask them to file a report on your run — how you did, what you might have done differently, and what they'd have done in your place. Every report is saved here; keep one in your Journal, have them email it to you, or archive/delete it.</p>
         <div class="reports" id="reports-list"></div>
+      </section>
+
+      <!-- Sound Test -->
+      <section class="view" id="view-soundtest">
+        <h2>Sound Test <span class="muted">— play the whole soundtrack, or jam with the cast</span></h2>
+        <div class="st-nowplaying">
+          <span class="soul-sigil st-sigil" id="st-sigil" aria-hidden="true"></span>
+          <canvas class="st-canvas" id="st-canvas" width="512" height="56" aria-hidden="true"></canvas>
+          <div class="st-np-label" id="st-np-label">— nothing playing —</div>
+        </div>
+        <div class="st-controls">
+          <div class="st-modes">
+            <button class="st-mode sel" data-mode="jukebox">🎧 Jukebox</button>
+            <button class="st-mode" data-mode="jam">🎸 Jam</button>
+          </div>
+          <button class="btn tiny" id="st-stop">⏹ Stop all</button>
+          <label class="st-vol">🔊 <input type="range" id="st-vol" min="0" max="100" value="60" aria-label="Volume" /></label>
+          <label class="muted toggle-inline"><input type="checkbox" id="st-loop" checked /> loop</label>
+        </div>
+        <div class="st-groups" id="st-groups"></div>
       </section>
 
       <!-- Read / refresh a save -->
@@ -313,6 +334,7 @@
   <script src="/js/music.js"></script>
   <script src="/js/scene.js"></script>
   <script src="/js/voices.js"></script>
+  <script src="/js/soundtest.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

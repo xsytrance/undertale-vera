@@ -676,6 +676,45 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 .btn.tiny { font-size: .72rem; padding: 5px 10px; }
 .btn.tiny:disabled { opacity: .5; cursor: not-allowed; }
 
+/* ── Sound Test — the interactive soundtrack room ─────────────────────────── */
+.st-nowplaying {
+  display: flex; align-items: center; gap: 16px; padding: 14px 16px; margin-bottom: 12px;
+  border: 1px solid var(--plate-frame); border-radius: 10px;
+  background: linear-gradient(180deg, rgba(27,24,34,.7), rgba(34,29,24,.4));
+}
+.st-sigil { width: 40px !important; height: 40px !important; flex: 0 0 auto; will-change: transform; }
+.st-canvas { flex: 1; height: 56px; min-width: 0; }
+.st-np-label { font-family: var(--font-mono); font-size: .78rem; color: var(--ink-dim); flex: 0 0 auto; max-width: 38%; text-align: right; }
+.st-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 16px; }
+.st-modes { display: inline-flex; border: 1px solid var(--plate-frame); border-radius: 999px; overflow: hidden; }
+.st-mode { background: none; border: none; color: var(--ink-dim); padding: 6px 14px; cursor: pointer; font-size: .82rem; }
+.st-mode.sel { background: var(--ember); color: #1a1206; }
+.st-vol { display: inline-flex; align-items: center; gap: 6px; font-size: .82rem; color: var(--ink-dim); }
+.st-vol input[type=range] { accent-color: var(--ember); }
+.st-groups { display: flex; flex-direction: column; gap: 16px; }
+.st-group-head { display: flex; align-items: center; justify-content: space-between; }
+.st-allnone { display: inline-flex; gap: 6px; }
+.st-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); gap: 10px; margin-top: 8px; }
+.st-card {
+  display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; cursor: pointer;
+  background: rgba(21,19,28,.5); border: 1px solid var(--plate-frame); border-left: 3px solid var(--ink-dim);
+  border-radius: 10px; color: var(--ink); transition: border-color .15s, box-shadow .15s;
+}
+.st-card:hover { border-left-color: var(--ember); }
+.st-card.playing { border-left-color: var(--ember); box-shadow: 0 0 16px rgba(232,162,76,.28); background: rgba(232,162,76,.08); }
+.st-card.playing .st-card-art, .st-card.playing .st-card-sigil { animation: st-bounce .9s ease-in-out infinite; }
+@keyframes st-bounce { 50% { transform: translateY(-4px); } }
+.st-card-art { width: 46px; height: 46px; border-radius: 8px; border: 1px solid var(--plate-frame); object-fit: contain; background: var(--plate-inner); }
+.st-card-sigil { width: 34px !important; height: 34px !important; }
+.st-card-label { font-size: .8rem; text-align: center; line-height: 1.2; }
+.st-card-state { font-size: .72rem; color: var(--ink-dim); }
+.st-card.playing .st-card-state { color: var(--ember); }
+.st-card.tln-pacifist { border-left-color: var(--ember); }
+.st-card.tln-neutral { border-left-color: var(--brass); }
+.st-card.tln-genocide { border-left-color: var(--determination); }
+.hud-no-motion .st-card.playing .st-card-art, .hud-no-motion .st-card.playing .st-card-sigil { animation: none; }
+@media (prefers-reduced-motion: reduce) { .st-card.playing .st-card-art, .st-card.playing .st-card-sigil { animation: none; } }
+
 /* ── save shelf cards (left rail) — a detailed, tactile save slot ─────────── */
 .save-card {
   display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 10px; cursor: pointer;
