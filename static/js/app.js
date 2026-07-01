@@ -223,6 +223,31 @@
     soundtest: { icon: "🎵", title: "Sound Test",
       body: "Play the whole soundtrack — the main theme, the three route beds, and every character's theme. Switch to Jam mode to layer any characters together (all, some, or none) and let them collide. A visualizer reacts to whatever's playing." },
   };
+  // ── modal focus management (accessibility): trap Tab inside, restore on close ─
+  var _modalReturnFocus = null;
+  function focusables(root) {
+    return Array.prototype.slice.call(root.querySelectorAll(
+      "button:not([disabled]), a[href], input:not([disabled]), select, textarea, [tabindex]:not([tabindex='-1'])"
+    )).filter(function (el) { return el.offsetParent !== null; });
+  }
+  function trapFocus(scrim) {
+    _modalReturnFocus = document.activeElement;
+    var f = focusables(scrim); if (f.length) f[0].focus();
+    scrim._trap = function (e) {
+      if (e.key !== "Tab") return;
+      var els = focusables(scrim); if (!els.length) return;
+      var first = els[0], last = els[els.length - 1];
+      if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+      else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+    };
+    scrim.addEventListener("keydown", scrim._trap);
+  }
+  function releaseFocus(scrim) {
+    if (scrim && scrim._trap) { scrim.removeEventListener("keydown", scrim._trap); scrim._trap = null; }
+    if (_modalReturnFocus && _modalReturnFocus.focus) { try { _modalReturnFocus.focus(); } catch (e) {} }
+    _modalReturnFocus = null;
+  }
+
   function maybeIntro(key) {
     var f = FEATURES[key]; if (!f) return;
     var seen; try { seen = localStorage.getItem("uv_seen_" + key) === "1"; } catch (e) { seen = false; }
@@ -232,8 +257,9 @@
     $("feature-modal-title").textContent = f.title;
     $("feature-modal-body").textContent = f.body;
     $("feature-modal").classList.remove("hidden");
+    trapFocus($("feature-modal"));
   }
-  function closeFeatureModal() { $("feature-modal").classList.add("hidden"); }
+  function closeFeatureModal() { $("feature-modal").classList.add("hidden"); releaseFocus($("feature-modal")); }
 
   // nav button → fetch+render the feature, then reveal its view (or just switch)
   function navTo(name) {
@@ -1649,8 +1675,8 @@
     var row = $("reach-freq-row"); if (row) row.classList.toggle("hidden", !reachSeen());
     var sel = $("reach-freq"); if (sel) sel.value = freq;
   }
-  function openReachModal() { $("reach-modal").classList.remove("hidden"); }
-  function closeReachModal() { $("reach-modal").classList.add("hidden"); }
+  function openReachModal() { $("reach-modal").classList.remove("hidden"); trapFocus($("reach-modal")); }
+  function closeReachModal() { $("reach-modal").classList.add("hidden"); releaseFocus($("reach-modal")); }
   function reachOutNow() {
     if (!state.projectId) return;
     api("/api/projects/" + state.projectId + "/reach-out", {
