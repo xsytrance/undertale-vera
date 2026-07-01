@@ -209,6 +209,41 @@ def test_journal_add_inscribes_verbatim():
     assert added["kind"] == "report" and "never gave up" in added["text"]
 
 
+def test_email_digest_sends_collected_reports(monkeypatch):
+    monkeypatch.setattr(appmod, "generate_reply",
+                        lambda sp, um, **k: {"text": "Verdict: noted.\n\na run.", "model": "m"})
+    sent = {}
+    monkeypatch.setattr(agentmail_client, "send",
+                        lambda subject, text, to=None, **k: sent.update(subject=subject, text=text) or {"sent": True})
+    pid = _upload("file0_neutral", "undertale_neutral.ini")
+    client.post(f"/api/projects/{pid}/report", json={"character": "sans"})
+    client.post(f"/api/projects/{pid}/report", json={"character": "toriel"})
+    r = client.post(f"/api/projects/{pid}/report/digest/email", json={}).json()
+    assert r["count"] == 2 and r["email"]["sent"] is True
+    assert "2 voices" in sent["subject"]
+    assert "## Sans" in sent["text"] and "## Toriel" in sent["text"]
+
+
+def test_email_digest_empty_is_graceful(monkeypatch):
+    pid = _upload("file0_neutral", "undertale_neutral.ini")
+    r = client.post(f"/api/projects/{pid}/report/digest/email", json={}).json()
+    assert r["count"] == 0 and r["email"]["sent"] is False and "request some" in r["email"]["reason"]
+
+
+def test_email_digest_excludes_archived(monkeypatch):
+    monkeypatch.setattr(appmod, "generate_reply",
+                        lambda sp, um, **k: {"text": "Verdict: ok.\n\nrun.", "model": "m"})
+    captured = {}
+    monkeypatch.setattr(agentmail_client, "send",
+                        lambda subject, text, to=None, **k: captured.update(text=text) or {"sent": True})
+    pid = _upload("file0_neutral", "undertale_neutral.ini")
+    rid = client.post(f"/api/projects/{pid}/report", json={"character": "sans"}).json()["report"]["id"]
+    client.post(f"/api/projects/{pid}/report", json={"character": "undyne"})
+    client.patch(f"/api/projects/{pid}/reports/{rid}", json={"status": "archived"})   # hide Sans
+    r = client.post(f"/api/projects/{pid}/report/digest/email", json={}).json()
+    assert r["count"] == 1 and "## Undyne" in captured["text"] and "## Sans" not in captured["text"]
+
+
 def test_agentmail_send_raises_when_unconfigured(monkeypatch):
     monkeypatch.delenv("AGENTMAIL_API_KEY", raising=False)
     monkeypatch.delenv("AGENTMAIL_INBOX_ID", raising=False)
