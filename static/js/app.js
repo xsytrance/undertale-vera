@@ -83,6 +83,25 @@
     _loreIdx = ((_loreIdx === null ? 0 : _loreIdx) + 1) % LORE.length;
     renderLore();
   }
+
+  // The chat banner's epithet + "regards you" stance (re-run when affinities load).
+  function renderHeroTitle() {
+    if (!state.character) return;
+    var el = $("chat-title"); if (!el) return;
+    var a = (state.affinities || {})[state.character];
+    var ep = EPITHETS[state.character];
+    el.innerHTML =
+      (ep ? '<span class="hero-epithet">' + ep + "</span>" : "") +
+      (a ? ' <span class="chip ' + (STANCE_CLASS[a.stance] || "free") + '" title="' + a.basis +
+           '">regards you: ' + a.stance + "</span>" : "");
+  }
+  // A small epithet under each name in the chat banner (our own, in-world).
+  var EPITHETS = {
+    "Sans": "the judge", "Papyrus": "the great papyrus", "Flowey": "your best friend",
+    "Toriel": "keeper of the ruins", "Undyne": "captain of the guard",
+    "Alphys": "the royal scientist", "Asgore": "king of monsters",
+    "Mettaton": "star of the underground", "Napstablook": "the quiet one",
+  };
   function showView(name) {
     state.view = name;
     VIEWS.forEach(function (v) {
@@ -550,6 +569,7 @@
       slot.innerHTML = '<span class="chip ' + (STANCE_CLASS[a.stance] || "free") +
         '" title="' + a.basis + '">' + a.stance + "</span>";
     });
+    renderHeroTitle();   // the chat banner's stance chip, once affinities are in
   }
 
   // a brief, tappable nudge (reuses the reach-toast surface)
@@ -575,11 +595,10 @@
     $$("#roster .char-card, #speaker-strip .face").forEach(function (el) {
       el.classList.toggle("selected", el.dataset.name === c.name);
     });
-    var a = (state.affinities || {})[c.name];
-    $("chat-name").innerHTML = c.name + (a
-      ? ' <span class="chip ' + (STANCE_CLASS[a.stance] || "free") + '" title="' + a.basis +
-        '" style="font-size:0.64rem; vertical-align:middle;">regards you: ' + a.stance + "</span>"
-      : "");
+    // character presence banner: portrait + name + epithet + how they regard you
+    $("chat-hero").classList.remove("hidden");
+    $("chat-name").textContent = c.name;
+    renderHeroTitle();
     var p = $("chat-portrait");
     if (p) p.outerHTML = avatarMarkup(c.name, "relic-portrait", "chat-portrait");
     showView("chat");
@@ -607,6 +626,7 @@
     var t = $("transcript"); t.innerHTML = "";
     // once a speaker is chosen, mobile chat goes immersive (chrome slides away)
     document.body.classList.toggle("chatting", !!state.character);
+    if (!state.character) { var hero = $("chat-hero"); if (hero) hero.classList.add("hidden"); }
     if (!state.character) {
       var cast = state.characters || [];
       var castHtml = cast.map(function (c) {
@@ -1385,6 +1405,7 @@
       b.onclick = function () { bottomNav(b.getAttribute("data-nav")); };
     });
     $("scrim").onclick = closeDrawers;
+    $("chat-hero-menu").onclick = function () { openDrawer("left"); };   // escape chat → features
     $("save-pill").onclick = function () { openDrawer("left"); };
     $("add-save-btn").onclick = function () { showView("saves"); };
 
