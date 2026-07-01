@@ -113,6 +113,14 @@
       }
     },
 
+    // a soft menu "confirm" — two quick rising notes (the classic pick-a-thing feel)
+    ui: function () {
+      var ac = ctx(); if (!ac) return;
+      var t = ac.currentTime;
+      tone(ac, { wave: "square", freq: 520, dur: 0.05, gain: 0.045, attack: 0.002 }, t);
+      tone(ac, { wave: "square", freq: 720, dur: 0.06, gain: 0.045, attack: 0.002 }, t + 0.055);
+    },
+
     // play a short sample of the voice, as if the character were typing a line
     preview: function (name) {
       var ac = ctx(); if (!ac) return;
