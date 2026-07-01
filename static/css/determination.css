@@ -554,6 +554,20 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
   margin: 0; max-width: 440px; font-style: italic; color: var(--ember-soft);
   font-size: 1.08rem; line-height: 1.55;
 }
+.chat-empty-cast {
+  display: flex; flex-wrap: wrap; gap: 12px; justify-content: center; max-width: 560px;
+}
+.ce-face {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; width: 62px;
+  background: none; border: none; cursor: pointer; color: var(--ink-dim); font-size: .64rem;
+}
+.ce-face-img {
+  width: 48px; height: 48px; border-radius: 8px; border: 1px solid var(--plate-frame);
+  background: var(--plate-inner); object-fit: cover;
+}
+.ce-face-img.emblem-img { object-fit: contain; padding: 3px; }
+.ce-face:hover { color: var(--ember); }
+.ce-face:hover .ce-face-img { border-color: var(--ember); box-shadow: 0 0 12px rgba(232,162,76,.2); }
 .reports { display: flex; flex-direction: column; gap: 14px; }
 .report-card {
   padding: 14px 16px; border: 1px solid var(--plate-frame); border-left: 3px solid var(--ember);
