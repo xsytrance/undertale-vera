@@ -44,7 +44,8 @@
     Genocide: "route-genocide",
     undetermined: MENU_TRACK
   };
-  var _failed = {};   // track ids whose audio file 404'd this session
+  var _failed = {};     // track ids whose audio file 404'd this session
+  var _fallback = {};   // trackId → the track to play if its file is missing
 
   function loadPrefs() {
     try { return JSON.parse(localStorage.getItem(PREF_KEY)) || {}; }
@@ -68,11 +69,13 @@
       this.audio.volume = (this.prefs.volume != null) ? this.prefs.volume : 0.22;
       if (this.prefs.enabled === undefined) this.prefs.enabled = true;  // on by default, quiet
       var self = this;
-      // a missing route bed → remember it and fall back to the main theme
+      // a missing bed → remember it and fall back (route bed → main theme;
+      // character theme → the current route bed → main theme)
       this.audio.addEventListener("error", function () {
-        if (self.current && self.current !== MENU_TRACK) {
-          _failed[self.current] = true;
-          self.play(MENU_TRACK);
+        var cur = self.current;
+        if (cur && cur !== MENU_TRACK) {
+          _failed[cur] = true;
+          self.play(_fallback[cur] || MENU_TRACK);
         }
       });
       return this;
@@ -121,7 +124,20 @@
     setRoute: function (route) {
       var id = ROUTE_TRACK[route] || ROUTE_TRACK.undetermined;
       if (_failed[id]) id = MENU_TRACK;
+      this._routeBed = id;   // remembered as the fallback for character themes
       this.play(id);
+    },
+
+    // Play a character's own theme while you talk to them (optional). The file is
+    // /audio/char-<slug>.mp3; if it's absent it falls back to the current route
+    // bed (then the main theme), so this is silent-safe until the files exist.
+    setCharacter: function (slug) {
+      if (!slug) return;
+      this.init();
+      var id = "char-" + slug, back = this._routeBed || MENU_TRACK;
+      if (!TRACKS[id]) TRACKS[id] = { title: slug, url: "/audio/" + id + ".mp3", ambient: true };
+      _fallback[id] = back;
+      this.play(_failed[id] ? back : id);   // known-missing → route bed directly
     },
 
     // Attempt playback; on autoplay block, arm a one-shot gesture retry.
