@@ -567,6 +567,8 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
   color: var(--ink-dim); font-size: .95rem; padding: 2px 4px; line-height: 1;
 }
 .quote-refresh:hover { color: var(--ember); }
+.lore-card { margin-top: 14px; }
+.lore-text { font-style: normal; font-family: var(--font-body); font-size: .84rem; color: var(--ink-dim); }
 .chat-empty {
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   text-align: center; gap: 14px; min-height: 52vh; padding: 20px;
