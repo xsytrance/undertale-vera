@@ -520,8 +520,50 @@
           '<span class="con-mark">🌌</span> ' + (res.verdict || "") + "</div>" +
           divLine;
       }
+      populateDivergence();
       showView("constellation");
     });
+  }
+  function populateDivergence() {
+    var chSel = $("div-char");
+    if (chSel && chSel.options.length === 0) {
+      (state.characters || []).forEach(function (c) {
+        var o = document.createElement("option"); o.value = c.name; o.textContent = c.name; chSel.appendChild(o);
+      });
+    }
+    api("/api/projects").then(function (res) {
+      var projs = res.projects || [];
+      [$("div-a"), $("div-b")].forEach(function (sel, idx) {
+        if (!sel) return;
+        var keep = sel.value;
+        sel.innerHTML = "";
+        projs.forEach(function (p) {
+          var o = document.createElement("option"); o.value = p.project_id;
+          o.textContent = (p.name || ("Save #" + p.project_id)) + " · " + (p.route || "?");
+          sel.appendChild(o);
+        });
+        if (keep) sel.value = keep;
+        else if (projs.length > 1) sel.selectedIndex = idx === 1 ? 1 : 0;   // default to two different saves
+      });
+    });
+  }
+  function askDivergence() {
+    var a = $("div-a").value, b = $("div-b").value, ch = $("div-char").value;
+    if (!a || !b || !ch) return;
+    var btn = $("div-ask"), t = btn.textContent; btn.disabled = true; btn.textContent = "…";
+    $("div-output").textContent = ch + " considers the fork…";
+    api("/api/divergence", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ project_a: +a, project_b: +b, character: ch }),
+    }).then(function (res) {
+      var out = $("div-output");
+      out.innerHTML = '<div class="div-head">' + avatarMarkup(res.author, "bubble-avatar") +
+        '<span class="div-author">' + escHtml(res.author) + "</span>" +
+        '<span class="div-fork muted">' + escHtml((res.a.route || "?") + " ↔ " + (res.b.route || "?")) + "</span></div>" +
+        '<div class="div-text"></div>';
+      out.querySelector(".div-text").textContent = res.text;
+    }).catch(function (e) { $("div-output").textContent = "Couldn't reach the fork: " + e.message; })
+      .then(function () { btn.disabled = false; btn.textContent = t; });
   }
 
   function loadProject(id) {
@@ -1868,6 +1910,7 @@
     $("report-digest-btn").onclick = emailDigest;
     $("report-filter").onchange = loadReports;
     $("report-archived-toggle").onchange = loadReports;
+    $("div-ask").onclick = askDivergence;
     // Sound Test controls
     $$(".st-mode").forEach(function (b) { b.onclick = function () { setSoundTestMode(b.dataset.mode); }; });
     $("st-stop").onclick = function () { if (window.SoundTest) SoundTest.stopAll(); syncSoundTestUI(); };

@@ -143,6 +143,17 @@
       <section class="view" id="view-constellation">
         <h2>Across Your Saves <span class="muted">— the whole shape of you, every file shown</span></h2>
         <div class="constellation" id="constellation-content"></div>
+        <div class="divergence-tool" id="divergence-tool">
+          <div class="rail-lbl">The fork — hear any two of your saves compared</div>
+          <div class="div-controls">
+            <select id="div-a" class="btn" aria-label="First save"></select>
+            <span class="div-vs" aria-hidden="true">↔</span>
+            <select id="div-b" class="btn" aria-label="Second save"></select>
+            <select id="div-char" class="btn" aria-label="Who speaks to the fork"></select>
+            <button class="btn" id="div-ask">Ask them</button>
+          </div>
+          <div class="div-output" id="div-output"></div>
+        </div>
       </section>
 
       <!-- The Chronicle -->

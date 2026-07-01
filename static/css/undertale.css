@@ -116,6 +116,9 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
 .save-meta { color: var(--ink-dim) !important; }
 /* report cards read as pixel boxes too */
 .report-card { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+.div-output:not(:empty) { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+.div-author { color: var(--ember) !important; }
+.div-text { color: #fff !important; }
 .report-card .report-author { color: var(--ember) !important; }
 .report-verdict { color: #fff !important; }
 .report-body { color: #fff !important; }
