@@ -380,6 +380,10 @@ input[type="file"], input[type="text"] {
 .gap { color: var(--ink-dim); font-style: italic; }
 .remembrance { border-left: 2px solid var(--ember); padding-left: 12px; margin-top: 10px; color: var(--ink); }
 
+/* Across Two Worlds — a save from the other game entirely */
+.recognition.two-worlds { border-left-color: #b48bf2; background: rgba(140, 90, 220, 0.07); }
+.recognition.two-worlds .rec-mark { color: #b48bf2; }
+
 /* New Game+ recognition beat — a save that knows you from another file */
 .recognition {
   margin-top: 10px; padding: 10px 12px;

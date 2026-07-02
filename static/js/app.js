@@ -464,6 +464,21 @@
         box.classList.remove("hidden");
         return;
       }
+      // Across Two Worlds: the player has shown a save from the OTHER game
+      if (res.two_worlds_present && res.other_world) {
+        var ow = res.other_world;
+        var owWorld = (res.current_game === "deltarune") ? "the Underground" : "the Dark World";
+        var owLine = (ow.name || "a nameless run") + (ow.route ? " · " + ow.route : "") +
+          (typeof ow.love === "number" ? " · LOVE " + ow.love : "");
+        box.className = "recognition two-worlds";
+        box.innerHTML =
+          '<span class="rec-mark">🜁</span> <strong>A face from another world.</strong> ' +
+          "You've also walked <em>" + owWorld + "</em> — " +
+          '<span class="muted">' + owLine + "</span>. " +
+          "<em>Ask Toriel, or Sans. Something in them stirs.</em>";
+        box.classList.remove("hidden");
+        return;
+      }
       var faces = (res.priors || []).slice(0, 3).map(function (p) {
         var nm = p.name || "a nameless run";
         return nm + (p.route ? (" · " + p.route) : "");
@@ -570,7 +585,8 @@
         sel.innerHTML = "";
         projs.forEach(function (p) {
           var o = document.createElement("option"); o.value = p.project_id;
-          o.textContent = (p.name || ("Save #" + p.project_id)) + " · " + (p.route || "?");
+          o.textContent = (p.name || ("Save #" + p.project_id)) + " · " +
+            (p.game === "deltarune" ? "Dark World" : (p.route || "?"));
           sel.appendChild(o);
         });
         if (keep) sel.value = keep;

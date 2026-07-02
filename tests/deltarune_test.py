@@ -143,3 +143,64 @@ def test_deltarune_chat_uses_hometown_persona(monkeypatch):
     assert "schoolteacher" in seen["prompt"]          # Hometown Toriel, not Ruins Toriel
     client.post(f"/api/projects/{pid}/chat", json={"character": "susie", "message": "hi", "history": []})
     assert "bark" in seen["prompt"]                    # Susie's own voice
+
+
+# ── Across Two Worlds (Phase 4) ──────────────────────────────────────────────
+
+def _tw_setup():
+    """One save from each world → the two-worlds beat can fire."""
+    with open(os.path.join(FIX, "file0_pacifist"), "rb") as f0, \
+         open(os.path.join(FIX, "undertale_pacifist.ini"), "rb") as ini:
+        ut = client.post("/api/upload", files={
+            "file0": ("file0", f0.read()), "undertale_ini": ("undertale.ini", ini.read())
+        }).json()["project_id"]
+    dr = client.post("/api/upload", files={"file0": ("filech1_0", _read("filech1_0"))}).json()["project_id"]
+    return ut, dr
+
+
+def test_two_worlds_grounding_pure():
+    import crossave
+    cur = {"name": "Kris", "route": "undetermined", "game": "deltarune"}
+    priors = [{"name": "Frisk", "route": "Pacifist", "love": 1, "game": "undertale"}]
+    g = crossave.build_two_worlds_grounding(cur, priors, voice="toriel")
+    assert "ACROSS TWO WORLDS" in g and "Undertale" in g and "Frisk" in g
+    assert "NEVER assert" in g
+    # gated: only the returning faces feel it; same-game priors never fire it
+    assert crossave.build_two_worlds_grounding(cur, priors, voice="jevil") == ""
+    assert crossave.build_two_worlds_grounding(cur, [{"game": "deltarune"}], voice="toriel") == ""
+
+
+def test_two_worlds_in_chat_prompt(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(appmod, "generate_reply",
+                        lambda sp, um, **k: seen.update(prompt=sp) or {"text": "ok", "model": "m"})
+    ut, dr = _tw_setup()
+    # DR save + UT prior → Hometown Toriel dreams of the Underground
+    client.post(f"/api/projects/{dr}/chat", json={"character": "toriel", "message": "hi", "history": []})
+    assert "ACROSS TWO WORLDS" in seen["prompt"]
+    # a Darkner never gets the block
+    client.post(f"/api/projects/{dr}/chat", json={"character": "susie", "message": "hi", "history": []})
+    assert "ACROSS TWO WORLDS" not in seen["prompt"]
+    # and the other direction: UT save + DR prior → Underground Toriel feels it too
+    client.post(f"/api/projects/{ut}/chat", json={"character": "toriel", "message": "hi", "history": []})
+    assert "ACROSS TWO WORLDS" in seen["prompt"]
+
+
+def test_recognition_endpoint_reports_two_worlds():
+    ut, dr = _tw_setup()
+    rec = client.get(f"/api/projects/{dr}/recognition").json()
+    assert rec["two_worlds_present"] is True
+    assert rec["current_game"] == "deltarune"
+    assert rec["other_world"]["game"] == "undertale"
+
+
+def test_cross_world_divergence_names_both_worlds(monkeypatch):
+    seen = {}
+    monkeypatch.setattr(appmod, "generate_reply",
+                        lambda sp, um, **k: seen.update(prompt=sp) or {"text": "two worlds, one hand.", "model": "m"})
+    ut, dr = _tw_setup()
+    r = client.post("/api/divergence", json={"project_a": ut, "project_b": dr, "character": "sans"}).json()
+    assert r["author"] == "Sans"
+    assert "TWO WORLDS" in seen["prompt"]
+    assert "Undertale, the Underground" in seen["prompt"]
+    assert "Deltarune, the Dark World" in seen["prompt"]

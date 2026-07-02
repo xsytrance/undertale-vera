@@ -699,6 +699,10 @@ def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str,
         "echo_present": bool(echo_flowey),
         "echo": {"flowey": echo_flowey, "sans": echo_sans},
         "darkest": crossave.darkest_prior(priors),
+        # Across Two Worlds: has the player shown a save from the OTHER game?
+        "two_worlds_present": bool(crossave.other_world_priors(current, priors)),
+        "other_world": (crossave.other_world_priors(current, priors) or [None])[0],
+        "current_game": current.get("game", "undertale"),
     }
 
 
@@ -1024,6 +1028,19 @@ def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> di
         )
         if rec_block:
             remembrance = (remembrance + "\n\n" + rec_block).strip()
+    # Across Two Worlds: a returning face (Toriel/Asgore/Alphys/Sans) who has been
+    # shown saves from BOTH games feels the other universe like a dream (facts of
+    # the other world clearly labelled; never asserted as this world's).
+    if (req.options or {}).get("meta") != "off" and normalize_key(req.character) in (
+        "name:toriel", "name:asgore", "name:alphys", "name:sans"
+    ):
+        tw_block = crossave.build_two_worlds_grounding(
+            ledger.snapshot_fields_from_truth(save_truth),
+            _prior_save_summaries(db, project_id),
+            voice=normalize_key(req.character).split(":", 1)[1],
+        )
+        if tw_block:
+            remembrance = (remembrance + "\n\n" + tw_block).strip()
     # Route-gate the lore by the player's REAL route (from SaveTruth). This gates
     # which world-knowledge is visible — it never asserts the route as a fact.
     save_route = (save_truth.get("route") or {}).get("route")
