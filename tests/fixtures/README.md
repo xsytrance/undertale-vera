@@ -19,3 +19,8 @@ Everything else is preserved raw and left `null` — never guessed.
 - `filech1_0` — SYNTHETIC Deltarune Chapter 1 slot (not from a real game): line 1
   name, line 11 Dark Dollars per public docs; all other lines are filler the parser
   must preserve raw. Replace/augment with real saves to expand the field map.
+
+- `filech1_0_early` / `filech1_0_completed` — REAL Chapter 1 saves from the labelled
+  corpus (early: party Kris+Ralsei, pre-Jevil; completed: full party, Jevil defeated,
+  3000 Dark Dollars). `dr_uraboss.ini` — a real dr.ini carrying UraBoss=2. These are
+  the evidence base for the promoted field map (see tools/deltarune_expand.py).

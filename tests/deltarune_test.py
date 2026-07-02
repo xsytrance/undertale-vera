@@ -34,7 +34,8 @@ def test_parse_names_only_documented_fields():
     assert p["fields"]["dark_dollars"] == 1997 and p["confidence"]["dark_dollars"] == "medium"
     # undocumented lines stay raw, never interpreted
     assert p["raw_lines"][3] == "2" and p["raw_lines"][15] == "Wood Blade"
-    assert "party" not in p["fields"]
+    # v2 map: party slots parse on head-safe lines (synthetic filler → Susie id at line 9)
+    assert "party" in p["fields"]
 
 
 def test_parse_never_crashes_on_garbage():
@@ -204,3 +205,60 @@ def test_cross_world_divergence_names_both_worlds(monkeypatch):
     assert "TWO WORLDS" in seen["prompt"]
     assert "Undertale, the Underground" in seen["prompt"]
     assert "Deltarune, the Dark World" in seen["prompt"]
+
+
+# ── evidence-promoted field map, tested on REAL Chapter 1 saves ──────────────
+
+def test_real_completed_save_full_promotions():
+    p = dp.parse_deltarune_save(_read("filech1_0_completed"), "filech1_0")
+    f, c = p["fields"], p["confidence"]
+    assert p["expected_layout"] is True and p["line_count"] == 10318
+    assert f["name"] == "STEPHANIE" and c["name"] == "high"
+    assert f["party"] == ["Kris", "Susie", "Ralsei"] and c["party"] == "high"
+    assert f["dark_dollars"] == 3000 and c["dark_dollars"] == "high"
+    assert f["jevil_state"] == 2 and c["jevil_state"] == "high"
+    assert isinstance(f["room"], int) and c["room"] == "high"
+    assert isinstance(f["time"], int) and c["time"] == "high"
+
+
+def test_real_early_save_party_story():
+    f = dp.parse_deltarune_save(_read("filech1_0_early"), "filech1_0")["fields"]
+    assert f["party"] == ["Kris", "Ralsei"]     # Susie hasn't joined yet — Ch1's actual story
+    assert f["jevil_state"] == 0
+
+
+def test_layout_guard_demotes_honestly():
+    # the synthetic 261-line fixture is NOT the corroborated layout: tail/flag
+    # fields must be unknown, head fields survive at medium.
+    p = dp.parse_deltarune_save(_read("filech1_0"), "filech1_0")
+    assert p["expected_layout"] is False
+    assert p["fields"]["room"] is None and p["confidence"]["room"] == "unknown"
+    assert p["fields"]["jevil_state"] is None
+    assert p["fields"]["name"] == "Kris" and p["confidence"]["name"] == "medium"
+
+
+def test_dr_ini_parse_and_upload_corroboration():
+    ini = dp.parse_dr_ini(_read("dr_uraboss.ini"))
+    assert ini["name"] == "STEPHANIE" and ini["uraboss"] == 2 and ini["love"] == 1
+    r = client.post("/api/upload", files={
+        "file0": ("filech1_0", _read("filech1_0_completed")),
+        "undertale_ini": ("dr.ini", _read("dr_uraboss.ini")),
+    }).json()
+    t = r["save_truth"]
+    assert t["source"]["dr_ini"] is True
+    assert t["play_state"]["love"] == 1                    # dr.ini says so (famously 1)
+    assert t["deltarune"]["jevil_defeated"] is True
+    assert t["deltarune"]["party"] == ["Kris", "Susie", "Ralsei"]
+
+
+def test_deltarune_texture_grounds_chat(monkeypatch):
+    import save_flavor
+    seen = {}
+    monkeypatch.setattr(appmod, "generate_reply",
+                        lambda sp, um, **k: seen.update(prompt=sp) or {"text": "ok", "model": "m"})
+    pid = client.post("/api/upload", files={"file0": ("filech1_0", _read("filech1_0_completed"))}).json()["project_id"]
+    client.post(f"/api/projects/{pid}/chat", json={"character": "jevil", "message": "hi", "history": []})
+    assert "Kris, Susie, Ralsei" in seen["prompt"]          # the party, parser-confirmed
+    assert "faced, and bested" in seen["prompt"]            # the Jevil fact reaches his own chat
+    # pure: no texture without facts
+    assert save_flavor.build_texture_grounding({"game": "deltarune"}) == ""
