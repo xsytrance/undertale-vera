@@ -93,6 +93,31 @@ def main():
         pg.wait_for_timeout(400)
         check(pg.eval_on_selector_all(".fall-item", "els=>els.length") > 0, "word-egg fires")
 
+        # ── Deltarune: the Dark World path ──────────────────────────────────
+        pg.eval_on_selector("#add-save-btn", "el=>el.click()")
+        pg.set_input_files("#file0-input", {
+            "name": "filech1_0", "mimeType": "application/octet-stream",
+            "buffer": open(os.path.join(FIX, "filech1_0_completed"), "rb").read(),
+        })
+        pg.eval_on_selector("#upload-btn", "el=>el.click()")
+        pg.wait_for_function("()=>document.body.classList.contains('world-dark')", timeout=15000)
+        check(True, "deltarune save flips Dark World mode")
+        check(pg.evaluate("()=>getComputedStyle(document.body).getPropertyValue('--ember').trim()") == "#b48bf2",
+              "accents go Dark World violet")
+        pg.wait_for_timeout(500)
+        roster = pg.eval_on_selector_all("#roster .char-card", "els=>els.map(e=>e.dataset.name)")
+        check("Susie" in roster and "Jevil" in roster and "Papyrus" not in roster,
+              "roster seats the Ch1 cast")
+        facts = pg.eval_on_selector("#truth-facts", "e=>e.textContent")
+        check("Kris" in facts and "Susie" in facts, "rail shows the parsed party")
+        # switch back to the Undertale save → the gold returns, the Underground reseats
+        pg.evaluate("()=>{const c=[...document.querySelectorAll('.save-card')]"
+                    ".find(c=>c.textContent.includes('Pacifist'));c.click();}")
+        pg.wait_for_function("()=>!document.body.classList.contains('world-dark')", timeout=10000)
+        pg.wait_for_timeout(500)
+        back = pg.eval_on_selector_all("#roster .char-card", "els=>els.map(e=>e.dataset.name)")
+        check("Papyrus" in back and "Susie" not in back, "switching back restores the Underground")
+
         check(not errors, "no console/page errors" + ("" if not errors else " -> " + " | ".join(errors[:6])))
         b.close()
 
