@@ -399,11 +399,13 @@
     document.body.classList.toggle("world-dark", darkWorld);   // the console falls into the Dark World
 
     function fmt(v) { return (v === null || v === undefined || v === "") ? "—" : v; }
+    var drParty = ((truth.deltarune || {}).party || []).join(" · ");
     $("truth-facts").innerHTML = darkWorld
       ? row("Name", fmt(play.name)) +
+        row("Party", drParty || "—") +
         row("Dark $", fmt(play.gold)) +
         row("Chapter", fmt(truth.chapter)) +
-        row("World", "the Dark World")
+        ((truth.deltarune || {}).jevil_defeated ? row("Secret", "the jester, freed & bested") : "")
       : row("Name", fmt(play.name)) +
         row("LOVE (LV)", fmt(play.love)) +
         row("Kills", kills === null || kills === undefined ? "—" : kills) +

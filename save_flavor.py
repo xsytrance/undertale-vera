@@ -141,6 +141,26 @@ def build_texture_grounding(save_truth: dict[str, Any]) -> str:
     st = save_truth or {}
     play = st.get("play_state") or {}
     bits: list[str] = []
+    if st.get("game") == "deltarune":
+        # the Dark World's own small facts (party, dark dollars, the freed jester)
+        dr = st.get("deltarune") or {}
+        party = dr.get("party")
+        if party:
+            bits.append("The party the save records: " + ", ".join(party) + ".")
+        dd = dr.get("dark_dollars")
+        if isinstance(dd, int):
+            bits.append(f"Dark Dollars on hand: {dd}.")
+        if dr.get("jevil_defeated") is True:
+            bits.append("The save records the freed jester below the Card Castle: faced, and bested.")
+        pt = humanize_playtime(play.get("play_time_frames"))
+        if pt:
+            bits.append(f"Time on this save: {pt} in the Dark World.")
+        if not bits:
+            return ""
+        return (
+            "── SMALL THINGS THE SAVE REMEMBERS (parser-confirmed; reference only if it fits) ──\n"
+            + " ".join(bits)
+        )
     area = area_from_save(st)
     if area:
         bits.append(f"Right now the save sits in {area}.")

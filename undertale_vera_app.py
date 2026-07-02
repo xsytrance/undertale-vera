@@ -179,9 +179,15 @@ async def upload_save(
         raise HTTPException(status_code=400, detail="Provide file0 and/or undertale.ini")
 
     # Deltarune: a filech{N}_{slot} in the main slot takes the Dark World path.
+    # dr.ini may ride the second slot as the corroborating summary (like undertale.ini).
     if file0 is not None and deltarune_parser.looks_like_deltarune(file0.filename):
         dr_parsed = deltarune_parser.parse_deltarune_save(await file0.read(), file0.filename)
-        truth = build_deltarune_truth(dr_parsed, source_meta={"filename": file0.filename})
+        dr_ini = None
+        if undertale_ini is not None:
+            ini_text = (await undertale_ini.read()).decode("utf-8", "replace")
+            if deltarune_parser.looks_like_dr_ini(undertale_ini.filename, ini_text):
+                dr_ini = deltarune_parser.parse_dr_ini(ini_text)
+        truth = build_deltarune_truth(dr_parsed, dr_ini=dr_ini, source_meta={"filename": file0.filename})
         project = Project(name=truth["play_state"].get("name") or "The Vessel", save_data=truth)
         db.add(project)
         db.commit()
