@@ -32,6 +32,11 @@ free). Any LLM failure → a grounded deterministic fallback, never a 500.
 - **Route atmosphere**, per-character portraits, first-time explainers, and a deep layer
   of Easter eggs.
 
+**Deltarune Chapter 1** — one app, two games: drop `filech1_0` in and the console
+falls into **Dark World mode** (violet, Ch1 cast + Hometown personas of the returning
+faces, honest `undetermined` route). Show saves from both worlds and **Across Two
+Worlds** wakes: Toriel dreams of the other universe; Divergence speaks across games.
+
 **Quality gates** — the two-bucket wall is enforced by `hallucination_guard`, an
 adversarial `voice_eval`, a `lore_eval`, the pytest suite, **and** a headless-browser
 frontend smoke (`tools/frontend_smoke.py`). All are CI merge gates.
