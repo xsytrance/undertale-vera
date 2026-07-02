@@ -1542,3 +1542,18 @@ body.edition-lite .rail-lbl-company { display: none !important; }
 /* chat style dials steer a model that lite doesn't have */
 body.edition-lite .settings-sec-respond { display: none !important; }
 .pro-pointer { text-decoration: none; border-style: dashed !important; }
+
+/* the read-a-save CTA (chat landing + empty facts rail) */
+.read-save-cta {
+  display: block; margin: 10px auto; padding: 12px 18px;
+  font-weight: 700; font-size: .95rem; cursor: pointer;
+  color: var(--obsidian) !important; background: var(--ember) !important;
+  border: 2px solid var(--ember) !important;
+  box-shadow: 0 0 14px rgba(255, 210, 63, .3);
+}
+.read-save-cta:hover { background: var(--ember-soft) !important; border-color: var(--ember-soft) !important; }
+.facts-empty { grid-column: 1 / -1; }
+.facts-empty .read-save-cta { margin: 4px 0 8px; width: 100%; }
+.chat-empty-need { max-width: 420px; margin: 2px auto 10px; font-size: .8rem; }
+/* the bouncing tag points at things drawers cover — hide it while one is open */
+body.drawer-left .start-here-tag, body.drawer-right .start-here-tag { display: none; }

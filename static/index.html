@@ -815,7 +815,14 @@ seam.png          — a button-eye with visible stitching</pre></div>
     <!-- ── right rail: the save (a drawer on mobile) ───────────────────── -->
     <aside class="rail rail-right" id="rail-right" aria-label="The save">
       <div class="rail-lbl">What the save shows <span class="muted" id="visit-label"></span></div>
-      <div class="facts-grid" id="truth-facts"><p class="muted">Read a save to begin.</p></div>
+      <div class="facts-grid" id="truth-facts">
+        <div class="facts-empty">
+          <button class="btn read-save-cta" data-go-saves>📂 Read a save — start here</button>
+          <p class="muted">You'll need <code>file0</code> from your game folder — and
+          <code>undertale.ini</code> too, if you can (it carries your name and play time).
+          The reader has a <strong>step-by-step guide</strong> to finding both.</p>
+        </div>
+      </div>
       <div style="margin-top:10px;"><span class="route-badge" id="route-badge"></span></div>
       <div class="remembrance hidden" id="remembrance-box"></div>
       <div class="recognition hidden" id="recognition-box" role="note"></div>

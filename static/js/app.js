@@ -696,6 +696,10 @@
     }
   }
   window.addEventListener("resize", positionStartHere);
+  document.addEventListener("click", function (e) {
+    var cta = e.target.closest && e.target.closest("[data-go-saves]");
+    if (cta) navTo("saves");
+  });
 
   function loadShelf() {
     api("/api/projects").then(function (res) {
@@ -1280,8 +1284,12 @@
       t.innerHTML = '<div class="chat-empty">' +
         '<span class="soul-sigil chat-empty-sigil" aria-hidden="true"></span>' +
         '<p class="chat-empty-prompt">' +
-        (state.projectId ? "Pick someone to talk to." : "Read a save to begin — or tap a face to hear their voice.") +
+        (state.projectId ? "Pick someone to talk to." : "Show Ember your save file and the cast will talk about YOUR run — or tap a face to hear their voice.") +
         "</p>" +
+        (state.projectId ? "" :
+          '<button class="btn read-save-cta" data-go-saves>📂 Read a save — start here</button>' +
+          '<p class="chat-empty-need muted">You\'ll need <code>file0</code> from your game folder ' +
+          '(and <code>undertale.ini</code> if you can) — the reader has a step-by-step guide.</p>') +
         (cast.length ? '<div class="chat-empty-cast">' + castHtml + "</div>" : "") +
         '<p class="chat-empty-quote">“' + quoteOfDay() + '”</p>' +
         '<div class="chat-empty-go">' +

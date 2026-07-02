@@ -373,3 +373,9 @@ body.world-dark .view.active {
   border-radius: 0 !important; border: 2px solid var(--ember) !important;
   background: var(--ember) !important; color: #000 !important;
 }
+
+/* the read-a-save CTA stays solid gold under the pixel skin */
+.read-save-cta {
+  background: var(--ember) !important; color: #000 !important;
+  border: 2px solid var(--ember) !important; border-radius: 0 !important;
+}
