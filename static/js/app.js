@@ -373,17 +373,25 @@
     var conf = (truth.route || {}).confidence || "unknown";
     var kills = (truth.kills || {}).total;
 
+    var darkWorld = truth.game === "deltarune";
+    document.body.classList.toggle("world-dark", darkWorld);   // the console falls into the Dark World
+
     function fmt(v) { return (v === null || v === undefined || v === "") ? "—" : v; }
-    $("truth-facts").innerHTML =
-      row("Name", fmt(play.name)) +
-      row("LOVE (LV)", fmt(play.love)) +
-      row("Kills", kills === null || kills === undefined ? "—" : kills) +
-      row("Room", fmt(play.room_name));
+    $("truth-facts").innerHTML = darkWorld
+      ? row("Name", fmt(play.name)) +
+        row("Dark $", fmt(play.gold)) +
+        row("Chapter", fmt(truth.chapter)) +
+        row("World", "the Dark World")
+      : row("Name", fmt(play.name)) +
+        row("LOVE (LV)", fmt(play.love)) +
+        row("Kills", kills === null || kills === undefined ? "—" : kills) +
+        row("Room", fmt(play.room_name));
 
     var badge = $("route-badge");
-    badge.className = "route-badge " + route.toLowerCase();
+    badge.className = "route-badge " + (darkWorld ? "dark-world" : route.toLowerCase());
     badge.innerHTML = '<span class="soul-sigil ' + (route === "Genocide" ? "determined" : "") +
-      '" style="width:14px;height:14px;"></span> route: ' + route + " (" + conf + ")";
+      '" style="width:14px;height:14px;"></span> ' +
+      (darkWorld ? "path: " + route + " (" + conf + ")" : "route: " + route + " (" + conf + ")");
 
     $("visit-label").textContent = visit ? ("· visit #" + visit) : "";
     var rbox = $("remembrance-box");
@@ -392,10 +400,13 @@
 
     // reflect the current save in the top-bar pill
     var pill = $("save-pill");
-    if (pill) pill.textContent = (fmt(play.name) === "—" ? "Save" : play.name) + " · " + route + " ▾";
+    if (pill) pill.textContent = (fmt(play.name) === "—" ? "Save" : play.name) + " · " +
+      (darkWorld ? "Dark World" : route) + " ▾";
 
-    // route-aware music: drive the bed from the live route (if enabled).
-    if (window.MusicLayer && $("music-toggle").checked) window.MusicLayer.setRoute(route);
+    // world/route-aware music: the Dark World brings its own bed (silent-safe fallback).
+    if (window.MusicLayer && $("music-toggle").checked) {
+      if (darkWorld) window.MusicLayer.setWorld("dark"); else window.MusicLayer.setRoute(route);
+    }
     // route-reactive backdrop: tint (always) + generated scene art (when present).
     if (window.SceneLayer) window.SceneLayer.setRoute(route);
     // tint the header sigil red on the Genocide beat.
@@ -1020,6 +1031,20 @@
     var t = state.truth || {};
     var route = ((t.route) || {}).route;
     var love = ((t.play_state) || {}).love;
+    if (t.game === "deltarune") {
+      var drS = ["How do you feel about my run?", "What do you make of the Dark World?"];
+      var drFlavor = {
+        Susie: "was i tough enough?", Ralsei: "did i follow the prophecy?",
+        Lancer: "am i a good bad guy?", Noelle: "do you remember me from class?",
+        King: "why do you hate the lightners?", "Rouxls Kaard": "how were thy puzzles?",
+        Jevil: "what game are we playing?", Seam: "what's coming, seam?",
+        Toriel: "how was school today?", Sans: "have we met before?",
+        Asgore: "how's the flower shop?", Alphys: "what anime should i watch?",
+      };
+      if (drFlavor[name]) drS.push(drFlavor[name]);
+      drS.push("Do you remember what I did?");
+      return drS.slice(0, 4);
+    }
     var s = ["How do you feel about my run?"];
     if (route && route !== "undetermined") s.push("What does my " + route + " path say about me?");
     if (love !== null && love !== undefined) s.push("What do you make of my LOVE?");
