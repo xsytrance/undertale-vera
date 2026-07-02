@@ -41,6 +41,9 @@ class Project(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255), nullable=False, default="Untitled Save")
     save_data = Column(JSON)  # the SaveTruth dict — SACRED
+    # Public deployments scope saves to the browser that uploaded them
+    # (EMBER_VISITOR_SCOPE=1). Null on single-user installs — nothing changes.
+    visitor = Column(String(64), nullable=True, index=True)
     created_at = Column(DateTime, nullable=False, default=_now)
     updated_at = Column(DateTime, nullable=False, default=_now, onupdate=_now)
 

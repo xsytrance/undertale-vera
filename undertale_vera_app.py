@@ -77,7 +77,78 @@ engine = create_engine(DB_URL, connect_args={"check_same_thread": False} if DB_U
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 Base.metadata.create_all(engine)
 
+# Existing DBs predate the visitor column (create_all won't add columns).
+try:
+    with engine.connect() as _c:
+        cols = [r[1] for r in _c.exec_driver_sql("PRAGMA table_info(projects)")]
+        if "visitor" not in cols:
+            _c.exec_driver_sql("ALTER TABLE projects ADD COLUMN visitor VARCHAR(64)")
+            _c.commit()
+except Exception:
+    pass
+
+# ── public-visitor scoping (EMBER_VISITOR_SCOPE=1, for shared deployments) ───
+# Each browser gets an opaque cookie; saves are visible only to the browser
+# that uploaded them. Off by default: single-user installs are untouched.
+import contextvars
+import uuid as _uuid
+
+VISITOR_SCOPE = os.environ.get("EMBER_VISITOR_SCOPE", "").strip() in ("1", "true", "yes")
+_visitor_ctx: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("visitor", default=None)
+MAX_SAVE_BYTES = 2 * 1024 * 1024          # no real save comes close
+MAX_PROJECTS_PER_VISITOR = 25
+
+
+def _visitor() -> Optional[str]:
+    return _visitor_ctx.get() if VISITOR_SCOPE else None
+
+
+def _scoped_project(db: Session, project_id: int) -> Optional[Project]:
+    """db.get(Project, id) that respects visitor scoping (404-as-None on miss)."""
+    project = db.get(Project, project_id)
+    if project is None:
+        return None
+    v = _visitor()
+    if v is not None and project.visitor is not None and project.visitor != v:
+        return None
+    return project
+
+
+async def _read_capped(f) -> bytes:
+    data = await f.read()
+    if len(data) > MAX_SAVE_BYTES:
+        raise HTTPException(status_code=413, detail="that file is far larger than any real save")
+    return data
+
+
+def _scoped_projects_query(db: Session):
+    q = db.query(Project)
+    v = _visitor()
+    if v is not None:
+        q = q.filter(Project.visitor == v)
+    return q
+
 app = FastAPI(title="undertale-vera", version="0.1.0-spine0")
+
+@app.middleware("http")
+async def _visitor_cookie(request, call_next):
+    if not VISITOR_SCOPE:
+        return await call_next(request)
+    vid = request.cookies.get("ember_visitor")
+    fresh = False
+    if not vid or not (8 <= len(vid) <= 64) or not vid.isalnum():
+        vid = _uuid.uuid4().hex
+        fresh = True
+    token = _visitor_ctx.set(vid)
+    try:
+        response = await call_next(request)
+    finally:
+        _visitor_ctx.reset(token)
+    if fresh:
+        response.set_cookie("ember_visitor", vid, max_age=60 * 60 * 24 * 365,
+                            httponly=True, samesite="lax")
+    return response
+
 
 
 def get_db():
@@ -156,7 +227,7 @@ def _prior_save_summaries(db: Session, current_project_id: int) -> list[dict[str
     projects are the same hand on the keys.
     """
     rows = (
-        db.query(Project)
+        _scoped_projects_query(db)
         .filter(Project.id != current_project_id)
         .order_by(Project.id.asc())
         .all()
@@ -305,6 +376,8 @@ class WatchRequest(BaseModel):
 @app.post("/api/guided/watch")
 def guided_watch(req: WatchRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Watch a save directory (e.g. ~/.config/UNDERTALE or the DELTARUNE folder)."""
+    if power_config.edition() == "lite":
+        raise HTTPException(status_code=403, detail="Guided Mode watches a local save folder — not available on the shared lite site")
     if not guided_state.add_dir(req.path):
         raise HTTPException(status_code=400, detail="not a directory")
     beats = guided_scan_once(db)   # adopt what's already there, right away
@@ -315,6 +388,8 @@ def guided_watch(req: WatchRequest, db: Session = Depends(get_db)) -> dict[str, 
 
 @app.delete("/api/guided/watch")
 def guided_unwatch(req: WatchRequest) -> dict[str, Any]:
+    if power_config.edition() == "lite":
+        raise HTTPException(status_code=403, detail="not available on the lite site")
     guided_state.remove_dir(req.path)
     return {"watching": guided_state.dirs}
 
@@ -358,7 +433,7 @@ def guided_react(project_id: int, req: GuidedReactRequest, db: Session = Depends
     The delta lines are SACRED (they come from ledger.summarize_change); the voice
     is FREE. Persisted to the character's transcript like a reach-out.
     """
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if not get_character(req.character):
@@ -420,7 +495,7 @@ class GuidedHintRequest(BaseModel):
 @app.post("/api/projects/{project_id}/guided-hint")
 def guided_hint(project_id: int, req: GuidedHintRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """A progress-gated hint (never beyond the save), optionally delivered in voice."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     save_truth = project.save_data or {}
@@ -456,7 +531,7 @@ class SessionStoryRequest(BaseModel):
 @app.post("/api/projects/{project_id}/session-story")
 def session_story_ep(project_id: int, req: SessionStoryRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """A character narrates the play session's arc (SACRED beats, FREE telling)."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if not get_character(req.character):
@@ -633,17 +708,20 @@ async def upload_save(
     if file0 is None and undertale_ini is None:
         raise HTTPException(status_code=400, detail="Provide file0 and/or undertale.ini")
 
+    if _visitor() is not None and _scoped_projects_query(db).count() >= MAX_PROJECTS_PER_VISITOR:
+        raise HTTPException(status_code=429, detail="this browser's save shelf is full")
+
     # Deltarune: a filech{N}_{slot} in the main slot takes the Dark World path.
     # dr.ini may ride the second slot as the corroborating summary (like undertale.ini).
     if file0 is not None and deltarune_parser.looks_like_deltarune(file0.filename):
-        dr_parsed = deltarune_parser.parse_deltarune_save(await file0.read(), file0.filename)
+        dr_parsed = deltarune_parser.parse_deltarune_save(await _read_capped(file0), file0.filename)
         dr_ini = None
         if undertale_ini is not None:
-            ini_text = (await undertale_ini.read()).decode("utf-8", "replace")
+            ini_text = (await _read_capped(undertale_ini)).decode("utf-8", "replace")
             if deltarune_parser.looks_like_dr_ini(undertale_ini.filename, ini_text):
                 dr_ini = deltarune_parser.parse_dr_ini(ini_text)
         truth = build_deltarune_truth(dr_parsed, dr_ini=dr_ini, source_meta={"filename": file0.filename})
-        project = Project(name=truth["play_state"].get("name") or "The Vessel", save_data=truth)
+        project = Project(name=truth["play_state"].get("name") or "The Vessel", save_data=truth, visitor=_visitor())
         db.add(project)
         db.commit()
         db.refresh(project)
@@ -651,14 +729,14 @@ async def upload_save(
         return {"project_id": project.id, "save_truth": truth,
                 "validation": {"ok": True, "issues": [], "warnings": truth.get("warnings", [])}}
 
-    file0_text = (await file0.read()).decode("utf-8", "replace") if file0 else None
-    ini_text = (await undertale_ini.read()).decode("utf-8", "replace") if undertale_ini else None
+    file0_text = (await _read_capped(file0)).decode("utf-8", "replace") if file0 else None
+    ini_text = (await _read_capped(undertale_ini)).decode("utf-8", "replace") if undertale_ini else None
 
     parsed = parse_undertale_save(file0_text=file0_text, ini_text=ini_text)
     truth = build_save_truth(parsed)
     validation = validate_save_truth(truth)
 
-    project = Project(name=truth["play_state"].get("name") or "Fallen Human", save_data=truth)
+    project = Project(name=truth["play_state"].get("name") or "Fallen Human", save_data=truth, visitor=_visitor())
     db.add(project)
     db.commit()
     db.refresh(project)
@@ -682,14 +760,14 @@ async def refresh_save(
     Read-only re: the save files. Updates the project's current SaveTruth and
     APPENDS a new remembrance snapshot — prior snapshots are never touched.
     """
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if file0 is None and undertale_ini is None:
         raise HTTPException(status_code=400, detail="Provide file0 and/or undertale.ini")
 
-    file0_text = (await file0.read()).decode("utf-8", "replace") if file0 else None
-    ini_text = (await undertale_ini.read()).decode("utf-8", "replace") if undertale_ini else None
+    file0_text = (await _read_capped(file0)).decode("utf-8", "replace") if file0 else None
+    ini_text = (await _read_capped(undertale_ini)).decode("utf-8", "replace") if undertale_ini else None
     parsed = parse_undertale_save(file0_text=file0_text, ini_text=ini_text)
     truth = build_save_truth(parsed)
 
@@ -710,7 +788,7 @@ async def refresh_save(
 @app.get("/api/projects/{project_id}/save-memory")
 def save_memory(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """The remembrance ledger: the chronological snapshots ('the save remembers')."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     snaps = _snapshots_for(db, project_id)
@@ -724,7 +802,7 @@ def save_memory(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any
 @app.get("/api/projects")
 def list_projects(db: Session = Depends(get_db)) -> dict[str, Any]:
     """The save shelf: every read save, newest first, with a route summary."""
-    rows = db.query(Project).order_by(Project.created_at.desc(), Project.id.desc()).all()
+    rows = _scoped_projects_query(db).order_by(Project.created_at.desc(), Project.id.desc()).all()
     out = []
     for p in rows:
         st = p.save_data or {}
@@ -742,7 +820,7 @@ def list_projects(db: Session = Depends(get_db)) -> dict[str, Any]:
 
 @app.get("/api/projects/{project_id}/save-truth")
 def get_save_truth(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     return {"project_id": project_id, "save_truth": project.save_data}
@@ -753,7 +831,7 @@ def get_save_truth(project_id: int, db: Session = Depends(get_db)) -> dict[str, 
 @app.get("/api/projects/{project_id}/judgment")
 def get_judgment(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Deterministic sacred judgment: route / LOVE / kills read off SaveTruth."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     snaps = _snapshots_for(db, project_id)
@@ -780,7 +858,7 @@ def _journal_entries(db: Session, project_id: int) -> list[dict[str, Any]]:
 @app.get("/api/projects/{project_id}/journal")
 def get_journal(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """The Keepsake Journal: every inscription, plus a portable markdown export."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     entries = _journal_entries(db, project_id)
@@ -795,7 +873,7 @@ class InscribeRequest(BaseModel):
 @app.post("/api/projects/{project_id}/journal/inscribe")
 def inscribe_journal(project_id: int, req: InscribeRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """A character writes a grounded entry in the journal (FREE voice over SACRED facts)."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if not get_character(req.character):
@@ -912,7 +990,7 @@ def _report_json(r: ReportEntry) -> dict[str, Any]:
 @app.post("/api/projects/{project_id}/report")
 def request_report(project_id: int, req: ReportRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """One character's grounded after-action report — saved to history; opt. to journal."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if not get_character(req.character):
@@ -939,7 +1017,7 @@ def request_report(project_id: int, req: ReportRequest, db: Session = Depends(ge
 def list_reports(project_id: int, character: Optional[str] = None, status: str = "active",
                  db: Session = Depends(get_db)) -> dict[str, Any]:
     """The reports history for a save — newest first; filter by character and status."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     q = db.query(ReportEntry).filter(ReportEntry.project_id == project_id)
@@ -987,7 +1065,7 @@ def delete_report(project_id: int, report_id: int, db: Session = Depends(get_db)
 @app.post("/api/projects/{project_id}/report/full")
 def request_full_report(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Every character files a report — the whole Underground weighs in on your run."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     save_truth = project.save_data or {}
@@ -1006,7 +1084,7 @@ def email_status() -> dict[str, Any]:
 @app.post("/api/projects/{project_id}/report/email")
 def email_report(project_id: int, req: EmailReportRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Generate a report and email it to the player, in the character's voice (opt-in)."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if not get_character(req.character):
@@ -1027,7 +1105,7 @@ def email_report(project_id: int, req: EmailReportRequest, db: Session = Depends
 @app.post("/api/projects/{project_id}/report/digest/email")
 def email_digest(project_id: int, req: EmailDigestRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Email the whole cast's collected reports as one digest (opt-in, env-gated)."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     rows = (
@@ -1052,7 +1130,7 @@ def email_digest(project_id: int, req: EmailDigestRequest, db: Session = Depends
 @app.post("/api/projects/{project_id}/journal/add")
 def journal_add(project_id: int, req: JournalAddRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Inscribe an already-shown report into the Keepsake Journal, verbatim (ADD-only)."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if not get_character(req.author):
@@ -1075,7 +1153,7 @@ class ReachOutRequest(BaseModel):
 @app.post("/api/projects/{project_id}/reach-out")
 def reach_out(project_id: int, req: ReachOutRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """A character messages the human first — grounded, in voice. Persisted to the chat."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     save_truth = project.save_data or {}
@@ -1119,7 +1197,7 @@ def reach_out(project_id: int, req: ReachOutRequest, db: Session = Depends(get_d
 @app.get("/api/projects/{project_id}/affinities")
 def get_affinities(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """How the whole cast REGARDS the player, derived from the save (SACRED-derived tone)."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     return {"project_id": project_id, "affinities": affinity_mod.all_affinities(project.save_data or {})}
@@ -1128,7 +1206,7 @@ def get_affinities(project_id: int, db: Session = Depends(get_db)) -> dict[str, 
 @app.get("/api/projects/{project_id}/council")
 def get_council(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """The Council: the whole Underground's reaction to the run, side by side (deterministic)."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     return {"project_id": project_id, "council": council.build_council(project.save_data or {})}
@@ -1142,7 +1220,7 @@ def get_recognition(project_id: int, db: Session = Depends(get_db)) -> dict[str,
     save-aware characters' (Flowey / Sans) knowing recognition lines. `present` is
     false on a first/only save — nothing has seen you before yet.
     """
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     current = ledger.snapshot_fields_from_truth(project.save_data or {})
@@ -1177,7 +1255,7 @@ def get_constellation(db: Session = Depends(get_db)) -> dict[str, Any]:
     """
     saves = [
         ledger.snapshot_fields_from_truth(p.save_data or {})
-        for p in db.query(Project).order_by(Project.id.asc()).all()
+        for p in _scoped_projects_query(db).order_by(Project.id.asc()).all()
     ]
     agg = constellation_mod.aggregate(saves)
     return {
@@ -1252,7 +1330,7 @@ def _autofill_journal(db: Session, project_id: int, save_truth: dict[str, Any],
 @app.get("/api/projects/{project_id}/chronicle")
 def get_chronicle(project_id: int, db: Session = Depends(get_db)) -> dict[str, Any]:
     """The Chronicle: the save's whole story as shareable Markdown (SACRED, facts-only)."""
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     snaps = _snapshots_for(db, project_id)
@@ -1271,7 +1349,7 @@ def speak_judgment(project_id: int, req: JudgmentSpeakRequest, db: Session = Dep
     The structured judgment is the sacred core; the spoken line is free voice over
     it. Degrades to the deterministic verdict line when no model is reachable.
     """
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if not get_character(req.character):
@@ -1445,7 +1523,7 @@ def _memory_grounding_for(db: Session, project_id: int, character: str, message:
 
 @app.post("/api/projects/{project_id}/chat")
 def chat(project_id: int, req: ChatRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
-    project = db.get(Project, project_id)
+    project = _scoped_project(db, project_id)
     if not project:
         raise HTTPException(status_code=404, detail="project not found")
     if not get_character(req.character):
