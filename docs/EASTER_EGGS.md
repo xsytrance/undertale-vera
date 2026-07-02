@@ -32,5 +32,10 @@ whisper). Word-eggs are additive: your message still sends normally.
 | **annoying dog** / **doggo** | 🐶🦴 + *"(a small white dog trots across the screen, and steals something.)"* |
 | **determination** | the full DETERMINATION burst |
 | **...** (just dots) | blue flash + *"...(sans says nothing. but he's watching.)"* |
+| **chaos** | card-suit rain + disco + *"CHAOS, CHAOS! UEE HEE HEE!"* |
+| **ho ho ho** | ♠🚲 rain + *"I, LANCER, APPROVE THIS MESSAGE!"* |
+| **worm(s)** | *"ROUXLS KAARD APPROACHETH. HANDETH OVER THY WORMS."* |
+| **prophecy** | violet flash + *"(a legend whispers itself, older than the dark.)"* |
+| **egg** (the whole message) | *"(you got the egg.)"* |
 
 _Word-eggs share a ~3.5s cooldown. Kept up to date as new eggs are buried._

@@ -117,6 +117,21 @@ the chat word-eggs). All pure UI, never touching the wall.
 
 ---
 
+## Deltarune (one app, two games)
+Drop `filech1_0` (from `%LocalAppData%\DELTARUNE`) into the save slot — detected by
+filename. `deltarune_parser.py` applies the parser-truth law (only corroborated lines
+named: player name, Dark Dollars; the rest raw); `deltarune_truth.py` produces a
+SaveTruth-compatible truth (route honestly `undetermined` — Ch1's Pacifist/Violent
+isn't corroborated from flags yet). The registry is game-aware: 8 Ch1 voices (Susie,
+Ralsei, Lancer, Noelle, King, Rouxls Kaard, Jevil, Seam) plus **Hometown personas**
+for Toriel/Asgore/Alphys/Sans. A Deltarune save flips the console into **Dark World
+mode** (violet accents via scoped `--ember` variables), swaps the roster, facts, lore
+and quote cards, starters, and prefers a `dark-world.mp3` bed (silent-safe fallback).
+**Across Two Worlds** (`crossave.build_two_worlds_grounding`): once saves from both
+games exist, the returning faces feel the other universe — its facts clearly labelled
+SACRED, the conceit FREE, never asserted as this world's truth. The Two-Save
+Divergence picker works cross-world ("TWO SAVE FILES FROM TWO WORLDS, THE SAME HANDS").
+
 ## Testing & CI
 - `pytest -q` — backend suite (263+ tests; mocks the LLM, keyword-only RAG).
 - `python -m tools.voice_eval --min 1.0` — adversarial two-bucket-wall gate.

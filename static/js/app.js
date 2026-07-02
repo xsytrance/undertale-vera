@@ -55,13 +55,34 @@
     "The flowers remember the shape of your resolve.",
     "Kindness is a courage the Underground never forgets.",
   ];
+  var DR_APHORISMS = [
+    "The Dark needs the Light, and the Light needs the Dark.",
+    "A prophecy is just a story until someone walks it.",
+    "Your choices don't matter. (They matter enormously.)",
+    "Every vessel is empty until somebody refuses to be.",
+    "The door was always there. You just hadn't fallen through it yet.",
+    "Kindness in a dark place shines twice as far.",
+    "Some cages are called freedom by the ones outside them.",
+    "A team is three people pretending they aren't scared alone.",
+  ];
+  var DR_LORE = [
+    "Darkners are born of Lightners' things — a deck of cards, a keyboard, a door.",
+    "In the Dark World, dollars are dark. The economy is honest about itself.",
+    "TP replaces magic here: tension, spent on mercy as easily as violence.",
+    "A Lightner's touch gives a Darkner purpose. Their absence gives them grief.",
+    "Chapter 1's fork is simpler than it looks: fight, or don't.",
+    "The prophecy names three heroes. It never says whose prophecy it is.",
+    "Kris never chose the vessel. Neither did you.",
+    "Some doors close at the end of the day. Some things stay behind them.",
+  ];
   var _quoteIdx = null;
   function quoteOfDay() {
     if (_quoteIdx === null) {
       var d = new Date();
       _quoteIdx = (d.getFullYear() * 372 + d.getMonth() * 31 + d.getDate()) % APHORISMS.length;
     }
-    return APHORISMS[_quoteIdx];
+    var pool = ((state.truth || {}).game === "deltarune") ? DR_APHORISMS : APHORISMS;
+    return pool[_quoteIdx % pool.length];
   }
   function renderQuote() {
     var el = $("quote-text"); if (el) el.textContent = "“" + quoteOfDay() + "”";
@@ -92,7 +113,8 @@
       var d = new Date();
       _loreIdx = (d.getFullYear() * 181 + d.getMonth() * 29 + d.getDate() + 3) % LORE.length;
     }
-    return LORE[_loreIdx];
+    var pool = ((state.truth || {}).game === "deltarune") ? DR_LORE : LORE;
+    return pool[_loreIdx % pool.length];
   }
   function renderLore() {
     var el = $("lore-text"); if (el) el.textContent = loreOfDay();
@@ -417,6 +439,8 @@
     setBodyRoute(route);
     if (route === "Genocide" && state.lastRoute !== "Genocide") flashGenocide();
     state.lastRoute = route;
+    // the flavour cards follow the world (Underground lore vs Dark World lore)
+    renderQuote(); renderLore();
     // if "let them reach out" is on, resume the proactive timer now a save is live
     startReachTimer(false);
     // New Game+: does anything here know you from another save you've shown?
@@ -868,6 +892,12 @@
     { re: /\bundyne\b|suplex/i, run: function () { colorFlash("#2ec9a0"); miniToast("* NGAHHH!! FUHUHUHU!"); } },
     { re: /annoying dog|\bdoggo\b/i, run: function () { rainItems(["🐶", "🦴"]); miniToast("* (a small white dog trots across the screen, and steals something.)"); } },
     { re: /determination/i, run: function () { determinationBurst(); } },
+    // ── Dark World eggs ─────────────────────────────────────────────────────
+    { re: /\bchaos\b/i, run: function () { discoFlash(); rainItems(["♠", "♦", "♣", "♥"]); miniToast("* CHAOS, CHAOS! UEE HEE HEE!"); } },
+    { re: /ho ho ho/i, run: function () { rainItems(["♠", "🚲"]); miniToast("* HO HO HO! I, LANCER, APPROVE THIS MESSAGE!"); } },
+    { re: /\bworm(s|eth)?\b/i, run: function () { miniToast("* ROUXLS KAARD APPROACHETH. HANDETH OVER THY WORMS."); } },
+    { re: /\bprophecy\b/i, run: function () { colorFlash("#b48bf2"); miniToast("* (a legend whispers itself, older than the dark.)"); } },
+    { re: /^egg$/i, run: function () { miniToast("* (you got the egg.)"); } },
   ];
   var _eggCooling = false;
   function runWordEgg(msg) {
