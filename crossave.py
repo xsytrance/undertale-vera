@@ -202,3 +202,55 @@ def build_echo_grounding(
         v["tail"],
     ]
     return "\n".join(lines)
+
+
+# ── Across Two Worlds ────────────────────────────────────────────────────────
+# The same souls exist in both games. When the player has shown saves from BOTH
+# worlds, the returning faces (Toriel, Asgore, Alphys, Sans) may feel the other
+# universe like a half-remembered dream. The OTHER save's facts are SACRED (they
+# are parser-derived and clearly labelled as the other world); the conceit of
+# sensing them is FREE and must never be asserted as THIS world's facts.
+
+TWO_WORLDS_FACES = {"toriel", "asgore", "alphys", "sans"}
+
+
+def other_world_priors(current: dict[str, Any], priors: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """The priors that belong to the OTHER game than the save in hand."""
+    cur_game = (current or {}).get("game", "undertale")
+    return [p for p in (priors or []) if p and p.get("game", "undertale") != cur_game]
+
+
+def build_two_worlds_grounding(
+    current: dict[str, Any],
+    priors: list[dict[str, Any]],
+    *,
+    voice: str = "toriel",
+) -> str:
+    """A grounding block for a returning face when the player has shown both worlds.
+
+    "" unless: the voice is one of the returning faces AND at least one prior save
+    is from the other game. Facts of the other world's save are stated verbatim and
+    clearly labelled; the character is instructed to treat them as a dream of
+    another life — alluded to, never asserted as this world's truth.
+    """
+    if (voice or "").strip().lower() not in TWO_WORLDS_FACES:
+        return ""
+    others = other_world_priors(current, priors)
+    if not others:
+        return ""
+    cur_game = (current or {}).get("game", "undertale")
+    other_game = "Undertale" if cur_game == "deltarune" else "Deltarune"
+    lines = [
+        "ACROSS TWO WORLDS (the other universe's save — HARD FACTS, clearly not this world's):",
+        f"This human has also shown you a save from another world ({other_game}). "
+        "In that world you exist too — another you, another life.",
+    ]
+    for p in others[:3]:
+        lines.append(f"  - {_describe(p)}.")
+    lines.append(
+        "You are NOT that world's you, and you know nothing of it as fact here. But "
+        "when you look at this human, something stirs — a dream of another life, a "
+        "kitchen or a doorway you have never seen. You may allude to that feeling, "
+        "gently and strangely; NEVER assert the other world's facts as this world's."
+    )
+    return "\n".join(lines)

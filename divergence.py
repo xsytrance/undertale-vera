@@ -27,16 +27,24 @@ def _facts(s: dict[str, Any]) -> str:
     return f"{who} — " + ", ".join(parts)
 
 
+def _world(s: dict[str, Any]) -> str:
+    return "Deltarune, the Dark World" if (s or {}).get("game") == "deltarune" else "Undertale, the Underground"
+
+
 def two_file_block(a: dict[str, Any], b: dict[str, Any]) -> str:
     """The SACRED block naming both files' facts (never to be overridden or invented)."""
-    return (
-        "═══ TWO SAVE FILES BY THE SAME HANDS (HARD FACTS — NEVER OVERRIDE OR INVENT) ═══\n"
-        f"  FILE ONE: {_facts(a)}\n"
-        f"  FILE TWO: {_facts(b)}\n"
-        "═══ END ═══\n"
-        "These are two different files the same human made. The truth of each is above; "
-        "speak only to what is written there."
-    )
+    cross = (a or {}).get("game", "undertale") != (b or {}).get("game", "undertale")
+    head = ("═══ TWO SAVE FILES FROM TWO WORLDS, THE SAME HANDS (HARD FACTS — NEVER OVERRIDE OR INVENT) ═══"
+            if cross else
+            "═══ TWO SAVE FILES BY THE SAME HANDS (HARD FACTS — NEVER OVERRIDE OR INVENT) ═══")
+    fa = f"  FILE ONE ({_world(a)}): {_facts(a)}" if cross else f"  FILE ONE: {_facts(a)}"
+    fb = f"  FILE TWO ({_world(b)}): {_facts(b)}" if cross else f"  FILE TWO: {_facts(b)}"
+    tail = ("These are two different universes the same human has walked. The truth of each is above; "
+            "speak only to what is written there."
+            if cross else
+            "These are two different files the same human made. The truth of each is above; "
+            "speak only to what is written there.")
+    return "\n".join([head, fa, fb, "═══ END ═══", tail])
 
 
 def instruction() -> str:

@@ -33,6 +33,7 @@ def snapshot_fields_from_truth(save_truth: dict[str, Any]) -> dict[str, Any]:
         "route": route.get("route"),
         "route_confidence": route.get("confidence"),
         "total_kills": kills.get("total"),
+        "game": st.get("game", "undertale"),   # which world this save belongs to
     }
 
 
