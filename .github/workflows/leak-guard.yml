@@ -1,0 +1,15 @@
+name: leak guard
+on: [push, pull_request]
+jobs:
+  sweep:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: no secrets, saves, or personal data may land
+        run: |
+          set -e
+          ! grep -rInE "sk-or-v1-[A-Za-z0-9]{24,}|sk-ant-api[A-Za-z0-9-]{24,}" . --exclude-dir=.git
+          ! grep -rInE "100\.(6[4-9]|[7-9][0-9]|1[0-1][0-9]|12[0-7])\.[0-9]+\.[0-9]+" . --exclude-dir=.git
+          ! grep -rIn "/home/" . --exclude-dir=.git --exclude-dir=.github
+          test ! -e ember_power.json && test ! -e guided_watch.json && test ! -d saves
+          echo "clean"

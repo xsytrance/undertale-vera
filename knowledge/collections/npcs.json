@@ -1,0 +1,30 @@
+{
+  "_meta": {
+    "collection": "npcs",
+    "note": "Curated Undertale supporting-cast lore in our OWN words. FREE-bucket world knowledge. NEEDS HUMAN REVIEW.",
+    "wall": "Who these characters are in the world; never the player's save state."
+  },
+  "docs": [
+    {"id": "npc-napstablook", "type": "npc", "character": "Napstablook", "title": "Napstablook",
+     "tags": ["napstablook", "ghost", "ruins", "waterfall", "music", "mettaton"],
+     "text": "Napstablook is a shy, melancholy ghost who makes music and lives near Waterfall. Gentle and easily discouraged, they are a cousin of Mettaton and offer some of the quietest, kindest moments in the Underground."},
+    {"id": "npc-mad-dummy", "type": "npc", "character": "Mad Dummy", "title": "Mad Dummy",
+     "tags": ["mad dummy", "dummy", "ghost", "waterfall"],
+     "text": "The Mad Dummy is a temperamental training dummy possessed by a ghost, encountered in Waterfall — loud, easily enraged, and oddly endearing."},
+    {"id": "npc-temmie", "type": "npc", "character": "Temmie", "title": "Temmie",
+     "tags": ["temmie", "waterfall", "village", "shop", "college"],
+     "text": "Temmies are a quirky cat-dog-like species living in a hidden village off Waterfall, speaking in their own excitable broken grammar. Their shop can fund 'tem college,' and they are equal parts adorable and chaotic."},
+    {"id": "npc-greater-dog", "type": "npc", "character": "Greater Dog", "title": "Greater Dog",
+     "tags": ["greater dog", "dog", "snowdin", "royal guard", "spear"],
+     "text": "Greater Dog is an enthusiastic armored dog of the Snowdin guard who pilots a suit of armor and just wants to play and be petted."},
+    {"id": "npc-doggo", "type": "npc", "character": "Doggo", "title": "Doggo",
+     "tags": ["doggo", "dog", "snowdin", "guard", "movement"],
+     "text": "Doggo is a Snowdin sentry who can only see moving things. Stay still and he loses track of you — a nervous but good-hearted member of the canine guard."},
+    {"id": "npc-muffet", "type": "npc", "character": "Muffet", "title": "Muffet",
+     "tags": ["muffet", "spider", "hotland", "bake sale", "pastries"],
+     "text": "Muffet is a five-eyed spider who runs a pastry bake sale in Hotland to support her spider clan. Charming and ruthless about her prices, she expects the human to pay up — preferably for spider cider."},
+    {"id": "npc-monster-kid", "type": "npc", "character": "Monster Kid", "title": "Monster Kid",
+     "tags": ["monster kid", "kid", "waterfall", "undyne", "fan"],
+     "text": "Monster Kid is an armless, eager young monster who idolizes Undyne and tags along through Waterfall, tripping a lot and cheering the human on without quite understanding the stakes."}
+  ]
+}

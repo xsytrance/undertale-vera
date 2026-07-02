@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ember · The Save Remembers</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;700&family=VT323&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <script>
+    /* vision settings apply before first paint so nothing flashes */
+    try { JSON.parse(localStorage.getItem("uv_a11y") || "[]")
+          .forEach(function (k) { document.documentElement.classList.add("a11y-" + k); }); } catch (e) {}
+  </script>
+  <link rel="stylesheet" href="/css/determination.css" />
+  <!-- Pass 2: Undertale game skin (override layer; loaded after the base theme) -->
+  <link rel="stylesheet" href="/css/undertale.css" />
+</head>
+<body>
+  <!-- route-reactive backdrop: CSS gradient tint always; generated scene art fades
+       in over it when present (static/assets/scenes/<route>.png, gitignored). -->
+  <div id="scene-backdrop" class="scene-backdrop scene-undetermined" aria-hidden="true"></div>
+
+  <!-- brief blood-red flash fired once when a save resolves to the Genocide route -->
+  <div id="screen-flash" class="screen-flash" aria-hidden="true"></div>
+
+  <!-- route atmosphere: a faint edge-aura the colour of the player's path -->
+  <div id="route-aura" class="route-aura" aria-hidden="true"></div>
+
+  <!-- ░░░ THE CONSOLE — a persistent app shell ░░░
+       Top bar · left rail (saves + cast + views) · stage (one active view) ·
+       right rail (the save). On mobile the rails become drawers and a bottom
+       nav drives navigation; the stage shows exactly one view at a time so you
+       never scroll a stack of panels. -->
+  <div class="app" id="app">
+
+    <!-- ── top bar ─────────────────────────────────────────────────────── -->
+    <header class="topbar">
+      <div class="brand">
+        <span class="soul-sigil" id="header-sigil" title="…" aria-hidden="true"></span>
+        <span class="brand-name display">Ember</span>
+      </div>
+      <button class="save-pill" id="save-pill" title="Your saves &amp; cast">no save yet ▾</button>
+      <button class="topbar-modes" id="modes-btn" title="Modes &amp; features" aria-haspopup="true" aria-expanded="false">▦ Modes ▾</button>
+      <button class="topbar-audio" id="audio-btn" title="Volume &amp; mute" aria-haspopup="true" aria-expanded="false" aria-label="Volume">🔊</button>
+      <button id="settings-btn" class="topbar-gear" title="Settings" aria-label="Settings">⚙<span class="tg-label"> Settings</span></button>
+    </header>
+
+    <!-- ── left rail: saves · cast · views (a drawer on mobile) ────────── -->
+    <aside class="rail rail-left" id="rail-left" aria-label="Navigation">
+      <div class="rail-sec">
+        <div class="rail-lbl rail-lbl-saves">📂 Saves <span class="rail-hint">— start here</span></div>
+        <div class="rail-list" id="shelf"></div>
+        <button class="rail-add" id="add-save-btn">＋ Read a save</button>
+      </div>
+      <div class="rail-sec">
+        <div class="rail-lbl">Who's here</div>
+        <div class="rail-list roster" id="roster"></div>
+      </div>
+      <div class="rail-sec" id="rail-views">
+        <div class="rail-lbl">Modes</div>
+        <nav class="rail-nav" id="view-nav">
+          <button data-view="chat" class="navitem sel">💬 Chat</button>
+          <button data-view="council" class="navitem">🗣 The Council</button>
+          <button data-view="timeline" class="navitem">🕰 Timeline</button>
+          <button data-view="journal" class="navitem">📖 Keepsake Journal</button>
+          <button data-view="constellation" id="nav-constellation" class="navitem hidden">🌌 Across Your Saves</button>
+          <button data-view="chronicle" class="navitem">📜 The Chronicle</button>
+          <button data-view="judgment" class="navitem">⚖ Judgment</button>
+          <button data-view="reports" class="navitem">📋 Report Cards</button>
+          <button data-view="soundtest" class="navitem">🎵 Sound Test</button>
+          <button data-view="guided" class="navitem">🧭 Guided Mode</button>
+          <button data-view="commons" class="navitem">📚 The Commons</button>
+          <button data-view="howitworks" class="navitem">❓ How It Works</button>
+          <button data-view="multivera" class="navitem">🌌 MultiVera</button>
+          <button data-view="credits" class="navitem">🏅 Credits</button>
+          <button data-view="workshop" class="navitem">🛠 Prompt Workshop</button>
+        </nav>
+      </div>
+      <div class="rail-sec">
+        <div class="rail-lbl rail-lbl-company">Company</div>
+        <button class="reach-cta" id="reach-cta" aria-haspopup="dialog">
+          <span class="reach-cta-icon">✉</span>
+          <span class="reach-cta-body">
+            <span class="reach-cta-head">
+              <span class="reach-cta-title">Reach out</span>
+              <span class="reach-cta-state" id="reach-cta-state">Off</span>
+            </span>
+            <span class="reach-cta-sub">the cast messages you first</span>
+          </span>
+        </button>
+        <label class="reach-freq hidden" id="reach-freq-row">
+          <span>How often</span>
+          <select id="reach-freq">
+            <option value="often">Often</option>
+            <option value="normal">Sometimes</option>
+            <option value="rare">Rarely</option>
+            <option value="off">Muted</option>
+          </select>
+        </label>
+      </div>
+    </aside>
+
+    <!-- ── the stage: exactly one view is .active ──────────────────────── -->
+    <main class="stage" id="stage">
+      <!-- speaker strip (mobile only, chat view): tap a face to switch who you talk to -->
+      <div class="speaker-strip" id="speaker-strip" aria-label="Switch speaker"></div>
+
+      <!-- Chat -->
+      <section class="view view-chat active" id="view-chat">
+        <div class="chat-hero hidden" id="chat-hero">
+          <div class="relic-portrait empty" id="chat-portrait" role="img"></div>
+          <div class="chat-hero-meta">
+            <div class="dialogue-name" id="chat-name">—</div>
+            <div class="chat-hero-title" id="chat-title"></div>
+          </div>
+          <button class="chat-hero-menu" id="chat-hero-menu" aria-label="Menu · features">☰</button>
+        </div>
+        <div class="dialogue-vessel">
+          <div class="dialogue-body">
+            <div class="transcript" id="transcript"></div>
+          </div>
+        </div>
+        <div class="composer">
+          <input type="text" id="chat-input" placeholder="say something…" />
+          <button class="btn" id="send-btn">Send</button>
+        </div>
+      </section>
+
+      <!-- The Council -->
+      <section class="view" id="view-council">
+        <h2>The Council <span class="muted">— the whole Underground reacts to your run</span></h2>
+        <div class="council" id="council-list"></div>
+      </section>
+
+      <!-- The Timeline -->
+      <section class="view" id="view-timeline">
+        <h2>The Timeline <span class="muted">— every reading; ↩ marks where the numbers went backward</span></h2>
+        <div class="timeline" id="timeline-track"></div>
+      </section>
+
+      <!-- The Keepsake Journal -->
+      <section class="view" id="view-journal">
+        <h2>The Keepsake Journal <span class="muted">— a book the Underground fills; carry it with you</span></h2>
+        <div class="row" style="margin-bottom:12px;">
+          <select id="journal-author" class="btn"></select>
+          <button class="btn" id="journal-inscribe-btn">Ask them to write</button>
+          <button class="btn" id="journal-download-btn">⤓ Download .md</button>
+        </div>
+        <div class="journal" id="journal-entries"></div>
+      </section>
+
+      <!-- The Constellation -->
+      <section class="view" id="view-constellation">
+        <h2>Across Your Saves <span class="muted">— the whole shape of you, every file shown</span></h2>
+        <div class="con-map-wrap"><canvas id="con-map" aria-label="Your saves as a constellation"></canvas>
+          <div class="con-tip hidden" id="con-tip"></div></div>
+        <div class="constellation" id="constellation-content"></div>
+        <div class="divergence-tool" id="divergence-tool">
+          <div class="rail-lbl">The fork — hear any two of your saves compared</div>
+          <div class="div-controls">
+            <select id="div-a" class="btn" aria-label="First save"></select>
+            <span class="div-vs" aria-hidden="true">↔</span>
+            <select id="div-b" class="btn" aria-label="Second save"></select>
+            <select id="div-char" class="btn" aria-label="Who speaks to the fork"></select>
+            <button class="btn" id="div-ask">Ask them</button>
+          </div>
+          <div class="div-output" id="div-output"></div>
+        </div>
+      </section>
+
+      <!-- The Chronicle -->
+      <section class="view" id="view-chronicle">
+        <div class="row" style="margin-bottom:10px;">
+          <button class="btn" id="chronicle-download-btn">⤓ Download .md</button>
+        </div>
+        <div class="chronicle" id="chronicle-content"></div>
+      </section>
+
+      <!-- Judgment -->
+      <section class="view" id="view-judgment">
+        <h2>Judgment</h2>
+        <div class="verdict-line" id="verdict-line"></div>
+        <div class="facts-grid" id="judgment-facts"></div>
+        <ul id="judgment-gaps" class="muted"></ul>
+        <div class="row" style="margin-top:10px;">
+          <button class="btn" id="speak-btn">Let them say it</button>
+        </div>
+        <div class="bubble them hidden" id="spoken-box" style="margin-top:12px;"></div>
+      </section>
+
+      <!-- Report Cards -->
+      <section class="view" id="view-reports">
+        <h2>Report Cards <span class="muted">— the Underground's after-action reports on your run</span></h2>
+        <div class="report-controls">
+          <select id="report-author" class="btn" aria-label="Who files the report"></select>
+          <button class="btn" id="report-request-btn">Request a report</button>
+          <button class="btn" id="report-full-btn">Full report (everyone)</button>
+          <button class="btn" id="report-download-btn" disabled>⤓ Download .md</button>
+          <button class="btn" id="report-digest-btn" disabled>✉ Email digest</button>
+        </div>
+        <div class="report-filters">
+          <label class="muted">Filter
+            <select id="report-filter" class="btn"><option value="">All characters</option></select>
+          </label>
+          <label class="muted toggle-inline"><input type="checkbox" id="report-archived-toggle" /> Show archived</label>
+          <span class="muted report-count" id="report-count"></span>
+        </div>
+        <p class="muted report-hint" id="report-hint">Pick someone and ask them to file a report on your run — how you did, what you might have done differently, and what they'd have done in your place. Every report is saved here; keep one in your Journal, have them email it to you, or archive/delete it.</p>
+        <div class="reports" id="reports-list"></div>
+      </section>
+
+      <!-- Sound Test -->
+      <section class="view" id="view-soundtest">
+        <h2>Sound Test <span class="muted">— play the whole soundtrack, or jam with the cast</span></h2>
+        <div class="st-nowplaying">
+          <span class="soul-sigil st-sigil" id="st-sigil" aria-hidden="true"></span>
+          <canvas class="st-canvas" id="st-canvas" width="512" height="56" aria-hidden="true"></canvas>
+          <div class="st-np-label" id="st-np-label">— nothing playing —</div>
+        </div>
+        <div class="st-controls">
+          <div class="st-modes">
+            <button class="st-mode sel" data-mode="jukebox">🎧 Jukebox</button>
+            <button class="st-mode" data-mode="jam">🎸 Jam</button>
+          </div>
+          <button class="btn tiny" id="st-stop">⏹ Stop all</button>
+          <label class="st-vol">🔊 <input type="range" id="st-vol" min="0" max="100" value="60" aria-label="Volume" /></label>
+          <label class="muted toggle-inline"><input type="checkbox" id="st-loop" checked /> loop</label>
+        </div>
+        <div class="st-groups" id="st-groups"></div>
+      </section>
+
+      <!-- Guided Mode -->
+      <section class="view" id="view-guided">
+        <h2>Guided Mode <span class="muted">— play beside them; every save becomes a beat</span></h2>
+        <div class="guided-setup" id="guided-setup">
+          <div class="rail-lbl">Watch a save folder <span class="muted">(read-only — Ember never touches the game)</span></div>
+          <div class="g-row">
+            <input type="text" id="guided-path" placeholder="~/.config/UNDERTALE  ·  or your DELTARUNE folder" />
+            <button class="btn" id="guided-watch-btn">👁 Watch</button>
+            <button class="btn hidden" id="guided-stop-btn">⏹ Stop</button>
+            <button class="btn" id="guided-popout-btn" title="A slim always-on-top companion beside the game">🪟 Pop out</button>
+          </div>
+          <p class="muted g-status" id="guided-status">Not watching anything yet. Point Ember at the folder your game saves into, then just play — save in-game and the party reacts here.</p>
+        </div>
+        <div class="guided-party">
+          <div class="rail-lbl">Your party <span class="muted">— who rides along (tap to toggle)</span></div>
+          <div class="g-party" id="guided-party"></div>
+          <div class="g-suggest hidden" id="guided-suggest"></div>
+        </div>
+        <div class="guided-ask">
+          <div class="rail-lbl">Ask the guide <span class="muted">— hints never spoil past your save</span></div>
+          <div class="g-row g-ask-row">
+            <button class="btn" id="g-whereami">🧭 Where am I?</button>
+            <button class="btn" id="g-whatnow">✨ What now?</button>
+            <button class="btn" id="g-story">📖 Tonight's story</button>
+            <label class="g-dial muted">spoiler dial
+              <select id="g-spoiler">
+                <option value="nudge">🌶 nudge</option>
+                <option value="hint">🌶🌶 hint</option>
+                <option value="tell">🌶🌶🌶 tell me</option>
+              </select>
+            </label>
+          </div>
+        </div>
+        <div class="rail-lbl g-feed-lbl">The run so far</div>
+        <div class="guided-feed" id="guided-feed">
+          <p class="muted">No beats yet — the feed fills as you play and save.</p>
+        </div>
+      </section>
+
+      <!-- The Commons (give back) -->
+      <section class="view" id="view-commons">
+        <h2>The Commons <span class="muted">— knowledge and music, given back</span></h2>
+        <div class="commons">
+          <p class="cm-intro">This project stands on community shoulders — save-format documentation,
+          open tools, other people's patient reverse-engineering. This page gives back what we
+          learned and made along the way. Take it. No strings beyond a credit here and there.</p>
+
+          <h3>🎵 The soundtrack — free to grab</h3>
+          <p class="muted">Original music made for this project (composed with Suno, loop-processed
+          and level-matched here). <strong>License: CC BY 4.0</strong> — use it anywhere, credit appreciated.</p>
+          <div class="cm-row"><button class="btn" id="cm-zip">⤓ Download everything (.zip)</button></div>
+          <div class="cm-music" id="cm-music"><p class="muted">Loading the track list…</p></div>
+
+          <h3>🗺 The save-file field maps</h3>
+          <p class="muted">What we can read from the save files, how sure we are, and why. Only
+          corroborated fields carry meaning — everything else is preserved raw and never guessed.
+          Confidence: <em>confirmed</em> (cross-checked at parse time) · <em>high</em> (real-corpus
+          corroboration) · <em>medium</em> (documented, single-source).</p>
+
+          <h4>Undertale — <code>file0</code> (newline-delimited; 1-based lines)</h4>
+          <div class="cm-tablewrap"><table class="cm-table">
+            <tr><th>line</th><th>field</th><th>confidence</th><th>evidence</th></tr>
+            <tr><td>1</td><td>name</td><td>confirmed</td><td>player-entered name; cross-checked against <code>undertale.ini</code></td></tr>
+            <tr><td>2</td><td>LOVE (LV)</td><td>confirmed</td><td>reconfirmed 64/64 across a real Pacifist+Genocide corpus</td></tr>
+            <tr><td>3</td><td>max HP</td><td>high</td><td>follows 16 + 4·LV across the corpus (LV1→20, LV19→92)</td></tr>
+            <tr><td>12</td><td>kill counter</td><td>high</td><td>mirrors <code>[General].Kills</code> at 100% agreement, 64-save corpus</td></tr>
+            <tr><td>36</td><td>Fun value</td><td>high</td><td>mirrors <code>[General].Fun</code> (1–100)</td></tr>
+            <tr><td>548</td><td>room id</td><td>high</td><td>mirrors <code>[General].Room</code></td></tr>
+          </table></div>
+          <p class="muted">Useful <code>undertale.ini</code> keys: <code>[General]</code> Room / roomname / Time
+          (frames) / Gold / Fun / Kills · <code>[Toriel]</code> Bscotch (1 butterscotch, 2 cinnamon).</p>
+
+          <h4>Deltarune Chapter 1 — <code>filech1_0</code> (10318 fields, v1.07-era layout)</h4>
+          <p class="muted">This map is partly <strong>new knowledge</strong>: it was promoted from a real
+          41-save labelled playthrough corpus (variance analysis, <code>dr.ini</code> cross-correlation,
+          and pre/post partition flags), not copied from anywhere.</p>
+          <div class="cm-tablewrap"><table class="cm-table">
+            <tr><th>line</th><th>field</th><th>confidence</th><th>evidence</th></tr>
+            <tr><td>1</td><td>name</td><td>high</td><td><code>dr.ini</code> Name agreed 41/41</td></tr>
+            <tr><td>8–10</td><td>party slots</td><td>high</td><td>IDs 0 empty · 1 Kris · 2 Susie · 3 Ralsei · 4 Noelle; the corpus replays Ch1's story (Susie leaves mid-Forest, rejoins at the Prison)</td></tr>
+            <tr><td>11</td><td>Dark Dollars</td><td>high</td><td>currency behaviour corpus-wide — drops exactly at the shopping saves</td></tr>
+            <tr><td>559</td><td>Jevil state</td><td>high</td><td>the only clean corpus-wide 0→2 partition flag for "Jevil defeated"; <code>dr.ini UraBoss</code> agrees wherever the key exists</td></tr>
+            <tr><td>10317</td><td>room id</td><td>high</td><td><code>dr.ini</code> Room agreed 41/41</td></tr>
+            <tr><td>10318</td><td>time (frames)</td><td>high</td><td><code>dr.ini</code> Time agreed 41/41</td></tr>
+          </table></div>
+          <p class="muted">Caveats we keep honestly: the Ch1 route (Pacifist vs Violent) is <em>not</em> in this
+          map — our corpus is one peaceful run, so violence flags can't be corroborated yet. The egg
+          resisted attribution (13 candidate lines). Layout-dependent lines only hold on the 10318-field layout.</p>
+
+          <h3>🧰 Tools &amp; knowledge (especially if you can't run a local LLM)</h3>
+          <ul class="cm-list">
+            <li><strong>You don't need an LLM at all.</strong> The most useful design idea here: every AI feature
+            has a <em>deterministic fallback</em> — a plain, honest response built from parsed facts. An app
+            like this stays fully functional with zero model. Build the fallback first; the model is garnish.</li>
+            <li><strong><a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a></strong> — the easiest local LLM runner.
+            Install, then <code>ollama pull llama3.1:8b</code>, and you have a free model on your own machine (8GB+ RAM recommended).</li>
+            <li><strong>Where saves live</strong> — Undertale: <code>%LocalAppData%\UNDERTALE</code> (Windows),
+            <code>~/Library/Application Support/com.tobyfox.undertale</code> (macOS), <code>~/.config/UNDERTALE</code> (Linux).
+            Deltarune: the same but <code>DELTARUNE</code>. <em>Always copy your saves before experimenting.</em></li>
+            <li><strong>Reading GameMaker saves</strong> — they're plain newline-delimited text + INI files. A text
+            editor and patience is all it takes; the maps above give you a head start.</li>
+            <li><strong>The evidence method</strong> — to map unknown fields: collect saves at labelled progression
+            points, diff every line across the corpus, correlate against any summary file the game writes, and
+            look for lines constant before an event and constant-but-different after it. Never guess.</li>
+          </ul>
+
+          <p class="muted">🏅 The full credits — the people and tools this project stands on —
+          now have <strong>their own page</strong>: <em>Credits</em>, in the modes menu.</p>
+        </div>
+      </section>
+
+      <!-- How It Works (the layered explainer) -->
+      <section class="view" id="view-howitworks">
+        <h2>How It Works <span class="muted">— from the simple version to the deep end</span></h2>
+        <div class="hiw">
+          <p class="hiw-l0">You show it your save file. The characters talk to you about
+          <strong>what's actually in it</strong> — your route, your LOVE, what you did — and they're
+          never allowed to make those facts up. That's the whole trick. Everything below is just
+          doing that honestly.</p>
+
+          <details class="hiw-layer"><summary>Layer 1 — the pipeline ▾</summary>
+            <div class="cm-tablewrap"><pre class="hiw-pre">your save file → parser (read-only) → SaveTruth → the wall → a character's reply
+                                          ↘ snapshots (your history, append-only)</pre></div>
+            <p>The parser reads the save and produces <strong>SaveTruth</strong> — a normalized record of what the
+            file proves. The prompt shown to the AI is built from two buckets: <strong>SACRED</strong> (SaveTruth,
+            stated verbatim, never overridable) and <strong>FREE</strong> (the character's voice, mood, lore).
+            The motto over the whole machine: <em>facts are sacred, feelings are free.</em></p>
+          </details>
+
+          <details class="hiw-layer"><summary>Layer 2 — the wall, and staying honest ▾</summary>
+            <p><strong>The two-bucket wall:</strong> personality may colour <em>how</em> a character speaks, never
+            <em>what the save says</em>. Unreadable fields are <code>null</code>, never guessed. If the route is
+            ambiguous, it's <code>undetermined</code> — the characters say "I can't tell yet" instead of guessing.</p>
+            <p><strong>Enforced, not promised:</strong> a hallucination guard re-checks every reply against
+            SaveTruth after generation, and each reply carries a provenance chip (tap "✓ grounded")
+            showing exactly which facts were sacred and which flavour was free.</p>
+            <p><strong>No model? Still works:</strong> every feature has a deterministic fallback built from the
+            parsed facts alone, so the app never needs an LLM to be truthful — only to be charming.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>Layer 3 — where the field maps come from ▾</summary>
+            <p><strong>The parser-truth law:</strong> a save field only gets a meaning when evidence earns it.
+            Public documentation alone rates "medium". Promotion to "high" takes a real corpus: saves collected
+            at labelled progression points, diffed line by line, cross-correlated against any summary file the
+            game writes, and mined for <em>partition flags</em> — lines constant before an event and
+            constant-but-different after it. That's how the Deltarune Jevil flag (line 559) was found.
+            Everything unproven stays raw. The full maps are on <em>The Commons</em> page.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>Layer 4 — the live companion (Guided Mode) ▾</summary>
+            <p>Guided Mode never touches the game or its memory. A watcher polls the save folder; when the
+            game writes a save and the file settles, it's re-parsed, a snapshot is appended, and the
+            <em>delta</em> between saves becomes a beat ("kills rose from 0 to 3") that the characters react
+            to. Hints are pre-written at three spoiler levels and gated by what the save proves about your
+            progress — a hint never references content beyond where you actually are, and when the save
+            shows too little, it says so.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>Layer 5 — patterns worth stealing ▾</summary>
+            <ul class="cm-list">
+              <li><strong>Two buckets, one wall</strong> — separate what the model may colour from what it may never touch, and enforce it after generation, not just in the prompt.</li>
+              <li><strong>Deterministic fallback first</strong> — design every AI feature to work with no model; add the model as voice, not as truth.</li>
+              <li><strong>Evidence-promoted parsing</strong> — confidence tiers per field; corpora over guesses; honesty about layouts and versions.</li>
+              <li><strong>Append-only history</strong> — snapshots never overwrite; the past stays true.</li>
+              <li><strong>Progress-gated content</strong> — hints and lore keyed to proven progress, so nothing spoils.</li>
+            </ul>
+            <p>These patterns have a name and a family now — the introduction is one page over:
+            <em>🌌 MultiVera</em>.</p>
+          </details>
+        </div>
+      </section>
+
+
+
+
+      <!-- Credits — the people this project stands on, front and centre -->
+      <section class="view" id="view-credits">
+        <h2>Credits <span class="muted">— the shoulders this project stands on</span></h2>
+        <div class="hiw">
+          <p class="hiw-l0">Nothing here was built alone. Saves shared by strangers a decade ago,
+          wikis tended by volunteers, open tools, open models — and two worlds worth loving in the
+          first place. These are the people to thank.</p>
+          <div class="cm-hero-credit">
+            <div class="cm-hero-head">⭐ The two this project owes most</div>
+            <p><strong><a href="https://www.reddit.com/r/Undertale/comments/3szvui/my_undertale_save_files/" target="_blank" rel="noopener">u/HylianAngel</a></strong>
+            — who, eleven years ago, shared their Undertale save files on r/Undertale with careful
+            instructions so anyone could use them. Those saves became the corpus that verified and
+            promoted this project's Undertale field map, line by line. A decade-old act of generosity,
+            still paying forward. <em>HUGE thanks.</em></p>
+            <p><strong><a href="https://github.com/NICKISBAD/UNDERTALE-Save-Files" target="_blank" rel="noopener">NICKISBAD</a></strong>
+            — whose UNDERTALE-Save-Files collection on GitHub ("for the players that don't wanna spend
+            the time murdering the monsters for a ROUTE") supplied route-spanning saves no single
+            playthrough could. The evidence behind these field maps stands on that collection.
+            <em>HUGE thanks.</em></p>
+            <p class="muted">Every promoted field in The Commons' tables exists because these two shared
+            their play time with strangers.</p>
+          </div>
+          <ul class="cm-list">
+            <li><strong>Toby Fox</strong> — for the worlds themselves. This is a fan project: no game assets,
+              sprites, fonts, or text from the games are used or distributed.</li>
+            <li><strong>The save-format documentarians</strong> — the
+              <a href="https://deltarune.wiki" target="_blank" rel="noopener">Deltarune wiki</a>, the
+              <a href="https://undertale.fandom.com" target="_blank" rel="noopener">Undertale</a> and
+              <a href="https://deltarune.fandom.com" target="_blank" rel="noopener">Deltarune</a> Fandom wikis,
+              and the Steam-community save-editing guides and forum threads whose patient reverse-engineering
+              seeded both parsers. This project's field maps (on The Commons) were verified and extended from that foundation.</li>
+            <li><strong>The save-collection authors</strong> — see the stars up top: u/HylianAngel and
+              NICKISBAD, whose shared saves are the evidence base of the field maps.</li>
+            <li><strong>The open tools this runs on</strong> —
+              <a href="https://fastapi.tiangolo.com" target="_blank" rel="noopener">FastAPI</a> ·
+              <a href="https://www.uvicorn.org" target="_blank" rel="noopener">Uvicorn</a> ·
+              <a href="https://www.sqlalchemy.org" target="_blank" rel="noopener">SQLAlchemy</a> ·
+              <a href="https://docs.pydantic.dev" target="_blank" rel="noopener">Pydantic</a> ·
+              <a href="https://www.python-httpx.org" target="_blank" rel="noopener">httpx</a> ·
+              <a href="https://playwright.dev" target="_blank" rel="noopener">Playwright</a> ·
+              <a href="https://ffmpeg.org" target="_blank" rel="noopener">FFmpeg</a> (the loop/normalize pipeline).</li>
+            <li><strong>The models &amp; AI tools</strong> —
+              <a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a> running Meta's
+              <a href="https://www.llama.com" target="_blank" rel="noopener">Llama&nbsp;3.1</a> (the default local voice) ·
+              <a href="https://www.anthropic.com" target="_blank" rel="noopener">Anthropic's Claude</a>
+              (an optional backend — and a co-builder of this project) ·
+              <a href="https://suno.com" target="_blank" rel="noopener">Suno</a> (the instrument behind the soundtrack).</li>
+            <li><strong>The typefaces</strong> — Pixelify Sans, VT323, Cinzel, Crimson Text, and Space Mono,
+              served via <a href="https://fonts.google.com" target="_blank" rel="noopener">Google Fonts</a> —
+              thank you to their designers.</li>
+          </ul>
+          <div class="cm-callout">
+            <strong>Did we build on your work?</strong> If any of this stands on something you made —
+            a save you shared, a guide you wrote, a field you documented — and you're not named here,
+            that's an oversight, not a choice. Reach out and you'll be credited properly.
+          </div>
+        </div>
+      </section>
+
+      <!-- MultiVera — the introduction: one engine, many worlds -->
+      <section class="view" id="view-multivera">
+        <h2>The MultiVera Project <span class="muted">— one engine, many worlds</span></h2>
+        <div class="hiw">
+          <p class="hiw-l0"><strong>A Vera is a companion app for a game you love:</strong> it reads
+          <em>your</em> save file — read-only, evidence-first — and lets the game's own characters talk
+          with you about <em>your</em> playthrough. Not generic chatbots wearing costumes: the facts come
+          from your save and are never invented; the voices are original reinterpretations with real
+          personality. Ember, the app you're in, is one Vera. It has siblings — and the whole idea is
+          yours to take.</p>
+
+          <div class="mv-family">
+            <div class="mv-card">
+              <div class="mv-card-head">🔥 Ember <span class="muted">· Undertale + Deltarune Ch1</span></div>
+              <p>The flagship — this app. Save parsing with corpus-earned field maps, route detection,
+              grounded chat with seventeen characters across two worlds, Guided Mode (play beside it —
+              it watches your save folder, never the game), an original CC&nbsp;BY soundtrack, and a
+              capability ladder from zero-setup 🕯 Spark to fully local models.</p>
+            </div>
+            <div class="mv-card">
+              <div class="mv-card-head">⚔ FFT PSX Vera <span class="muted">· Final Fantasy Tactics (PSX)</span></div>
+              <p>The ancestor — where the campfire started. The same covenant pointed at a PlayStation-era
+              tactics epic: your roster, your story progress, your war council. Ember inherited its
+              architecture and then taught the engine new tricks.</p>
+            </div>
+            <div class="mv-card">
+              <div class="mv-card-head">📡 MGS Vera <span class="muted">· Metal Gear Solid</span></div>
+              <p>The sketch — a deliberately tiny build: one character on a codec screen, no save parser
+              at all, grounded in curated canon lore with provenance and ambiguity notes. Proof the idea
+              scales <em>down</em> as well as up: a Vera can start as one honest voice.</p>
+            </div>
+          </div>
+
+          <details class="hiw-layer"><summary>The covenant every Vera signs ▾</summary>
+            <p><strong>Facts are sacred, feelings are free.</strong> A save field only gets a meaning when
+            evidence earns it; unknowns stay <code>null</code>; ambiguity is said out loud (an unclear route
+            is <code>undetermined</code>, never a guess). Personality may colour <em>how</em> a character
+            speaks — never <em>what the save says</em>. And every feature works with no AI model at all,
+            so the app never needs an LLM to be truthful — only to be charming.
+            The deep dive is one page over: <em>❓ How It Works</em>.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>Make your own Vera — the general recipe ▾</summary>
+            <p>You don't need permission and you don't need a big model. You need a game with readable
+            saves and some love for its cast:</p>
+            <ul class="cm-list">
+              <li><strong>1 · Read the save, read-only.</strong> A parser that never writes and never crashes —
+              malformed input becomes warnings, not exceptions.</li>
+              <li><strong>2 · Earn every field.</strong> Collect real saves at known progression points and diff
+              them; a field only gets a name when evidence corroborates it. (The Commons shows the maps
+              this method produced for Undertale and Deltarune.)</li>
+              <li><strong>3 · Build the truth.</strong> Normalize into one record of what the file proves —
+              unknowns null, confidence per field, moral forks honest.</li>
+              <li><strong>4 · Give the cast original voices.</strong> Reinterpretations in your own accent,
+              never copied dialogue — and route-aware moods, so the world reacts to the player's choices.</li>
+              <li><strong>5 · Keep the wall.</strong> Facts from the save, flavour from the voice, a guard that
+              re-checks every reply, and a scripted fallback so it all works model-free.</li>
+              <li><strong>6 · Then decorate.</strong> Hints, music, emblems, easter eggs — the parts that make
+              it feel like a place instead of a tool.</li>
+            </ul>
+            <p>The full engineering spec — written from what the first packs actually required — lives in
+            <a href="https://github.com/xsytrance/undertale-vera/blob/main/docs/GAME_PACKS.md"
+               target="_blank" rel="noopener">docs/GAME_PACKS.md</a>.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>Run this one yourself ▾</summary>
+            <div class="cm-tablewrap"><pre class="hiw-pre">git clone https://github.com/xsytrance/undertale-vera
+cd undertale-vera && pip install -r requirements.txt
+uvicorn undertale_vera_app:app --port 9092</pre></div>
+            <p>Then open it, read a save, and pick your power source in the top bar: 🕯 <strong>Spark</strong>
+            (no AI at all — works instantly), 🔑 <strong>bring your own key</strong> (OpenRouter, free-tier
+            models suggested), or 🖥 <strong>a local model</strong> (Ollama). The repo is public, the docs are
+            in <code>docs/</code>, and the soundtrack is CC&nbsp;BY 4.0 on <em>📚 The Commons</em>.</p>
+          </details>
+
+          <p class="muted">This page is an introduction, not a manifesto — MultiVera is young, and the
+          best version of it probably includes a game only you care enough to build.</p>
+        </div>
+      </section>
+
+      <!-- The Prompt Workshop — the prompts this app runs on, annotated and stealable -->
+      <section class="view" id="view-workshop">
+        <h2>The Prompt Workshop <span class="muted">— the prompts this app runs on, annotated</span></h2>
+        <div class="hiw">
+          <p class="hiw-l0">Every AI feature here is just a <strong>prompt you can read</strong> — a wall of
+          facts, a voice, and an ask. This page shows the real ones: the example below is assembled
+          <strong>live by the same code</strong> that talks to the characters, and the feature instructions are
+          pulled from the modules that use them. Read them, learn the knobs, steal the patterns.
+          <span class="muted">(Tap any dark prompt block to copy it.)</span></p>
+
+          <details class="hiw-layer" open><summary>1 · Anatomy of a grounded system prompt ▾</summary>
+            <p>The prompt is built in a fixed order — <strong>sacred first, so it anchors everything after</strong>:</p>
+            <div id="ws-anatomy"></div>
+            <p class="muted" id="ws-example-note"></p>
+            <div class="cm-tablewrap"><pre class="ws-prompt" id="ws-example">loading the live example…</pre></div>
+            <p class="muted">Every real chat reply carries its own copy — tap “✓ grounded” under any
+            reply to see the exact prompt and the sacred/free breakdown for that turn.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>2 · The feature instructions — verbatim ▾</summary>
+            <p>Each feature adds one <em>ask</em> on top of the same grounded system prompt. These are the
+            live strings, not paraphrases:</p>
+            <div id="ws-instructions"></div>
+          </details>
+
+          <details class="hiw-layer"><summary>3 · The knobs — how to bend a prompt like these ▾</summary>
+            <ul class="cm-list">
+              <li><strong>The role line</strong> — “You are X… never as an AI assistant.” One sentence buys the whole voice. Change the character, keep the shape.</li>
+              <li><strong>The fact wall</strong> — facts go in a loud, fenced block (“HARD FACTS — NEVER OVERRIDE”), stated verbatim, with the <em>reasons</em> included so the model can explain without inventing. The block sits high: models weight early context.</li>
+              <li><strong>Honesty valves</strong> — every unknown is named (“the file shows no kill count”) and the ask ends with “invent nothing beyond it.” An escape hatch beats a hallucination: give the model permission to say “I can't tell yet.”</li>
+              <li><strong>Style dials</strong> — length (“one or two sentences”), register (“in your own voice”), format (“begin with a verdict line prefixed exactly with 'Verdict:'”). Hard formats get an <em>exact</em> token to anchor on.</li>
+              <li><strong>Check after, not just ask before</strong> — the prompt promises honesty; a guard re-reads the reply against the facts and flags contradictions. Prompts persuade, checks enforce.</li>
+              <li><strong>Design the fallback first</strong> — every feature works with no model at all (see 🕯 Spark mode). If your feature only works when the model behaves, it doesn't work.</li>
+            </ul>
+          </details>
+
+          <details class="hiw-layer"><summary>4 · The Suno prompts — how the whole soundtrack was asked for ▾</summary>
+            <p><strong>The lesson learned first:</strong> the first prompt drafts said things like “chiptune,
+            emotional, retro-RPG” — and came back generic. The fix was describing the <em>DNA</em> of the
+            sound instead of gesturing at it: name the instruments (music box, felt piano, plucked
+            SNES-style ostinato, choir “aah” pads), the tempo, the key, the <em>feeling of a specific
+            place</em> — and always end with <code>seamless loop, instrumental, no vocals</code>.
+            The finished prompts go further still — three more knobs: an <strong>Exclude</strong> list
+            (a negative prompt naming everything the track must not become), a <strong>weirdness</strong>
+            dial (how far from the style's center the model may drift) and a <strong>style strength</strong>
+            dial (how hard the style prompt steers). The character themes below show the full
+            draft → final journey, dials included.
+            Every track is downloadable on <em>The Commons</em> (CC BY 4.0).</p>
+
+            <h4 class="ws-h">The main theme — <code>a-new-save-file.mp3</code></h4>
+            <div class="cm-tablewrap"><pre class="ws-prompt">Emotional storybook chiptune, delicate music-box melody doubled by soft felt piano, warm analog string pad with a faint choir "aah", gentle pulse-wave counter-melody with light vibrato, one simple singable leitmotif, nostalgic and hopeful with a bittersweet edge, SNES/16-bit JRPG soundfont timbres blended with modern reverb, slow 70 BPM, C major, tender dynamics that swell then settle, the hush of a story about to begin, seamless loop, instrumental, no vocals</pre></div>
+
+            <h4 class="ws-h">The three route beds</h4>
+            <p class="muted">Same skeleton, three moods — warm / unresolved / wrong:</p>
+            <div class="cm-tablewrap"><pre class="ws-prompt">route-pacifist.mp3 — Cozy tender chiptune lullaby, plucked SNES-style synth ostinato and bright glockenspiel bells over a warm pad, sweet music-box lead melody with gentle vibrato, soft choir "aah" swells, kind and hopeful and safe, whimsical retro-JRPG hometown warmth, lo-fi bit-crushed but heartfelt, gentle 78 BPM, F major 4/4, seamless loop, instrumental, no vocals</pre></div>
+            <div class="cm-tablewrap"><pre class="ws-prompt">route-neutral.mp3 — Dreamy melancholic chiptune, reverb-soaked plucked synth ostinato echoing in the dark, lonely music-box melody, ambiguous minor-key harmony with unresolved suspensions, distant pad and soft mallet hits, mysterious and contemplative, watery cavernous retro-JRPG atmosphere, MIDI soundfont timbres drenched in reverb, slow 72 BPM, A minor, seamless loop, instrumental, no vocals</pre></div>
+            <div class="cm-tablewrap"><pre class="ws-prompt">route-genocide.mp3 — Ominous glitchy dark-ambient chiptune, detuned broken music-box motif over a low sub drone, sparse dissonant bell hits and bit-crushed static artifacts, cold sawtooth bass pulse, faint distorted choir, unsettling hollow and menacing, dead-empty ruined-JRPG dungeon, degraded 8-bit textures with unstable wavering pitch, very slow 58 BPM, chromatic minor with tritone tension, seamless loop, instrumental, no vocals</pre></div>
+
+                        <details class="ws-sub"><summary>The nine Underground character themes — draft → final, the maker's own ▾</summary>
+              <p class="muted">These are the real pairs from the maker's collection. Read them as a
+              lesson in iteration: the draft names the feeling; the final spells out every timbre,
+              adds an <strong>Exclude</strong> list (a negative prompt — fencing off everything the track must
+              not become), and sets the two dials (<strong>weirdness</strong> = how far from the style's center;
+              <strong>style strength</strong> = how hard the style prompt steers). Note how tightly each character's
+              weirdness tracks their personality — Toriel 18%, Flowey 74%.</p>
+              <details class="ws-sub"><summary><code>char-sans.mp3</code> — lazy calm with menace underneath ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Laid-back lo-fi chiptune with an undercurrent of dread, lazy walking bassline and muted jazzy square-wave chords, sparse detuned bell melody, occasional glitchy hint of a fast driving riff that never fully arrives, cool and unbothered but you know something's off, slow 84 BPM, D minor, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired minimalist lo-fi chiptune, relaxed sleepy groove hiding quiet menace beneath the surface, lazy walking bassline, brushed retro drum machine, muted jazzy square-wave chords with warm tape saturation, sparse detuned bell melody echoing through wide reverb, subtle pulse-wave countermelodies, occasional corrupted glitches and brief bursts of an aggressive rapid-fire lead motif that immediately disappear before fully developing, emotional tension through restraint instead of intensity, nostalgic SNES soundfont blended with modern lo-fi production, understated chromatic harmonies, slow 84 BPM, D minor, seamless 3-minute loop, atmospheric, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, choir, EDM, dubstep, trap drums, orchestral swells, cinematic trailer music, heavy rock guitars, aggressive distortion, supersaws, trance leads, bright happy melodies, major key, dramatic percussion fills, explosive climax, megalovania-style full-speed sections, fast tempo, hard quantization</pre></div>
+                <p class="muted">Dials: weirdness 58% · style strength 92%</p>
+              </details>
+              <details class="ws-sub"><summary><code>char-flowey.mp3</code> — saccharine carnival turned sinister ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Creepy toy-box carnival waltz, detuned music box and warped calliope over a wobbling bass, sweet nursery melody that keeps souring into dissonance, glitchy bit-crushed artifacts, unsettling childlike menace, 96 BPM 3/4 waltz, wandering minor key, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired deceptive chiptune, cheerful toy-like pulse-wave melody that slowly unravels into unsettling chromatic phrases, playful square-wave lead, bouncy triangle bass, quirky SNES drum groove, innocent children's tune repeatedly interrupted by corrupted harmonies, television-like static bursts, digital glitches, bit-crushed fragments, warped pitch bends, reversed synth echoes, bright FM bells that gradually detune, playful melody constantly smiling while something feels deeply wrong underneath, sudden shifts between major and ambiguous tonality, unsettling emotional contrast rather than horror, classic 16-bit RPG soundfont blended with subtle modern glitch textures, unpredictable but catchy, mischievous, manipulative, uncanny, 96 BPM, seamless 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, choir, haunted carnival, calliope, circus music, horror ambience, orchestral soundtrack, metal guitars, dubstep, trap drums, cinematic trailer music, jump scares, huge bass drops, slow dark drones, gothic organs, excessive reverb, predictable minor-key horror, creepy doll music</pre></div>
+                <p class="muted">Dials: weirdness 74% · style strength 97%</p>
+              </details>
+              <details class="ws-sub"><summary><code>char-toriel.mp3</code> — warm, motherly, safe ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Gentle warm chiptune lullaby, tender music box and soft felt piano over a cozy pad, plucked SNES-style ostinato, a caring maternal melody, safe and nostalgic and kind, slow 76 BPM, F major, hearthside calm, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired warm comforting chiptune lullaby, delicate music box carrying a gentle maternal melody supported by soft felt piano, warm sustained analog pad, plucked SNES-style pulse-wave ostinato creating a slow heartbeat, subtle nylon-like synth accompaniment, light celesta accents, airy bell harmonics, mellow synth strings and delicate woodwind-inspired leads, nostalgic 16-bit JRPG soundfont blended with modern warmth, intimate hearthside atmosphere, tender phrasing with gentle rises and falls, peaceful and reassuring, slow 76 BPM, F major, seamless 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, choir, EDM, dubstep, trap drums, aggressive percussion, distorted synths, horror elements, glitch effects, heavy bass, cinematic trailer music, rock guitars, supersaws, tense harmonies, dramatic crescendos, boss battle energy, harsh reverb, fast tempo, dissonance</pre></div>
+                <p class="muted">Dials: weirdness 18% · style strength 95%</p>
+              </details>
+              <details class="ws-sub"><summary><code>char-undyne.mp3</code> — fierce, heroic, driving ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Blazing heroic chiptune, distorted synth-guitar lead and pounding driving drums, relentless arpeggiated bass, soaring determined melody, fierce and passionate and unstoppable, fast 200 BPM half-time feel, E minor, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired blazing heroic chiptune battle theme, fierce pulse-wave lead fused with gritty distorted synth-guitar, relentless SNES-style drums driving forward with huge half-time impact, galloping arpeggiated bassline, soaring unforgettable heroic melody answered by energetic square-wave harmonies, bright brass-like synth stabs, triangle-wave countermelodies, rapid 16-bit arpeggios, crunchy noise-channel percussion, dramatic key changes within E minor, emotional determination overflowing with courage, urgent but disciplined, classic retro RPG soundfont enhanced with modern punch and clarity, no orchestral elements, no EDM influence, fast 200 BPM with a powerful half-time feel, seamless 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, choir, orchestral soundtrack, cinematic trailer music, dubstep, trap, future bass, supersaws, metal guitars, live drums, ambient pads dominating the mix, jazz chords, lo-fi production, horror ambience, glitchcore, pop songwriting, slow intros, long breakdowns, EDM drops</pre></div>
+                <p class="muted">Dials: weirdness 24% · style strength 98%</p>
+              </details>
+              <details class="ws-sub"><summary><code>char-alphys.mp3</code> — nerdy, nervous, sweet electronic ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Quirky anime-flavored electronic chiptune, bubbly arpeggiated synths and bright plucks over a shy off-kilter beat, cute nervous melody with little stammering hesitations, awkward and endearing and hopeful, bouncy 120 BPM, A major, lab-coat energy, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired quirky electronic chiptune, bubbly pulse-wave arpeggios, bright plucked synths, playful FM bells and soft square-wave leads, off-kilter bouncy drum groove with subtle syncopation, cute hesitant melody that occasionally stumbles with tiny rhythmic pauses and nervous staccato phrases before regaining confidence, sparkling 16-bit soundfont blended with modern electronic polish, cheerful laboratory atmosphere filled with blinking computers and curious inventions, energetic but shy, whimsical, optimistic, slightly awkward, catchy retro RPG motifs, light synth bass, warm digital pads, anime-inspired electronic charm, bouncy 120 BPM, A major, seamless 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, choir, orchestral soundtrack, rock guitars, dubstep, trap drums, cinematic trailer music, horror ambience, dark drones, aggressive bass, distorted leads, supersaws, heavy EDM drops, lo-fi textures, jazz improvisation, melancholy ballads, glitchcore chaos, intense boss battle energy</pre></div>
+                <p class="muted">Dials: weirdness 42% · style strength 95%</p>
+              </details>
+              <details class="ws-sub"><summary><code>char-asgore.mp3</code> — regal, sorrowful, majestic ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Grand sorrowful chiptune-orchestral hybrid, swelling choir "aah" and noble brass over a slow timpani pulse, a heavy-hearted royal melody that builds with restrained grief, majestic and gentle and tired, slow 72 BPM, D minor rising to major, kingly melancholy, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired emotional SNES battle chiptune, solemn synth brass carrying a noble unforgettable melody, warm pulse-wave strings, deep square-wave bass, steady military snare and timpani pulse, expressive triangle-wave countermelodies, restrained 16-bit orchestral textures, bittersweet harmonic progression, powerful but never aggressive, dignified royal atmosphere filled with quiet regret and determination, subtle references to a gentle maternal-style leitmotif transformed into a heavier heroic statement, classic Super Nintendo RPG soundfont with modern warmth, emotional through melody instead of production, weary king making an impossible choice, gradual build from quiet resolve to heartfelt determination, slow 72 BPM, D minor with a hopeful major resolution, seamless 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, cinematic orchestra, Hollywood soundtrack, epic trailer music, choir, EDM, dubstep, trap drums, metal guitars, supersaws, huge percussion impacts, excessive strings, horror ambience, glitch effects, jazz harmony, flashy solos, modern pop production</pre></div>
+                <p class="muted">Dials: weirdness 18% · style strength 99%</p>
+              </details>
+              <details class="ws-sub"><summary><code>char-mettaton.mp3</code> — glam disco spectacle ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Flashy retro disco-funk chiptune, sparkling synth stabs and slap-bass groove, glittery arpeggios and a showstopping lead, dramatic key-change flair, glamorous theatrical and electric, upbeat 124 BPM four-on-the-floor, A minor, spotlight and sequins, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired glamorous disco-funk chiptune, sparkling synth stabs, funky slap-style synth bass, infectious four-on-the-floor groove, shimmering pulse-wave arpeggios, glittering FM electric piano, bright brass-like synth hits, flashy square-wave lead carrying an irresistibly theatrical melody, energetic disco strings, playful chromatic flourishes, dramatic key-change fake-outs and triumphant reprises, catchy retro game hooks, polished 16-bit arcade soundfont blended with sleek synth-pop production, dazzling stage-show atmosphere with flashing lights, sequins, television studio energy and over-the-top showmanship, stylish, charismatic, playful and electric, upbeat 124 BPM, A minor, seamless 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, choir, orchestral soundtrack, rock guitars, heavy metal, dubstep, trap drums, lo-fi production, horror ambience, dark drones, cinematic trailer music, glitchcore, aggressive distortion, slow ballads, ambient sections, gritty realism, subdued mixing</pre></div>
+                <p class="muted">Dials: weirdness 48% · style strength 97%</p>
+              </details>
+              <details class="ws-sub"><summary><code>char-napstablook.mp3</code> — quiet, melancholic, ethereal ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Quiet melancholic lo-fi chiptune, soft wispy sine pads and a lonely muted music-box melody, gentle vinyl-crackle texture, sparse and sad and dreamy, barely-there ghostly ambience, very slow 66 BPM, A minor, headphones-in-the-dark, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired melancholic lo-fi chiptune, soft sine-wave pads floating beneath a fragile muted music-box melody, gentle felt piano touches, airy triangle-wave harmonies, delicate pulse-wave echoes, warm vinyl crackle, subtle cassette flutter, sparse brushed lo-fi percussion, distant shimmering bells, slow drifting synth bass, minimalist 16-bit JRPG soundfont blended with dreamy ambient textures, long reverberant decay creating a weightless ghostly atmosphere, bittersweet nostalgic melody with gentle unresolved phrases, intimate, lonely, peaceful and quietly hopeful, headphones-in-the-dark mood, very slow 66 BPM, A minor, seamless 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, choir, EDM, dubstep, trap drums, rock guitars, orchestral soundtrack, cinematic trailer music, aggressive percussion, heavy bass, supersaws, bright pop melodies, glitch effects, horror jumpscares, dramatic crescendos, busy arrangements, jazz solos, dance grooves, distorted synths</pre></div>
+                <p class="muted">Dials: weirdness 36% · style strength 98%</p>
+              </details>
+              <details class="ws-sub"><summary><code>char-papyrus.mp3</code> — bombastic, heroic, endearing ▾</summary>
+                <p class="muted">First draft — the ask:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Bouncy heroic chiptune march, peppy marimba and bright brassy synth lead, energetic 8-bit bassline, comedic triumphant fanfare motifs, confident and goofy and lovable, fast 148 BPM, C major 4/4, big grin energy, 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Final style prompt — what actually rendered:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">Undertale-inspired bombastic heroic chiptune march, cheerful marimba carrying a bold memorable melody, bright brassy pulse-wave lead, energetic square-wave harmonies, lively 8-bit bassline, snappy retro snare march with playful tom fills, triumphant fanfare motifs, sparkling triangle-wave countermelodies, colorful SNES-style soundfont blended with modern clarity, exaggerated heroic flourishes, playful chromatic runs, infectious call-and-response phrases, cartoonishly confident yet genuinely inspiring, dramatic without taking itself too seriously, classic retro RPG adventure atmosphere, fast 148 BPM, C major, 4/4 march groove, seamless 3-minute loop, instrumental, no vocals</pre></div>
+                <p class="muted">Exclude:</p>
+                <div class="cm-tablewrap"><pre class="ws-prompt">vocals, choir, orchestral soundtrack, horror ambience, dark drones, lo-fi production, jazz harmony, trap drums, dubstep, EDM drops, metal guitars, cinematic trailer music, aggressive distortion, melancholy melodies, ambient sections, realistic marching band, gritty production, slow tempo</pre></div>
+                <p class="muted">Dials: weirdness 34% · style strength 98%</p>
+              </details>
+            </details>
+
+            <details class="ws-sub"><summary>The Dark World bed + eight Darkner themes ▾</summary>
+              <div class="cm-tablewrap"><pre class="ws-prompt">dark-world.mp3 — Mysterious wondrous dark-fantasy chiptune, deep velvet synth pads in violet minor, delicate music-box arpeggios echoing in a vast dark hall, soft choir "aah" swells, a sense of falling into a storybook world, slow 76 BPM, B minor, majestic and strange and inviting, seamless loop, instrumental, no vocals</pre></div>
+              <div class="cm-tablewrap"><pre class="ws-prompt">char-susie.mp3 — Grungy swaggering chiptune rock, crunchy distorted synth riff over stomping drums, cocky strutting bassline, a rough edge that softens into an unexpectedly warm bridge, mid-tempo 112 BPM, D minor, tough-kid energy with a hidden heart, seamless loop, instrumental, no vocals</pre></div>
+              <div class="cm-tablewrap"><pre class="ws-prompt">char-ralsei.mp3 — Tender storybook chiptune waltz, soft music box and warm felt piano in 3/4, gentle fluffy pads, a shy hopeful melody like a hand extended in friendship, 90 BPM waltz, F major, cozy and a little lonely, seamless loop, instrumental, no vocals</pre></div>
+              <div class="cm-tablewrap"><pre class="ws-prompt">char-lancer.mp3 — Mischievous bouncy villain chiptune, jaunty circus-adjacent bassline, cheeky staccato square-wave melody that keeps tripping over itself, kazoo-like synth honks, playful 132 BPM, G major, a kid playing at being evil, seamless loop, instrumental, no vocals</pre></div>
+              <div class="cm-tablewrap"><pre class="ws-prompt">char-noelle.mp3 — Soft wintry chiptune lullaby, glassy bell tones and warm pads like snowfall, a shy tender melody with tiny hesitations, faint sleigh-bell shimmer, slow 80 BPM, A major with wistful minor turns, gentle and nervous and kind, seamless loop, instrumental, no vocals</pre></div>
+              <div class="cm-tablewrap"><pre class="ws-prompt">char-king.mp3 — Ominous regal dark chiptune, heavy slow brass-like synth stabs over a doom-laden bass pulse, grieving minor melody beneath the menace, distant thunder-drum hits, slow 66 BPM, C minor, a betrayed king on a high throne, seamless loop, instrumental, no vocals</pre></div>
+              <div class="cm-tablewrap"><pre class="ws-prompt">char-rouxls-kaard.mp3 — Pompous baroque-flavored chiptune, harpsichord-style synth flourishes and overwrought fanfares, strutting bassline, a melody far too pleased with itself with comic stumbles, 120 BPM, D major, magnificently self-important, seamless loop, instrumental, no vocals</pre></div>
+              <div class="cm-tablewrap"><pre class="ws-prompt">char-jevil.mp3 — Manic carousel waltz chiptune, demented calliope and circus organ spinning in accelerating 3/4, cackling high synth runs, off-kilter accents that keep changing the downbeat, fast unstable 150+ BPM, D minor, gleeful unhinged freedom, seamless loop, instrumental, no vocals</pre></div>
+              <div class="cm-tablewrap"><pre class="ws-prompt">char-seam.mp3 — Dusty melancholic curiosity-shop chiptune, detuned music box and creaking slow waltz, threadbare warm pads with vinyl crackle, a tired knowing melody that has seen endings, slow 70 BPM, E minor, cozy dread, seamless loop, instrumental, no vocals</pre></div>
+            </details>
+
+            <p class="muted">After generation, every file gets the same finishing pass: the last ~3.5 s
+            crossfaded into the head so the loop seam disappears, then loudness-normalized to about
+            −14 LUFS so the whole soundtrack sits level.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>5 · The art briefs — emblems &amp; scenes ▾</summary>
+            <p><strong>The emblem pattern:</strong> every character gets an <em>original abstract crest</em> —
+            a symbol, never a sprite — centered on black, ~1024px. The whole commission is one line of
+            visual metaphor per character:</p>
+            <div class="cm-tablewrap"><pre class="ws-prompt">susie.png         — a jagged purple axe-edge / broken chalk stick motif
+ralsei.png        — a soft green hat-silhouette / fluffy heart-scarf motif
+lancer.png        — a spade (card suit) with a mischievous grin-curve
+noelle.png        — a gentle antler / snowflake motif
+king.png          — a heavy spade crown, cracked
+rouxls-kaard.png  — an ornate puzzle-piece with a curling worm
+jevil.png         — a carousel star / four card suits spinning off-balance
+seam.png          — a button-eye with visible stitching</pre></div>
+            <p><strong>Scenes:</strong> chat backdrops come from a local ComfyUI pixel-art pipeline — a
+            workflow JSON plus per-area one-line briefs in the same spirit (place, palette, mood, “no
+            characters, no text”). The recipe scales: describe the <em>feeling of the place</em>, pin the
+            palette, forbid what must not appear.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>6 · How the songs actually got made — the maker's story ▾</summary>
+            <div class="ws-story-slot">
+              <p><strong>🎙 Reserved for the maker.</strong> The prompts above are the destination — the
+              journey (drafting with ChatGPT, iterating in Suno, what failed, what finally sounded like
+              the Underground) is a story only the maker can tell. It'll be written here in their own
+              words.</p>
+            </div>
+          </details>
+        </div>
+      </section>
+
+      <!-- Read / refresh a save -->
+      <section class="view" id="view-saves">
+        <h2>Read a save</h2>
+        <p class="muted">Read-only — your save is never modified. Unknown fields stay null, never guessed.</p>
+
+        <div class="save-help">
+          <div class="save-need">You need these <strong>2 files</strong> from your Undertale save folder
+            <span class="muted">(either one alone works; both together read the most)</span>:</div>
+          <ul class="save-files">
+            <li><code>file0</code> <span class="muted">— your save: LOVE, room, kills, flags</span></li>
+            <li><code>undertale.ini</code> <span class="muted">— name, play time, settings</span></li>
+          </ul>
+          <div class="save-need">Where they're usually kept:</div>
+          <ul class="save-where">
+            <li><strong>Windows</strong> <code>%LocalAppData%\UNDERTALE\</code>
+              <span class="muted">(= C:\Users\you\AppData\Local\UNDERTALE)</span></li>
+            <li><strong>macOS</strong> <code>~/Library/Application Support/com.tobyfox.undertale/</code></li>
+            <li><strong>Linux</strong> <code>~/.config/UNDERTALE/</code></li>
+            <li><strong>Steam Deck</strong> <code>…/compatdata/391540/pfx/…/AppData/Local/UNDERTALE/</code></li>
+          </ul>
+          <div class="muted save-tip">⚠ The files have no extension — <code>file0</code> is literally "file0", not "file0.txt".</div>
+          <div class="muted save-tip">🌑 <strong>Deltarune Chapter 1</strong> works too: drop <code>filech1_0</code> (from <code>%LocalAppData%\DELTARUNE</code>) into the file0 slot — Ember detects it by name and reads it as a Dark World save.</div>
+        </div>
+
+        <details class="hiw-layer save-walkthrough"><summary>🧭 Never done this before? Step-by-step ▾</summary>
+          <p class="muted">Two minutes, no tech skills needed. Your save is only <strong>read</strong> — the
+          game never knows we were here.</p>
+          <details class="ws-sub"><summary>🪟 Windows ▾</summary>
+            <ol class="cm-list">
+              <li>Press <strong>Win + R</strong> (the Windows key and R together).</li>
+              <li>Paste this and press Enter: <pre class="ws-prompt">%LocalAppData%\UNDERTALE</pre></li>
+              <li>A folder opens. Find <code>file0</code> (no extension — that's normal).</li>
+              <li>Back here: tap <strong>① file0</strong> below, pick that file, then <strong>Read save</strong>.</li>
+              <li>Bonus: also pick <code>undertale.ini</code> in slot ② — Ember reads your name and play time from it.</li>
+            </ol>
+          </details>
+          <details class="ws-sub"><summary>🍎 macOS ▾</summary>
+            <ol class="cm-list">
+              <li>In Finder: menu <strong>Go → Go to Folder…</strong></li>
+              <li>Paste this and press Enter: <pre class="ws-prompt">~/Library/Application Support/com.tobyfox.undertale</pre></li>
+              <li>Find <code>file0</code>, then use slots ① and ② below and tap <strong>Read save</strong>.</li>
+            </ol>
+          </details>
+          <details class="ws-sub"><summary>🐧 Linux / Steam Deck ▾</summary>
+            <ol class="cm-list">
+              <li>Native: <pre class="ws-prompt">~/.config/UNDERTALE</pre></li>
+              <li>Steam/Proton (Deck included): <pre class="ws-prompt">~/.local/share/Steam/steamapps/compatdata/391540/pfx/drive_c/users/steamuser/AppData/Local/UNDERTALE</pre></li>
+              <li>Grab <code>file0</code> (and <code>undertale.ini</code> if you like), load them below.</li>
+            </ol>
+          </details>
+          <details class="ws-sub"><summary>🌑 Deltarune Chapter 1 ▾</summary>
+            <ol class="cm-list">
+              <li>Same places, folder <code>DELTARUNE</code> instead of <code>UNDERTALE</code>.</li>
+              <li>The file is <pre class="ws-prompt">filech1_0</pre></li>
+              <li>Drop it in slot ① — Ember sees the name and reads it as a Dark World save.</li>
+            </ol>
+          </details>
+          <p class="muted">Tap any dark path box to copy it. And truly: <strong>nothing is ever written
+          to your save.</strong> Play with abandon.</p>
+        </details>
+
+        <div class="row save-inputs">
+          <label><span class="save-num">①</span> file0 <input type="file" id="file0-input" /></label>
+          <label><span class="save-num">②</span> undertale.ini <input type="file" id="ini-input" /></label>
+        </div>
+        <div class="row">
+          <button class="btn" id="upload-btn">Read save</button>
+          <button class="btn hidden" id="refresh-btn">Read a later save (return visit)</button>
+        </div>
+        <p class="muted" id="upload-status"></p>
+      </section>
+    </main>
+
+    <!-- ── right rail: the save (a drawer on mobile) ───────────────────── -->
+    <aside class="rail rail-right" id="rail-right" aria-label="The save">
+      <div class="rail-lbl">What the save shows <span class="muted" id="visit-label"></span></div>
+      <div class="facts-grid" id="truth-facts"><p class="muted">Read a save to begin.</p></div>
+      <div style="margin-top:10px;"><span class="route-badge" id="route-badge"></span></div>
+      <div class="remembrance hidden" id="remembrance-box"></div>
+      <div class="recognition hidden" id="recognition-box" role="note"></div>
+      <div class="rail-sec rail-ambient" style="margin-top:16px;">
+        <div class="rail-lbl">Ambient</div>
+        <label class="switch-row" for="music-toggle">
+          <span class="switch-note"><span class="switch-icon">♪</span> Theme music</span>
+          <input type="checkbox" id="music-toggle" class="switch" />
+        </label>
+      </div>
+      <div class="rail-sec quote-card" id="quote-card">
+        <div class="rail-lbl">Determination · today</div>
+        <p class="quote-text" id="quote-text"></p>
+        <button class="quote-refresh" id="quote-refresh" title="Another line">↻</button>
+      </div>
+      <div class="rail-sec quote-card lore-card" id="lore-card">
+        <div class="rail-lbl">Underground · lore</div>
+        <p class="quote-text lore-text" id="lore-text"></p>
+        <button class="quote-refresh" id="lore-refresh" title="Another fact">↻</button>
+      </div>
+    </aside>
+
+    <!-- ── mobile bottom nav ───────────────────────────────────────────── -->
+    <nav class="bottom-nav" id="bottom-nav" aria-label="Main">
+      <button data-nav="chat" class="bn sel"><b>💬</b>Chat</button>
+      <button data-nav="cast" class="bn"><b>🎭</b>Cast</button>
+      <button data-nav="save" class="bn"><b>📜</b>Save</button>
+    </nav>
+  </div>
+
+  <!-- drawer scrim (mobile) -->
+  <div class="scrim" id="scrim" aria-hidden="true"></div>
+
+  <!-- compact options drawer (one gear, its own panel) -->
+  <div id="settings-panel" class="settings hidden" aria-label="Options">
+    <div class="settings-head"><span>⚙ Options</span><button id="settings-close" class="btn">Done</button></div>
+    <div class="settings-sec">
+      <button class="settings-jump" id="vision-btn">♿ <b>Vision &amp; Reading</b>
+        <span class="muted">larger text · readable font · contrast · motion</span></button>
+      <button class="settings-jump" id="power-btn"><span id="power-ico">🕯</span> <b>Power source</b>
+        <span class="muted" id="power-word">the brain Ember runs on</span></button>
+    </div>
+    <div class="settings-sec settings-sec-respond">
+      <h3>How they respond</h3>
+      <label>Length <select id="opt-verbosity"><option>brief</option><option selected>normal</option><option>verbose</option></select></label>
+      <label>Intensity <select id="opt-intensity"><option>subtle</option><option selected>normal</option><option>dramatic</option></select></label>
+      <label>Lore depth <select id="opt-lore"><option>none</option><option>light</option><option selected>normal</option><option>rich</option></select></label>
+      <label>Save/reset talk <select id="opt-meta"><option>off</option><option selected>subtle</option><option>on</option></select></label>
+    </div>
+    <div class="settings-sec">
+      <h3>Display (HUD)</h3>
+      <label>Provenance chips <input type="checkbox" id="hud-provenance" checked /></label>
+      <label>Affinity chips <input type="checkbox" id="hud-affinity" checked /></label>
+      <label>Remembrance box <input type="checkbox" id="hud-remembrance" checked /></label>
+      <label>Backdrop motion <input type="checkbox" id="hud-motion" checked /></label>
+      <label>Typewriter <select id="hud-typewriter"><option value="0">instant</option><option value="18" selected>normal</option><option value="42">slow</option></select></label>
+      <label>Text blip <input type="checkbox" id="hud-blip" checked /></label>
+    </div>
+  </div>
+
+  <!-- the power source picker: which brain (if any) Ember runs on -->
+  <div id="power-modal" class="modal-scrim hidden" role="dialog" aria-modal="true" aria-labelledby="power-title">
+    <div class="modal power-modal">
+      <div class="modal-icon">⚡</div>
+      <h2 id="power-title">Choose your power source</h2>
+      <p>Ember works three ways — pick what fits you. You can change this anytime
+         (the plug icon, top right). Every mode tells the truth; the fancier ones just say it with more voice.</p>
+      <div class="power-cards">
+        <button class="power-card" data-source="none">
+          <b>🕯</b><span class="pc-title">Just play</span>
+          <span class="pc-sub">no AI setup at all — scripted, grounded voices. Instant.</span>
+        </button>
+        <button class="power-card" data-source="openrouter">
+          <b>🔑</b><span class="pc-title">I have an API key</span>
+          <span class="pc-sub">bring an OpenRouter key; free &amp; cheap models suggested.</span>
+        </button>
+        <button class="power-card" data-source="ollama">
+          <b>🖥</b><span class="pc-title">I run local models</span>
+          <span class="pc-sub">Ollama on your machine — private, free, full-fat.</span>
+        </button>
+      </div>
+      <div class="power-or hidden" id="power-or">
+        <label>OpenRouter API key <input type="password" id="power-key" placeholder="sk-or-…" autocomplete="off" /></label>
+        <label>Model
+          <select id="power-model"></select>
+        </label>
+        <input type="text" id="power-model-custom" class="hidden" placeholder="any OpenRouter model id…" />
+      </div>
+      <div class="modal-actions">
+        <span class="muted power-status" id="power-status"></span>
+        <button class="modal-btn ghost" id="power-cancel">Close</button>
+        <button class="modal-btn primary" id="power-save">Use this</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- first-time explainer for each feature (shown once per section) -->
+  <!-- ♿ vision & reading settings -->
+  <div id="vision-modal" class="modal-scrim hidden" role="dialog" aria-modal="true" aria-labelledby="vision-title">
+    <div class="modal vision-modal">
+      <div class="modal-icon">♿</div>
+      <h2 id="vision-title">Vision &amp; Reading</h2>
+      <p class="muted">Tune Ember until it's comfortable. Everything here is remembered on this device.</p>
+      <label class="vision-row"><input type="checkbox" data-a11y="large" />
+        <span><strong>Larger text</strong><br /><span class="muted">Scales the whole app up about a fifth.</span></span></label>
+      <label class="vision-row"><input type="checkbox" data-a11y="font" />
+        <span><strong>Readable font everywhere</strong><br /><span class="muted">Replaces the pixel lettering on headings and buttons too.</span></span></label>
+      <label class="vision-row"><input type="checkbox" data-a11y="space" />
+        <span><strong>Extra breathing room</strong><br /><span class="muted">Wider line and letter spacing for easier tracking.</span></span></label>
+      <label class="vision-row"><input type="checkbox" data-a11y="contrast" />
+        <span><strong>High contrast</strong><br /><span class="muted">Brighter text, solid panels, no translucency.</span></span></label>
+      <label class="vision-row"><input type="checkbox" data-a11y="motion" />
+        <span><strong>Reduce motion</strong><br /><span class="muted">Stills animations, transitions and shakes.</span></span></label>
+      <div class="modal-actions">
+        <button class="modal-btn primary" id="vision-close">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="feature-modal" class="modal-scrim hidden" role="dialog" aria-modal="true" aria-labelledby="feature-modal-title">
+    <div class="modal">
+      <div class="modal-icon" id="feature-modal-icon">✦</div>
+      <h2 id="feature-modal-title">Feature</h2>
+      <p id="feature-modal-body"></p>
+      <div class="modal-actions">
+        <button class="modal-btn primary" id="feature-modal-ok">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- "let them reach out" explainer + opt-in modal -->
+  <div id="reach-modal" class="modal-scrim hidden" role="dialog" aria-modal="true" aria-labelledby="reach-modal-title">
+    <div class="modal">
+      <div class="modal-icon">✉</div>
+      <h2 id="reach-modal-title">Let them reach out to you</h2>
+      <p>Turn this on and the Underground stops waiting to be spoken to. Every so often, whoever
+         has the most at stake in your save — grief and anger speak loudest — will send you an
+         <em>unprompted</em> message, in their own voice, about what your save actually shows.</p>
+      <p class="modal-fine">Same wall as chat: they colour <em>how</em> they speak, never invent
+         <em>what</em> your save says. Tap a message to answer it. Afterwards you can set how often
+         they reach out — or mute them entirely — right here in the rail.</p>
+      <div class="modal-actions">
+        <button class="modal-btn ghost" id="reach-no">No, keep quiet</button>
+        <button class="modal-btn primary" id="reach-yes">Yes, let them</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- proactive "they reached out" toast -->
+  <div id="reach-toast" class="reach-toast hidden" role="button" aria-live="polite"></div>
+
+  <script src="/js/emblems.js"></script>
+  <script src="/js/music.js"></script>
+  <script src="/js/scene.js"></script>
+  <script src="/js/voices.js"></script>
+  <script src="/js/soundtest.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+{
+  "_meta": {
+    "collection": "locations",
+    "note": "Curated Undertale location lore in our OWN words. FREE-bucket world knowledge. NEEDS HUMAN REVIEW.",
+    "wall": "Describes the world; never the player's save state."
+  },
+  "docs": [
+    {"id": "loc-ruins", "type": "location", "title": "The Ruins",
+     "tags": ["ruins", "toriel", "froggit", "start", "puzzles"],
+     "text": "The Ruins are the first area of the Underground, where fallen humans arrive on a bed of golden flowers. They are a quiet maze of purple stone, simple puzzles, and gentle early monsters, watched over by Toriel."},
+    {"id": "loc-snowdin", "type": "location", "title": "Snowdin",
+     "tags": ["snowdin", "snow", "papyrus", "sans", "town", "forest"],
+     "text": "Snowdin is a snow-covered forest and a cozy town of the same name, home to Sans and Papyrus. It features Papyrus's puzzles, a friendly town with an inn and shop, and a perpetual blanket of snow."},
+    {"id": "loc-waterfall", "type": "location", "title": "Waterfall",
+     "tags": ["waterfall", "undyne", "echo flowers", "dark", "wishes"],
+     "text": "Waterfall is a dim, watery cavern of glowing echo flowers, wishing-star ceilings, and quiet ruins of monster history. It is where Undyne pursues the human, and where much of the Underground's old story is told on the walls."},
+    {"id": "loc-hotland", "type": "location", "title": "Hotland",
+     "tags": ["hotland", "alphys", "mettaton", "lab", "core", "heat"],
+     "text": "Hotland is a blazing region of lava, conveyor puzzles, and steam vents, home to Alphys's lab and the broadcasts of Mettaton. It leads toward the CORE, the facility that powers the Underground."},
+    {"id": "loc-core", "type": "location", "title": "The CORE",
+     "tags": ["core", "power", "hotland", "mettaton", "asgore"],
+     "text": "The CORE is a vast mechanical facility that generates power for the Underground, a maze of shifting walkways near the end of Hotland on the path to New Home."},
+    {"id": "loc-newhome", "type": "location", "title": "New Home",
+     "tags": ["new home", "asgore", "king", "capital", "barrier"],
+     "text": "New Home is the grey capital city of the Underground and Asgore's residence, the last region before the barrier that seals the monsters beneath the mountain."}
+  ]
+}

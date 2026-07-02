@@ -1,0 +1,36 @@
+{
+  "_meta": {
+    "collection": "characters",
+    "note": "Curated Undertale character lore in our OWN words (paraphrased facts, not copied text). FREE-bucket world knowledge — never a save-fact. NEEDS HUMAN REVIEW for canonical accuracy.",
+    "wall": "Lore here may colour what a character knows about the world; it may NEVER assert the player's save state (route/LOVE/kills)."
+  },
+  "docs": [
+    {"id": "char-sans", "type": "character", "character": "Sans", "title": "Sans",
+     "tags": ["sans", "judge", "skeleton", "waterfall", "snowdin", "papyrus"],
+     "text": "Sans is a short, easygoing skeleton who runs a sentry station in Snowdin and tells a lot of bad jokes. He is Papyrus's older brother and is fiercely protective of him. Beneath the laid-back humor he is unusually perceptive: he seems aware of timelines, resets, and the weight of the player's choices, and he delivers a final judgment of the human's actions near the end of the journey."},
+    {"id": "char-papyrus", "type": "character", "character": "Papyrus", "title": "Papyrus",
+     "tags": ["papyrus", "puzzles", "spaghetti", "royal guard", "snowdin", "sans"],
+     "text": "Papyrus is a tall, exuberant skeleton who dreams of joining the Royal Guard and capturing a human. He builds elaborate puzzles, cooks spaghetti, and believes wholeheartedly in everyone's capacity for good. His optimism is sincere and disarming, and he offers friendship even to those who have wronged him."},
+    {"id": "char-toriel", "type": "character", "character": "Toriel", "title": "Toriel",
+     "tags": ["toriel", "ruins", "mother", "pie", "boss monster"],
+     "text": "Toriel is a kind, motherly boss monster who watches over the Ruins, the first area of the Underground. She bakes butterscotch-cinnamon pie and tries to protect fallen humans from the dangers beyond her home. She carries a deep, quiet grief and is gently but firmly protective."},
+    {"id": "char-flowey", "type": "character", "character": "Flowey", "title": "Flowey",
+     "tags": ["flowey", "soulless", "resets", "save", "determination"],
+     "text": "Flowey is a talking golden flower who greets the human at the start of the journey with false friendliness. He is manipulative, curious about the player's choices, and aware of saving, loading, and resetting. He is preoccupied with LOVE and power and probes how the human will treat the world."},
+    {"id": "char-undyne", "type": "character", "character": "Undyne", "title": "Undyne",
+     "tags": ["undyne", "royal guard", "waterfall", "spears", "determination"],
+     "text": "Undyne is the fierce, passionate head of the Royal Guard who hunts the human through Waterfall with magic spears. She values courage and never giving up, trains relentlessly, and is fiercely loyal to those she cares about. Her intensity can soften into genuine friendship."},
+    {"id": "char-alphys", "type": "character", "character": "Alphys", "title": "Alphys",
+     "tags": ["alphys", "scientist", "hotland", "lab", "mettaton"],
+     "text": "Alphys is the Underground's anxious royal scientist, who works in a lab in Hotland and has a fondness for human cartoons and dramas. She is brilliant but insecure, prone to small lies that spiral, and she built and supports the robot star Mettaton."},
+    {"id": "char-asgore", "type": "character", "character": "Asgore", "title": "Asgore",
+     "tags": ["asgore", "king", "new home", "souls", "boss monster"],
+     "text": "Asgore Dreemurr is the gentle, sorrowful king of the Underground, a boss monster who tends golden flowers and dreads the duty that falls to him. He stands between the human and the surface near the journey's end and is reluctant in the role he has taken on."},
+    {"id": "char-mettaton", "type": "character", "character": "Mettaton", "title": "Mettaton",
+     "tags": ["mettaton", "robot", "tv", "hotland", "alphys"],
+     "text": "Mettaton is a flamboyant robot television star built by Alphys, hosting game shows and dramatic spectacles across Hotland. He is theatrical and ratings-obsessed, and his encounters with the human play out as over-the-top entertainment."},
+    {"id": "char-napstablook", "type": "character", "character": "Napstablook", "title": "Napstablook",
+     "tags": ["napstablook", "ghost", "waterfall", "music", "mettaton", "spider"],
+     "text": "Napstablook is a shy, melancholy ghost who lives in Waterfall and makes music alone. Gentle and easily overwhelmed, they speak softly and often trail off, apologizing for being a bother. They are a cousin of Mettaton, and inviting the human to their home reveals a quiet warmth beneath the gloom."}
+  ]
+}

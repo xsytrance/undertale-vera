@@ -1,0 +1,41 @@
+# Ember — Easter Eggs 🥚
+
+A running list of the hidden secrets. (Spoilers, obviously.) All are pure UI —
+they never touch the SaveTruth wall. The flashy ones respect the Options → Display
+**motion** toggle and the OS reduced-motion setting (they fall back to just the
+whisper). Word-eggs are additive: your message still sends normally.
+
+## Interaction eggs
+
+| # | Secret | How to trigger | What happens |
+|---|--------|----------------|--------------|
+| 1 | **file0** | Tap the soul-sigil (top-left ◆) **5×** | Whisper: *"file0 — the save still remembers you."* (darker on a Genocide save) |
+| 2 | **Soul-tap ladder** | Keep tapping the sigil: **10×**, **15×** | Escalating whispers |
+| 3 | **DETERMINATION burst** | Tap the sigil **20×** — or the **Konami code** anywhere: `↑ ↑ ↓ ↓ ← → ← → B A` | Gold flash + a rain of 26 ember-gems + a blip + whisper |
+| 4 | **The whole Underground** | In **Sound Test**, hit **All** | Whisper: *"the whole Underground plays as one."* |
+| 5 | **A hidden page** | Spam the **Underground · lore ↻** button **7×** fast | A hidden lore line + *"a hidden page turns."* |
+| 6 | **Corner code** (mobile-friendly) | Tap/click the **four screen corners clockwise** (top-left → top-right → bottom-right → bottom-left) within 3s | *"the corners of the world fold inward."* + the DETERMINATION burst |
+| 7 | **Character emote** | **Rapid-tap (5×)** a character's portrait in the chat banner | They react in their own voice + a little bounce (e.g. Sans: *"heh. what?"*, Undyne: *"HEY! Quit poking me, punk!"*) |
+| 8 | **The hidden room** 🕯 | On a **Genocide** save, send a message with **"chara"** | A dark room fades in and something that remembers you speaks. (On other routes: *"a name you shouldn't know."*) |
+
+## Word eggs — say the magic word in a chat message
+
+| Word / phrase | What happens |
+|---------------|--------------|
+| **spaghetti** | 🍝🍅 rains + *"NYEH HEH HEH! HAVE SOME SPAGHETTI!"* |
+| **nyeh** | *"NYEH HEH HEH HEH!"* |
+| **howdy** | 🌼 friendliness pellets rain + *"Howdy! I'm FLOWEY. FLOWEY the FLOWER!"* |
+| **butterscotch** | 🥧 pie rains + *"(a slice of butterscotch-cinnamon pie appears.)"* |
+| **oh yes** / **mettaton** / **gorgeous** / **fabulous** | 💖 disco flash + ✨ sparkles + *"OHHH YES! Simply GORGEOUS, darling!"* |
+| **megalovania** / **bad time** | blue flash + a Sans blip + *"huh. you're gonna have a bad time."* |
+| **undyne** / **suplex** | teal flash + *"NGAHHH!! FUHUHUHU!"* |
+| **annoying dog** / **doggo** | 🐶🦴 + *"(a small white dog trots across the screen, and steals something.)"* |
+| **determination** | the full DETERMINATION burst |
+| **...** (just dots) | blue flash + *"...(sans says nothing. but he's watching.)"* |
+| **chaos** | card-suit rain + disco + *"CHAOS, CHAOS! UEE HEE HEE!"* |
+| **ho ho ho** | ♠🚲 rain + *"I, LANCER, APPROVE THIS MESSAGE!"* |
+| **worm(s)** | *"ROUXLS KAARD APPROACHETH. HANDETH OVER THY WORMS."* |
+| **prophecy** | violet flash + *"(a legend whispers itself, older than the dark.)"* |
+| **egg** (the whole message) | *"(you got the egg.)"* |
+
+_Word-eggs share a ~3.5s cooldown. Kept up to date as new eggs are buried._
