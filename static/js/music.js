@@ -33,7 +33,8 @@
     "a-new-save-file": { title: "A New Save File", url: "/audio/a-new-save-file.mp3", ambient: true },
     "route-pacifist":  { title: "Mercy",          url: "/audio/route-pacifist.mp3",  ambient: true },
     "route-neutral":   { title: "The In-Between",  url: "/audio/route-neutral.mp3",   ambient: true },
-    "route-genocide":  { title: "Dust",            url: "/audio/route-genocide.mp3",  ambient: true }
+    "route-genocide":  { title: "Dust",            url: "/audio/route-genocide.mp3",  ambient: true },
+    "dark-world":      { title: "The Dark World",  url: "/audio/dark-world.mp3",      ambient: true }
   };
 
   // Per-route bed. Each route prefers its own track; if that file isn't present
@@ -133,6 +134,16 @@
       var id = ROUTE_TRACK[route] || ROUTE_TRACK.undetermined;
       if (_failed[id]) id = MENU_TRACK;
       this._routeBed = id;   // remembered as the fallback for character themes
+      this.play(id);
+    },
+
+    // The Dark World's own bed (Deltarune saves). Missing file → main theme, and
+    // character themes recorded against it fall back through it the same way.
+    setWorld: function (world) {
+      if (world !== "dark") return;
+      var id = _failed["dark-world"] ? MENU_TRACK : "dark-world";
+      _fallback["dark-world"] = MENU_TRACK;
+      this._routeBed = id;
       this.play(id);
     },
 

@@ -49,6 +49,23 @@
 
 * { box-sizing: border-box; }
 
+/* ── DARK WORLD MODE (a Deltarune save is active) ─────────────────────────────
+   The whole console falls into the Dark World: every ember/brass accent follows
+   these variables, so one scoped redefinition turns the gold to Dark-World violet
+   (Determination red stays itself). Applied via body.world-dark from renderTruth. */
+body.world-dark {
+  --ember:      #b48bf2;
+  --ember-soft: #8f6cc9;
+  --brass:      #7b5bb8;
+  --brass-edge: #a98fe0;
+}
+/* the backdrop deepens toward violet-black, and a faint violet aura frames it */
+body.world-dark .scene-backdrop { background-image: radial-gradient(1000px 700px at 50% -5%, #1b1030, #0a0612 65%) !important; }
+body.world-dark .route-aura {
+  opacity: 1;
+  background: radial-gradient(135% 105% at 50% 45%, transparent 58%, rgba(140, 90, 220, .13));
+}
+
 /* ── global polish: in-palette scrollbars, keyboard focus rings, view fade ──── */
 * { scrollbar-width: thin; scrollbar-color: var(--plate-frame) transparent; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
