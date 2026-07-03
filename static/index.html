@@ -348,10 +348,15 @@
             <code>~/Library/Application Support/com.tobyfox.undertale</code> (macOS), <code>~/.config/UNDERTALE</code> (Linux).
             Deltarune: the same but <code>DELTARUNE</code>. <em>Always copy your saves before experimenting.</em></li>
             <li><strong>Reading GameMaker saves</strong> — they're plain newline-delimited text + INI files. A text
-            editor and patience is all it takes; the maps above give you a head start.</li>
+            editor and patience is all it takes; the maps above give you a head start. Tackling another game?
+            <strong>Start with one whose saves are this readable</strong> — encrypted or compressed formats are a
+            brutal first project.</li>
             <li><strong>The evidence method</strong> — to map unknown fields: collect saves at labelled progression
             points, diff every line across the corpus, correlate against any summary file the game writes, and
-            look for lines constant before an event and constant-but-different after it. Never guess.</li>
+            look for lines constant before an event and constant-but-different after it. Never guess.
+            AI assistants (Claude, ChatGPT, OpenRouter models) are genuinely good partners here — this project's
+            own field maps were reverse-engineered with their help, one "what changed between these two saves?"
+            at a time. Copy your saves before experimenting.</li>
           </ul>
 
           <p class="muted">🏅 The full credits — the people and tools this project stands on —
@@ -560,6 +565,13 @@ uvicorn undertale_vera_app:app --port 9092</pre></div>
             <p>You don't need permission and you don't need a big model. You need a game with readable
             saves and some love for its cast:</p>
             <ul class="cm-list">
+              <li><strong>0 · Pick a game you can read.</strong> The real gate: before anything else, the
+              save file has to be parsed or reverse-engineered. <strong>Start with easily readable save
+              data</strong> — plain text, INI, JSON. (Undertale's saves are newline-delimited text; that's
+              why it made such a good pack.) Encrypted or compressed saves are a brutal first project.
+              You don't have to decode alone, either — AI assistants (Claude, ChatGPT, OpenRouter models)
+              are genuinely good at reverse engineering when you feed them saves captured at <em>known
+              moments</em> and ask what changed. Copy your saves somewhere safe first, always.</li>
               <li><strong>1 · Read the save, read-only.</strong> A parser that never writes and never crashes —
               malformed input becomes warnings, not exceptions.</li>
               <li><strong>2 · Earn every field.</strong> Collect real saves at known progression points and diff

@@ -79,7 +79,10 @@ Full guide: [`docs/GUIDED_MODE.md`](docs/GUIDED_MODE.md).
 
 **Game packs** — the engine is game-agnostic; Undertale and Deltarune Ch1 are the
 first two packs. Want to teach it another game (FFT is next)? The spec:
-[`docs/GAME_PACKS.md`](docs/GAME_PACKS.md).
+[`docs/GAME_PACKS.md`](docs/GAME_PACKS.md). Step zero matters most: **pick a game
+with easily readable save data** (plain text / INI / JSON) — the save must be
+parsed or reverse-engineered before anything else, and AI assistants are
+genuinely good partners for that part.
 
 **Quality gates** — the two-bucket wall is enforced by `hallucination_guard`, an
 adversarial `voice_eval`, a `lore_eval`, the pytest suite, **and** a headless-browser

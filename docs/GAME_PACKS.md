@@ -11,6 +11,29 @@ next one — written from what the first two packs actually required.
 > A pack may only assign meaning to save data it can corroborate with evidence.
 > Unknowns are `null`. Ambiguity is said out loud. Voice and flavour are free.
 
+## Step zero — pick a game you can read
+
+Everything below assumes you can read the save file. That's the real gate, so
+choose your first game accordingly:
+
+- **Start with easily readable save data** — plain text, INI, JSON, XML, or a
+  simple documented binary. Undertale/Deltarune saves are newline-delimited
+  text plus INI, which is exactly why they made great first packs. A game with
+  encrypted, compressed, or deeply nested binary saves is a brutal first
+  project — save it for your third Vera, not your first.
+- **AI assistants are genuinely good at reverse engineering.** This project's
+  field maps were built with heavy AI help — Claude, ChatGPT, and OpenRouter
+  models (Owl Alpha among them) — by feeding them saves captured at *known
+  moments* ("this one is right before the Papyrus fight, this one right after")
+  and asking what changed. Diff-driven questions get honest answers; "what does
+  byte 372 mean" in a vacuum gets guesses. The corroboration rules below keep
+  the guesses out of your pack.
+- **Copy your saves somewhere safe before you experiment.** Always. The engine
+  is read-only by law, but *you* will be opening these files in editors.
+- Look for a summary file the game itself writes (Undertale's `undertale.ini`,
+  Deltarune's `dr.ini`) — cross-correlating against one is the fastest way to
+  promote fields with confidence.
+
 ## What a pack provides
 
 ### 1. A parser (`<game>_parser.py`) — parser-truth law
