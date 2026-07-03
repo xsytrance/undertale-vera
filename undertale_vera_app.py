@@ -22,10 +22,11 @@ from typing import Any, Optional
 
 import asyncio
 import json
+import re
 
 from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from fastapi.responses import StreamingResponse
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
 from pydantic import BaseModel
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
@@ -1768,11 +1769,34 @@ def forget(project_id: int, character: str, req: ForgetRequest, db: Session = De
 
 # ── static + SPA fallback ────────────────────────────────────────────────────
 
+# Version-stamp local js/css references (?v=<mtime>) so browsers and CDN edges
+# fetch fresh copies the moment a deployed file changes — there is no build
+# step, so the server is the only place that knows a file moved. The HTML
+# itself goes out no-cache; the stamped assets may cache freely.
+_ASSET_REF = re.compile(r'(src|href)="(/(?:js|css)/[^"?]+)"')
+
+
+def _stamped_index(idx: str) -> HTMLResponse:
+    with open(idx, encoding="utf-8") as f:
+        html = f.read()
+
+    def stamp(m: "re.Match[str]") -> str:
+        path = os.path.join(STATIC_DIR, m.group(2).lstrip("/"))
+        try:
+            v = int(os.path.getmtime(path))
+        except OSError:
+            return m.group(0)
+        return f'{m.group(1)}="{m.group(2)}?v={v}"'
+
+    return HTMLResponse(_ASSET_REF.sub(stamp, html),
+                        headers={"Cache-Control": "no-cache"})
+
+
 @app.get("/")
 def index() -> Any:
     idx = os.path.join(STATIC_DIR, "index.html")
     if os.path.isfile(idx):
-        return FileResponse(idx)
+        return _stamped_index(idx)
     return JSONResponse({"app": "undertale-vera", "status": "no static index yet"})
 
 
@@ -1783,7 +1807,7 @@ def static_or_spa(full_path: str) -> Any:
         return FileResponse(candidate)
     idx = os.path.join(STATIC_DIR, "index.html")
     if os.path.isfile(idx):
-        return FileResponse(idx)
+        return _stamped_index(idx)
     raise HTTPException(status_code=404, detail="not found")
 
 
