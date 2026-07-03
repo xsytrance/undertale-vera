@@ -376,8 +376,8 @@ class WatchRequest(BaseModel):
 @app.post("/api/guided/watch")
 def guided_watch(req: WatchRequest, db: Session = Depends(get_db)) -> dict[str, Any]:
     """Watch a save directory (e.g. ~/.config/UNDERTALE or the DELTARUNE folder)."""
-    if power_config.edition() == "lite":
-        raise HTTPException(status_code=403, detail="Guided Mode watches a local save folder — not available on the shared lite site")
+    if power_config.edition() == "lite" or VISITOR_SCOPE:
+        raise HTTPException(status_code=403, detail="Guided Mode watches a save folder on the machine Ember runs on — run Ember locally to use it")
     if not guided_state.add_dir(req.path):
         raise HTTPException(status_code=400, detail="not a directory")
     beats = guided_scan_once(db)   # adopt what's already there, right away
@@ -388,8 +388,8 @@ def guided_watch(req: WatchRequest, db: Session = Depends(get_db)) -> dict[str, 
 
 @app.delete("/api/guided/watch")
 def guided_unwatch(req: WatchRequest) -> dict[str, Any]:
-    if power_config.edition() == "lite":
-        raise HTTPException(status_code=403, detail="not available on the lite site")
+    if power_config.edition() == "lite" or VISITOR_SCOPE:
+        raise HTTPException(status_code=403, detail="not available on shared sites")
     guided_state.remove_dir(req.path)
     return {"watching": guided_state.dirs}
 
@@ -648,6 +648,9 @@ def get_power() -> dict[str, Any]:
 def set_power(req: PowerRequest) -> dict[str, Any]:
     """Choose the power source. Persists to a local, owner-only config file."""
     src = (req.source or "").strip().lower()
+    if power_config.locked():
+        raise HTTPException(status_code=403,
+                            detail="this shared site's power source is fixed — run Ember yourself to choose your own")
     if src not in power_config.SOURCES:
         raise HTTPException(status_code=400, detail=f"source must be one of {power_config.SOURCES}")
     cfg = power_config.load()

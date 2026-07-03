@@ -68,6 +68,12 @@ def edition() -> str:
     return e if e in ("lite", "pro") else "pro"
 
 
+def locked() -> bool:
+    """Shared deployments fix the power source server-side: a visitor's key
+    would otherwise power every other visitor's chats."""
+    return os.environ.get("EMBER_POWER_LOCK", "").strip() in ("1", "true", "yes")
+
+
 def pro_url() -> str:
     """Where the lite edition points the curious ("want the full thing?")."""
     return os.environ.get("EMBER_PRO_URL", "").strip()
@@ -105,6 +111,7 @@ def public_state() -> dict[str, Any]:
     return {
         "source": source(),
         "edition": edition(),
+        "locked": locked(),
         "pro_url": pro_url(),
         "configured": bool(load()),
         "openrouter_model": openrouter_model(),

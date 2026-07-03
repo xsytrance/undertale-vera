@@ -284,7 +284,11 @@
     }
     if ($("power-key")) $("power-key").placeholder = p.openrouter_key ? "saved (" + p.openrouter_key + ") — paste to replace" : "sk-or-…";
     $("power-or").classList.toggle("hidden", _powerSel !== "openrouter");
-    $("power-status").textContent = "";
+    var locked = !!(state.power && state.power.locked);
+    $("power-save").disabled = locked;
+    $("power-status").textContent = locked
+      ? "🔒 this shared site's brain is fixed — run Ember yourself to choose your own"
+      : "";
     $("power-modal").classList.remove("hidden");
     trapFocus($("power-modal"));
   }
