@@ -100,6 +100,9 @@
           </select>
         </label>
       </div>
+      <div class="rail-foot">
+        <button class="rail-support" id="support-btn" aria-haspopup="dialog" title="The soundtrack is original — hear more or leave a tip">♪ music by xsytrance <span class="rail-support-heart">· ♥</span></button>
+      </div>
     </aside>
 
     <!-- ── the stage: exactly one view is .active ──────────────────────── -->
@@ -229,6 +232,15 @@
           <label class="muted toggle-inline"><input type="checkbox" id="st-loop" checked /> loop</label>
         </div>
         <div class="st-groups" id="st-groups"></div>
+        <div class="st-credit">
+          <p>Every track in this jukebox is an <strong>original composition</strong> made for this
+            project by <strong>xsytrance</strong> — free for anyone to use, CC&nbsp;BY.</p>
+          <div class="st-credit-links">
+            <a class="btn tiny" href="https://soundcloud.com/rod-agenor" target="_blank" rel="noopener">☁ SoundCloud</a>
+            <a class="btn tiny" href="https://suno.com/@xsytrance" target="_blank" rel="noopener">🎶 Suno</a>
+            <button class="btn tiny" id="st-support" aria-haspopup="dialog">♥ Support the music</button>
+          </div>
+        </div>
       </section>
 
       <!-- Guided Mode -->
@@ -280,7 +292,10 @@
 
           <h3>🎵 The soundtrack — free to grab</h3>
           <p class="muted">Original music made for this project (composed with Suno, loop-processed
-          and level-matched here). <strong>License: CC BY 4.0</strong> — use it anywhere, credit appreciated.</p>
+          and level-matched here). <strong>License: CC BY 4.0</strong> — use it anywhere, credit appreciated.
+          More from the composer:
+          <a href="https://soundcloud.com/rod-agenor" target="_blank" rel="noopener">SoundCloud</a> ·
+          <a href="https://suno.com/@xsytrance" target="_blank" rel="noopener">Suno</a>.</p>
           <div class="cm-row"><button class="btn" id="cm-zip">⤓ Download everything (.zip)</button></div>
           <div class="cm-music" id="cm-music"><p class="muted">Loading the track list…</p></div>
 
@@ -427,6 +442,18 @@
             <em>HUGE thanks.</em></p>
             <p class="muted">Every promoted field in The Commons' tables exists because these two shared
             their play time with strangers.</p>
+          </div>
+          <div class="cm-hero-credit cm-composer">
+            <div class="cm-hero-head">🎼 The soundtrack</div>
+            <p>Every note you hear — eighteen character themes, the route beds, the Dark World —
+            is an <strong>original composition by
+            <a href="https://soundcloud.com/rod-agenor" target="_blank" rel="noopener">xsytrance</a></strong>,
+            written for this project and given away under CC&nbsp;BY. Hear more of his work on
+            <a href="https://soundcloud.com/rod-agenor" target="_blank" rel="noopener">SoundCloud</a> and
+            <a href="https://suno.com/@xsytrance" target="_blank" rel="noopener">Suno</a>.</p>
+            <p class="muted">Enjoying the music? There's a quiet
+            <button class="linklike" id="credits-support" aria-haspopup="dialog">tip jar ♥</button> —
+            never required; the soundtrack stays free either way.</p>
           </div>
           <ul class="cm-list">
             <li><strong>Toby Fox</strong> — for the worlds themselves. This is a fan project: no game assets,
@@ -915,6 +942,35 @@ seam.png          — a button-eye with visible stitching</pre></div>
         <span class="muted power-status" id="power-status"></span>
         <button class="modal-btn ghost" id="power-cancel">Close</button>
         <button class="modal-btn primary" id="power-save">Use this</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ♥ support the music — links + tip jar (opened from the rail, Sound Test, Credits) -->
+  <div id="support-modal" class="modal-scrim hidden" role="dialog" aria-modal="true" aria-labelledby="support-title">
+    <div class="modal support-modal">
+      <div class="modal-icon">♥</div>
+      <h2 id="support-title">Support the music</h2>
+      <p>Ember is free and stays free. The soundtrack under it — every character theme, every
+         route bed — is original work by <strong>xsytrance</strong>. If it's kept you company
+         and you'd like to toss a coin in the jar, here's where; if not, enjoying it is support too.</p>
+      <div class="support-links">
+        <a class="support-row" href="https://ko-fi.com/xsytrance" target="_blank" rel="noopener">
+          <b>☕</b><span class="sp-title">Tip on Ko-fi</span>
+          <span class="sp-sub">a one-off coffee — no account needed, no strings</span></a>
+        <a class="support-row" href="https://soundcloud.com/rod-agenor" target="_blank" rel="noopener">
+          <b>☁</b><span class="sp-title">SoundCloud</span>
+          <span class="sp-sub">hear more — a follow or a like is free support</span></a>
+        <a class="support-row" href="https://suno.com/@xsytrance" target="_blank" rel="noopener">
+          <b>🎶</b><span class="sp-title">Suno</span>
+          <span class="sp-sub">the studio where these tracks were born</span></a>
+      </div>
+      <div class="support-crypto hidden" id="support-crypto">
+        <div class="sp-crypto-lbl muted">Prefer crypto? Tap an address to copy it.</div>
+        <div id="support-crypto-rows"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="modal-btn primary" id="support-close">Close</button>
       </div>
     </div>
   </div>

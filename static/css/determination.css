@@ -1402,6 +1402,47 @@ body.companion .g-party { gap: 6px; }
 .power-status { margin-right: auto; font-size: .74rem; }
 @media (max-width: 640px) { .power-cards { flex-direction: column; } }
 
+/* ── ♥ support the music: rail credit · Sound Test card · the tip-jar modal ── */
+.rail-foot { position: sticky; bottom: -12px; margin: auto -12px -12px;
+  padding: 6px 12px 10px; background: rgba(21,19,28,.94);
+  border-top: 1px solid var(--plate-frame); backdrop-filter: blur(2px); }
+.rail-support { display: block; width: 100%; padding: 4px; cursor: pointer;
+  background: none; border: none; text-align: left;
+  font-size: .68rem; color: var(--ink-dim); }
+.rail-support:hover { color: var(--ember); }
+.rail-support-heart { opacity: .7; }
+
+.st-credit { margin-top: 18px; padding: 14px 16px; border: 1px solid var(--plate-frame);
+  border-radius: 10px; background: rgba(255,255,255,.02); }
+.st-credit p { margin: 0 0 10px; font-size: .82rem; line-height: 1.55; color: var(--ink-dim); }
+.st-credit-links { display: flex; gap: 8px; flex-wrap: wrap; }
+
+.linklike { background: none; border: none; padding: 0; cursor: pointer;
+  color: var(--ember); font: inherit; text-decoration: underline; }
+
+.support-modal { max-width: 480px; }
+.support-links { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 6px; }
+.support-row { display: grid; grid-template-columns: 34px 1fr; grid-template-rows: auto auto;
+  column-gap: 10px; align-items: center; padding: 10px 12px; cursor: pointer;
+  text-decoration: none; color: var(--ink);
+  border: 1px solid var(--plate-frame); border-radius: 10px; }
+.support-row:hover { border-color: var(--ember); background: rgba(232,162,76,.08); }
+.support-row b { grid-row: 1 / span 2; font-size: 1.3rem; font-weight: normal; text-align: center; }
+.support-row .sp-title { font-family: var(--font-display); color: var(--ember); font-size: .82rem; }
+.support-row .sp-sub { font-size: .68rem; color: var(--ink-dim); line-height: 1.35; }
+
+.support-crypto { margin: 12px 0 4px; text-align: left; }
+.sp-crypto-lbl { font-size: .72rem; margin-bottom: 6px; }
+.sp-crypto-row { display: flex; align-items: center; gap: 8px; width: 100%; margin: 4px 0;
+  padding: 8px 10px; cursor: pointer; color: var(--ink);
+  background: var(--obsidian); border: 1px solid var(--plate-frame); border-radius: 8px; }
+.sp-crypto-row b { font-size: .72rem; color: var(--ember); }
+.sp-crypto-row code { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis;
+  white-space: nowrap; font-size: .68rem; color: var(--ink-dim); text-align: left; }
+.sp-crypto-row .sp-copy { font-size: .66rem; color: var(--ink-dim); }
+.sp-crypto-row:hover { border-color: var(--ember); }
+.sp-crypto-row:hover .sp-copy { color: var(--ember); }
+
 /* ── The Prompt Workshop ─────────────────────────────────────────────────── */
 .ws-row { display: flex; gap: 10px; align-items: flex-start; margin: 8px 0; }
 .ws-bucket { flex: 0 0 auto; font-size: 0.62rem; letter-spacing: 0.08em; padding: 3px 7px;

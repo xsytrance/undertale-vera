@@ -351,6 +351,13 @@ body.world-dark .view.active {
 .power-card .pc-title { color: var(--ember) !important; }
 .power-or input, .power-or select { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; color: #fff !important; }
 
+/* support the music, pixel skin */
+.rail-foot { background: #000 !important; border-top: 2px solid #fff !important; backdrop-filter: none !important; }
+.st-credit { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+.support-row { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; color: #fff !important; }
+.support-row:hover { border-color: var(--ember) !important; }
+.sp-crypto-row { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+
 /* Workshop, pixel skin */
 .ws-prompt { border-radius: 0; background: #0a0a0a; }
 .ws-bucket { border-radius: 0; }

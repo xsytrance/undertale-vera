@@ -1566,6 +1566,45 @@
     trapFocus($("vision-modal"));
   }
   function closeVisionModal() { $("vision-modal").classList.add("hidden"); releaseFocus($("vision-modal")); }
+
+  // ── ♥ Support the music: composer links + tip jar ─────────────────────────
+  // Crypto rows appear only when an address is configured — an empty list keeps
+  // the whole section hidden, so shipping without addresses changes nothing.
+  var SUPPORT_CRYPTO = [
+    // { sym: "BTC", name: "Bitcoin", addr: "" },
+    // { sym: "ETH", name: "Ethereum", addr: "" },
+  ];
+  function renderSupportCrypto() {
+    var rows = SUPPORT_CRYPTO.filter(function (c) { return c.addr; });
+    $("support-crypto").classList.toggle("hidden", !rows.length);
+    $("support-crypto-rows").innerHTML = rows.map(function (c) {
+      return '<button class="sp-crypto-row" data-addr="' + c.addr + '" title="Copy the ' + c.name + ' address">' +
+        '<b>' + c.sym + '</b><code>' + c.addr + '</code><span class="sp-copy">copy</span></button>';
+    }).join("");
+    $$("#support-crypto-rows .sp-crypto-row").forEach(function (b) {
+      b.onclick = function () {
+        var done = function () {
+          var tag = b.querySelector(".sp-copy");
+          tag.textContent = "copied ✓";
+          setTimeout(function () { tag.textContent = "copy"; }, 1600);
+        };
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          navigator.clipboard.writeText(b.dataset.addr).then(done, done);
+        } else {
+          var t = document.createElement("textarea");
+          t.value = b.dataset.addr; document.body.appendChild(t); t.select();
+          try { document.execCommand("copy"); done(); } catch (e) {}
+          document.body.removeChild(t);
+        }
+      };
+    });
+  }
+  function openSupportModal() {
+    renderSupportCrypto();
+    $("support-modal").classList.remove("hidden");
+    trapFocus($("support-modal"));
+  }
+  function closeSupportModal() { $("support-modal").classList.add("hidden"); releaseFocus($("support-modal")); }
   function a11yToggle(key, onNow) {
     var list = a11yLoad().filter(function (k) { return k !== key; });
     if (onNow) list.push(key);
@@ -2722,6 +2761,14 @@
     $("reach-modal").addEventListener("click", function (e) { if (e.target === this) closeReachModal(); });
     $("feature-modal-ok").onclick = closeFeatureModal;
     $("feature-modal").addEventListener("click", function (e) { if (e.target === this) closeFeatureModal(); });
+
+    // ♥ support the music — reachable from the rail, Sound Test, and Credits
+    $("support-btn").onclick = openSupportModal;
+    $("st-support").onclick = openSupportModal;
+    $("credits-support").onclick = openSupportModal;
+    $("support-close").onclick = closeSupportModal;
+    $("support-modal").addEventListener("click", function (e) { if (e.target === this) closeSupportModal(); });
+
     document.addEventListener("keydown", function (e) {
       if (e.key !== "Escape") return;
       if ($("modes-menu")) closeModesMenu();
@@ -2730,6 +2777,7 @@
       if (!$("feature-modal").classList.contains("hidden")) closeFeatureModal();
       if (!$("power-modal").classList.contains("hidden")) closePowerModal();
       if (!$("vision-modal").classList.contains("hidden")) closeVisionModal();
+      if (!$("support-modal").classList.contains("hidden")) closeSupportModal();
     });
 
     // ambient music toggle
