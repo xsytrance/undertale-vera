@@ -111,15 +111,20 @@ A minute of scrolling text is normal.
 uvicorn undertale_vera_app:app --port 9092
 ```
 
-When it settles on a line like `Uvicorn running on http://0.0.0.0:9092`,
+When it settles on a line like `Uvicorn running on http://127.0.0.1:9092`,
 open your browser at:
 
 **http://127.0.0.1:9092**
 
-Two things to know:
+Three things to know:
 
 - **The terminal window IS the app.** Leave it open while you use Ember;
   Ctrl-C in it shuts Ember down.
+- **It's private.** Ember listens on `127.0.0.1` — reachable only from the
+  computer it's running on. It isn't visible to your network or the internet,
+  and it never connects to the project's authors or any server of theirs.
+  (Don't add `--host 0.0.0.0` unless you deliberately want other devices on
+  your own network to reach it.)
 - **First visit:** a "Choose your power source" window pops up. Pick
   🕯 **Just play** for now — you can upgrade any time from ⚙ Settings.
 

@@ -16,9 +16,7 @@ is `"undetermined"`, never a guessed one. The "two-bucket wall" separates SACRED
 parser truth from FREE character personality/memory.
 
 ## Where the code is
-- Branch: `claude/sweet-darwin-0azp2z` (draft PR #1; base `main` is an intentionally
-  empty initial commit — the repo had no prior history, so the whole scaffold is the
-  diff).
+- Branch: `main`.
 - Backend modules at repo root: `undertale_vera_app.py`, `save_parser.py`,
   `route_detection.py`, `save_truth.py`, `prompt_builder.py`, `living_memory.py`,
   `ledger.py`, `judgment.py`, `llm_client.py`, `inspector.py`; plus
@@ -27,19 +25,19 @@ parser truth from FREE character personality/memory.
 
 ## Setup
 ```bash
-git checkout claude/sweet-darwin-0azp2z
 python3 -m venv .venv && . .venv/bin/activate   # Python 3.11+
 pip install -r requirements.txt
 ```
-**LLM key (optional):** real in-voice chat/judgment needs
-`export ANTHROPIC_API_KEY=sk-ant-...` (model `claude-opus-4-8`). **Without a key,
-everything still works** — chat and "Judgment → let them say it" degrade to a
-deterministic, still-grounded fallback; all parsing/route/truth/ledger/judgment-
-readout is key-free.
+**Model (optional):** real in-voice chat/judgment needs a power source
+(⚙ Settings → Power source: local Ollama, an OpenRouter key, your own
+OpenAI-compatible server, or `ANTHROPIC_API_KEY`). **Without one, everything
+still works** — chat and "Judgment → let them say it" degrade to Spark, the
+deterministic still-grounded voice; all parsing/route/truth/ledger/judgment-
+readout is model-free.
 
 ## Tier 1 — unit tests (start here)
 ```bash
-pytest -q          # expect: 39 passed
+pytest -q          # expect: all passing (300+ tests), 0 failures
 ```
 Covers parser, route detection, the SaveTruth wall, the two-bucket wall regression,
 grounded chat (LLM mocked), the remembrance ledger, the Judgment beat, and
@@ -88,7 +86,7 @@ failures are already filtered — the CSS ships serif fallbacks, so they are not
 defects.
 
 ## Acceptance checklist (the invariants that matter)
-- [ ] `pytest -q` → 39 passed.
+- [ ] `pytest -q` → all passing, 0 failures.
 - [ ] **Route honesty:** ambiguous/unreadable input → `route: "undetermined"`, never a
   guessed route.
 - [ ] **Unknowns → null:** unreadable fields are `null`, not zero/guessed (try
@@ -121,7 +119,6 @@ defects.
 | GET/POST | `/api/projects/{id}/memory/{character}[...]` | Living Memory (Bucket B) |
 
 ## Known/expected non-issues
-- `main` is an intentionally empty base commit (fresh repo).
 - Generated art (`static/assets/portraits/*.png`) is gitignored; sample portraits are
   placeholders — the real pixel portraits need a ComfyUI run with the new style LoRA.
 - Character voices (Sans/Toriel/Papyrus/Flowey/Undyne) are our reinterpretation
