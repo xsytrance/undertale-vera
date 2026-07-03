@@ -41,6 +41,13 @@ through, and [`docs/PIPELINES.md`](docs/PIPELINES.md) for the full
 local-everything recipe book. Two editions ship from this one codebase: set
 `EMBER_EDITION=lite` for the trimmed, Spark-locked newbie deployment.
 
+> **Hosting a shared copy for others?** Shared sites never accept visitor
+> power changes or API keys — a visitor's key would land in the server's one
+> shared config and power strangers' chats. The lite edition refuses this by
+> construction; for a shared pro site set `EMBER_VISITOR_SCOPE=1` (or
+> `EMBER_POWER_LOCK=1`). Visitors who want their own model are pointed here
+> to run their own Ember.
+
 This is part of **MultiVera** — one engine, many worlds. The in-app 🌌 page
 tells that story; [`docs/GAME_PACKS.md`](docs/GAME_PACKS.md) is the spec for
 teaching it a new game.

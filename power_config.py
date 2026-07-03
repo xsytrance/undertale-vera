@@ -80,6 +80,21 @@ def locked() -> bool:
     return os.environ.get("EMBER_POWER_LOCK", "").strip() in ("1", "true", "yes")
 
 
+def visitor_scope() -> bool:
+    """EMBER_VISITOR_SCOPE=1 — the multi-visitor scoping flag for shared sites."""
+    return os.environ.get("EMBER_VISITOR_SCOPE", "").strip() in ("1", "true", "yes")
+
+
+def shared() -> bool:
+    """True when visitors share this deployment, so the power source must never
+    be steerable from a browser: a visitor's key would power strangers' chats,
+    and a visitor's host URL would aim server-side requests. The lite edition
+    and visitor-scoped sites are shared by construction (no flag to forget);
+    EMBER_POWER_LOCK declares any other deployment shared. A self-hosted
+    single-player install (none of the three set) is unaffected."""
+    return locked() or visitor_scope() or edition() == "lite"
+
+
 def pro_url() -> str:
     """Where the lite edition points the curious ("want the full thing?")."""
     return os.environ.get("EMBER_PRO_URL", "").strip()
@@ -142,19 +157,28 @@ def masked_custom_key() -> Optional[str]:
 
 
 def public_state() -> dict[str, Any]:
-    """What the UI may see — keys are never returned, only masked."""
-    return {
+    """What the UI may see — keys are never returned, only masked; on a shared
+    site no config details at all (visitors get the source, not the wiring)."""
+    state: dict[str, Any] = {
         "source": source(),
         "edition": edition(),
-        "locked": locked(),
+        "locked": shared(),
         "pro_url": pro_url(),
         "configured": bool(load()),
-        "openrouter_model": openrouter_model(),
-        "openrouter_key": masked_key(),
-        "ollama_host": ollama_host(),
-        "ollama_model": ollama_model(),
-        "custom_base_url": custom_base_url(),
-        "custom_model": custom_model(),
-        "custom_key": masked_custom_key(),
         "suggestions": OPENROUTER_SUGGESTIONS,
     }
+    if shared():
+        state.update({k: None for k in (
+            "openrouter_model", "openrouter_key", "ollama_host", "ollama_model",
+            "custom_base_url", "custom_model", "custom_key")})
+    else:
+        state.update({
+            "openrouter_model": openrouter_model(),
+            "openrouter_key": masked_key(),
+            "ollama_host": ollama_host(),
+            "ollama_model": ollama_model(),
+            "custom_base_url": custom_base_url(),
+            "custom_model": custom_model(),
+            "custom_key": masked_custom_key(),
+        })
+    return state

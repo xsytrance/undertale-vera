@@ -262,9 +262,12 @@
     return "";
   }
   function showPowerFields(src) {
-    $("power-or").classList.toggle("hidden", src !== "openrouter");
-    $("power-ol").classList.toggle("hidden", src !== "ollama");
-    $("power-cu").classList.toggle("hidden", src !== "custom");
+    // shared sites never render key/host inputs — a key pasted here would land
+    // in the server's shared config, powering every visitor's chats
+    var locked = !!(state.power && state.power.locked);
+    $("power-or").classList.toggle("hidden", locked || src !== "openrouter");
+    $("power-ol").classList.toggle("hidden", locked || src !== "ollama");
+    $("power-cu").classList.toggle("hidden", locked || src !== "custom");
   }
   function refreshPowerChip() {
     api("/api/power").then(function (p) {
