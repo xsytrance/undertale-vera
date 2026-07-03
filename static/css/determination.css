@@ -838,6 +838,8 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
 .st-canvas { flex: 1; height: 56px; min-width: 0; }
 .st-np-label { font-family: var(--font-mono); font-size: .78rem; color: var(--ink-dim); flex: 0 0 auto; max-width: 38%; text-align: right; }
 .st-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 14px; margin-bottom: 16px; }
+.st-transport { display: flex; gap: 4px; }
+.st-transport .btn { padding-left: 9px; padding-right: 9px; }
 .st-modes { display: inline-flex; border: 1px solid var(--plate-frame); border-radius: 999px; overflow: hidden; }
 .st-mode { background: none; border: none; color: var(--ink-dim); padding: 6px 14px; cursor: pointer; font-size: .82rem; }
 .st-mode.sel { background: var(--ember); color: #1a1206; }

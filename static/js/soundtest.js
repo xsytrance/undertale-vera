@@ -74,18 +74,45 @@
     playSolo: function (id) {          // jukebox: exactly one at a time
       this.ensure(); this.stopAll();
       var n = this._node(id); if (!n) return;
-      this.active[id] = true; n.audio.currentTime = 0;
+      this.active[id] = true; this.paused = false; n.audio.currentTime = 0;
       var p = n.audio.play(); if (p && p.catch) p.catch(function () {});
     },
     toggle: function (id) {            // jam: add / remove a layer
       this.ensure();
       var n = this._node(id); if (!n) return false;
       if (this.active[id]) { n.audio.pause(); delete this.active[id]; return false; }
-      this.active[id] = true;
+      this.active[id] = true; this.paused = false;
       var p = n.audio.play(); if (p && p.catch) p.catch(function () {});
       return true;
     },
-    stopAll: function () { for (var id in this.active) { if (this.nodes[id]) this.nodes[id].audio.pause(); } this.active = {}; },
+    stopAll: function () { for (var id in this.active) { if (this.nodes[id]) this.nodes[id].audio.pause(); } this.active = {}; this.paused = false; },
+
+    // transport: pause/resume what's playing, and jukebox-step the catalog
+    paused: false,
+    isPaused: function () { return this.paused; },
+    pauseAll: function () {
+      var any = false;
+      for (var id in this.active) { any = true; if (this.nodes[id]) this.nodes[id].audio.pause(); }
+      this.paused = any;
+    },
+    resumeAll: function () {
+      this.ensure();
+      for (var id in this.active) {
+        if (this.nodes[id]) { var p = this.nodes[id].audio.play(); if (p && p.catch) p.catch(function () {}); }
+      }
+      this.paused = false;
+    },
+    flat: function () {                // the catalog as one ordered track list
+      return CATALOG.main.concat(CATALOG.routes, CATALOG.cast, CATALOG.darkbed, CATALOG.darkcast);
+    },
+    step: function (dir) {             // play the next (+1) / previous (-1) track
+      var list = this.flat(); if (!list.length) return null;
+      var ids = list.map(function (t) { return t.id; });
+      var i = ids.indexOf(this.activeIds()[0]);
+      var j = i === -1 ? (dir > 0 ? 0 : ids.length - 1) : (i + dir + ids.length) % ids.length;
+      this.playSolo(ids[j]);
+      return list[j];
+    },
 
     isActive: function (id) { return !!this.active[id]; },
     activeIds: function () { var out = []; for (var id in this.active) out.push(id); return out; },

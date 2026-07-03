@@ -227,6 +227,12 @@
             <button class="st-mode sel" data-mode="jukebox">🎧 Jukebox</button>
             <button class="st-mode" data-mode="jam">🎸 Jam</button>
           </div>
+          <span class="st-transport">
+            <button class="btn tiny" id="st-prev" title="Previous track" aria-label="Previous track">⏮</button>
+            <button class="btn tiny" id="st-play" title="Play / resume" aria-label="Play">▶</button>
+            <button class="btn tiny" id="st-pause" title="Pause" aria-label="Pause">⏸</button>
+            <button class="btn tiny" id="st-next" title="Next track" aria-label="Next track">⏭</button>
+          </span>
           <button class="btn tiny" id="st-stop">⏹ Stop all</button>
           <label class="st-vol">🔊 <input type="range" id="st-vol" min="0" max="100" value="60" aria-label="Volume" /></label>
           <label class="muted toggle-inline"><input type="checkbox" id="st-loop" checked /> loop</label>

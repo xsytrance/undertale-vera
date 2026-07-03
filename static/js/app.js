@@ -442,7 +442,7 @@
     workshop: { icon: "🛠", title: "The Prompt Workshop",
       body: "Every AI feature here runs on prompts you can read — and this page shows the real ones, pulled live from the code: the anatomy of a grounded system prompt, each feature's exact instruction, the Suno prompts behind the whole soundtrack, and the knobs to bend when you build your own. Tap any dark block to copy it." },
     soundtest: { icon: "🎵", title: "Sound Test",
-      body: "Play the whole soundtrack — the main theme, the three route beds, and every character's theme. Switch to Jam mode to layer any characters together (all, some, or none) and let them collide. A visualizer reacts to whatever's playing." },
+      body: "Every track in this room is an original composition — xsytrance, who built this app, wrote the whole soundtrack himself on Suno: the main theme, the three route beds, and a theme for every character in both worlds. Play them one at a time, or switch to Jam mode to layer any characters together (all, some, or none) and let them collide. A visualizer reacts to whatever's playing." },
   };
   // ── modal focus management (accessibility): trap Tab inside, restore on close ─
   var _modalReturnFocus = null;
@@ -2446,7 +2446,8 @@
     });
     var np = $("st-np-label");
     if (np) np.textContent = labels.length
-      ? labels.join("  ·  ") + (labels.length > 1 ? "   — " + labels.length + " jamming" : "")
+      ? labels.join("  ·  ") + (labels.length > 1 ? "   — " + labels.length + " jamming" : "") +
+        (window.SoundTest && SoundTest.isPaused() ? "   ⏸ paused" : "")
       : "— nothing playing —";
   }
   function startVisualizer() { stopVisualizer(); drawViz(); }
@@ -2833,6 +2834,16 @@
     // Sound Test controls
     $$(".st-mode").forEach(function (b) { b.onclick = function () { setSoundTestMode(b.dataset.mode); }; });
     $("st-stop").onclick = function () { if (window.SoundTest) SoundTest.stopAll(); syncSoundTestUI(); };
+    // transport: prev/play/pause/next — stepping is a jukebox idea, so it switches modes
+    $("st-prev").onclick = function () { if (!window.SoundTest) return; setSoundTestMode("jukebox"); SoundTest.step(-1); syncSoundTestUI(); };
+    $("st-next").onclick = function () { if (!window.SoundTest) return; setSoundTestMode("jukebox"); SoundTest.step(1); syncSoundTestUI(); };
+    $("st-play").onclick = function () {
+      if (!window.SoundTest) return;
+      if (SoundTest.activeIds().length) SoundTest.resumeAll();
+      else { setSoundTestMode("jukebox"); SoundTest.step(1); }   // nothing queued → start the jukebox
+      syncSoundTestUI();
+    };
+    $("st-pause").onclick = function () { if (!window.SoundTest) return; SoundTest.pauseAll(); syncSoundTestUI(); };
     $("st-vol").oninput = function () { if (window.SoundTest) SoundTest.setMasterVolume(this.value / 100); };
     $("st-loop").onchange = function () { if (window.SoundTest) SoundTest.setLoop(this.checked); };
 
