@@ -54,3 +54,7 @@ train_lora*.py
 Thumbs.db
 guided_watch.json
 ember_power.json
+
+# ── Generated emblems + packaging zips — deployed to sites, never committed ──
+static/assets/emblems/
+static/assets/scenes/*.zip
