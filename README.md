@@ -12,24 +12,34 @@ your route, your LOVE, what you did. They never make your story up.
 
 ## Quick start (no AI setup needed)
 
+You'll need **Python 3.11+** and git. Then:
+
 ```bash
 git clone https://github.com/xsytrance/undertale-vera
 cd undertale-vera
+python3 -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
 uvicorn undertale_vera_app:app --port 9092
 ```
+
+> **New to this?** The [step-by-step guide](docs/GETTING_STARTED.md) assumes
+> nothing — it starts at "open a terminal" and covers Windows/macOS/Linux,
+> installing Python and git, and connecting a local model, with troubleshooting.
 
 Open http://127.0.0.1:9092, tap **＋ Read a save** (there's a step-by-step
 "where is my save file" guide right there), and you're playing. With no AI
 configured, Ember runs in 🕯 **Spark mode** — every character answers with a
 scripted, save-grounded voice. Zero keys, zero downloads.
 
-Want a real model behind them? Pick 🔑 (an OpenRouter key — free-tier models
-suggested) or 🖥 (a local model via [Ollama](https://ollama.com); we like
-`llama3.1:8b`) in **⚙ Settings → Power source**. See
-[`docs/PIPELINES.md`](docs/PIPELINES.md) for the full local-everything recipe
-book. Two editions ship from this one codebase: set `EMBER_EDITION=lite` for
-the trimmed, Spark-locked newbie deployment.
+Want a real model behind them? **⚙ Settings → Power source** offers three
+roads: 🔑 an OpenRouter key (free-tier models suggested), 🖥 a local model via
+[Ollama](https://ollama.com) — the picker's **⌕ Detect installed** button lists
+what your Ollama actually has — or 🔌 **your own server**: any OpenAI-compatible
+endpoint (vLLM, LM Studio, llama.cpp) by base URL + model name. See
+[`docs/GETTING_STARTED.md`](docs/GETTING_STARTED.md) for all three walked
+through, and [`docs/PIPELINES.md`](docs/PIPELINES.md) for the full
+local-everything recipe book. Two editions ship from this one codebase: set
+`EMBER_EDITION=lite` for the trimmed, Spark-locked newbie deployment.
 
 This is part of **MultiVera** — one engine, many worlds. The in-app 🌌 page
 tells that story; [`docs/GAME_PACKS.md`](docs/GAME_PACKS.md) is the spec for

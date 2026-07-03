@@ -30,6 +30,10 @@
   function $(id) { return document.getElementById(id); }
   function $$(sel) { return Array.prototype.slice.call(document.querySelectorAll(sel)); }
 
+  // Where "run Ember yourself" points — the public repo + the assume-nothing guide.
+  var REPO_URL = "https://github.com/xsytrance/undertale-vera";
+  var GUIDE_URL = REPO_URL + "/blob/main/docs/GETTING_STARTED.md";
+
   // ── the view router ───────────────────────────────────────────────────────
   // Exactly one stage view is .active at a time. Switching a character or a
   // feature swaps the stage only — the rails never move, nothing scrolls away.
@@ -204,14 +208,21 @@
     $$(".go-card").forEach(function (c) {
       if (!LITE_VIEWS[c.dataset.go]) c.style.display = "none";
     });
-    if (state.proUrl && !document.getElementById("pro-pointer")) {  // re-render recreates .chat-empty-go, so the id check stays correct
+    if (!document.getElementById("pro-pointer")) {  // re-render recreates .chat-empty-go, so the id check stays correct
       var host = document.querySelector(".chat-empty-go") || null;
       if (host) {
         var a = document.createElement("a");
         a.id = "pro-pointer"; a.className = "go-card pro-pointer";
-        a.href = state.proUrl; a.target = "_blank"; a.rel = "noopener";
-        a.innerHTML = "<b>🖥</b><span class='go-title'>Want the full experience?</span>" +
-          "<span class='go-sub'>councils, reports, guided play, your own AI — the pro version</span>";
+        a.target = "_blank"; a.rel = "noopener";
+        if (state.proUrl) {
+          a.href = state.proUrl;
+          a.innerHTML = "<b>🖥</b><span class='go-title'>Want the full experience?</span>" +
+            "<span class='go-sub'>councils, reports, guided play, your own AI — the pro version</span>";
+        } else {
+          a.href = GUIDE_URL;
+          a.innerHTML = "<b>🖥</b><span class='go-title'>Want the full experience?</span>" +
+            "<span class='go-sub'>run Ember on your own machine — free, step-by-step guide, no experience needed</span>";
+        }
         host.appendChild(a);
       }
     }
@@ -242,8 +253,19 @@
   }
 
   // ── the power source: which brain (if any) Ember runs on ───────────────────
-  var POWER_ICON = { none: "🕯", openrouter: "🔑", ollama: "🖥", anthropic: "☁" };
+  var POWER_ICON = { none: "🕯", openrouter: "🔑", ollama: "🖥", anthropic: "☁", custom: "🔌" };
   var _powerSel = null;
+  function powerChipModel(p) {
+    if (p.source === "openrouter") return p.openrouter_model;
+    if (p.source === "ollama") return p.ollama_model;
+    if (p.source === "custom") return p.custom_model;
+    return "";
+  }
+  function showPowerFields(src) {
+    $("power-or").classList.toggle("hidden", src !== "openrouter");
+    $("power-ol").classList.toggle("hidden", src !== "ollama");
+    $("power-cu").classList.toggle("hidden", src !== "custom");
+  }
   function refreshPowerChip() {
     api("/api/power").then(function (p) {
       state.power = p;
@@ -255,8 +277,9 @@
       }
       var ico = $("power-ico"), word = $("power-word");
       if (ico) ico.textContent = POWER_ICON[p.source] || "⚡";
+      var chipModel = powerChipModel(p);
       if (word) word.textContent = "running on: " + p.source +
-        (p.source === "openrouter" ? " (" + p.openrouter_model + ")" : "");
+        (chipModel ? " (" + chipModel + ")" : "");
       // first run: no saved choice yet → offer the picker once
       var seen; try { seen = localStorage.getItem("uv_power_seen") === "1"; } catch (e) { seen = true; }
       if (!p.configured && !seen && state.edition !== "lite") openPowerModal();
@@ -283,14 +306,52 @@
       $("power-model-custom").classList.toggle("hidden", sel.value !== "__custom__");
     }
     if ($("power-key")) $("power-key").placeholder = p.openrouter_key ? "saved (" + p.openrouter_key + ") — paste to replace" : "sk-or-…";
-    $("power-or").classList.toggle("hidden", _powerSel !== "openrouter");
+    // ollama fields: saved host + a model list that starts honest (just what's
+    // saved) until "Detect installed" asks the server what's really there
+    $("power-ol-host").value = p.ollama_host && p.ollama_host !== "http://127.0.0.1:11434" ? p.ollama_host : "";
+    setOllamaModelOptions([p.ollama_model || "llama3.1:8b"], p.ollama_model);
+    // custom fields: saved values, key only ever masked
+    $("power-cu-url").value = p.custom_base_url || "";
+    $("power-cu-model").value = p.custom_model || "";
+    $("power-cu-key").value = "";
+    $("power-cu-key").placeholder = p.custom_key ? "saved (" + p.custom_key + ") — paste to replace" : "";
+    showPowerFields(_powerSel);
     var locked = !!(state.power && state.power.locked);
     $("power-save").disabled = locked;
-    $("power-status").textContent = locked
-      ? "🔒 this shared site's brain is fixed — run Ember yourself to choose your own"
-      : "";
+    $("power-ol-detect").disabled = locked;
+    if (locked) {
+      $("power-status").innerHTML = "🔒 this shared site's brain is fixed — " +
+        '<a href="' + GUIDE_URL + '" target="_blank" rel="noopener">run Ember yourself (free, step-by-step)</a> to choose your own';
+    } else {
+      $("power-status").textContent = "";
+    }
     $("power-modal").classList.remove("hidden");
     trapFocus($("power-modal"));
+  }
+  function setOllamaModelOptions(models, selected) {
+    var sel = $("power-ol-model");
+    sel.innerHTML = "";
+    models.forEach(function (m) {
+      var o = document.createElement("option"); o.value = m; o.textContent = m; sel.appendChild(o);
+    });
+    var custom = document.createElement("option"); custom.value = "__custom__";
+    custom.textContent = "other (type a model tag)…"; sel.appendChild(custom);
+    if (selected && models.indexOf(selected) !== -1) sel.value = selected;
+    $("power-ol-model-custom").classList.toggle("hidden", sel.value !== "__custom__");
+  }
+  function detectOllama() {
+    var host = $("power-ol-host").value.trim();
+    $("power-status").textContent = "looking for models…";
+    api("/api/power/detect", { method: "POST", headers: { "Content-Type": "application/json" },
+                               body: JSON.stringify({ host: host || null }) })
+      .then(function (r) {
+        if (!r.ok) { $("power-status").textContent = "✗ " + (r.error || "nothing answered"); return; }
+        if (!r.models.length) { $("power-status").textContent = "✗ Ollama answered but has no models — run: ollama pull llama3.1:8b"; return; }
+        var current = $("power-ol-model").value;
+        setOllamaModelOptions(r.models, current !== "__custom__" ? current : null);
+        $("power-status").textContent = "✓ " + r.models.length + " model" + (r.models.length === 1 ? "" : "s") + " found";
+      })
+      .catch(function (e) { $("power-status").textContent = "✗ " + e.message; });
   }
   function closePowerModal() { $("power-modal").classList.add("hidden"); releaseFocus($("power-modal")); }
   function savePower() {
@@ -299,6 +360,16 @@
       var k = $("power-key").value.trim(); if (k) body.openrouter_key = k;
       var m = $("power-model").value === "__custom__" ? $("power-model-custom").value.trim() : $("power-model").value;
       if (m) body.openrouter_model = m;
+    }
+    if (_powerSel === "ollama") {
+      var h = $("power-ol-host").value.trim(); if (h) body.ollama_host = h;
+      var om = $("power-ol-model").value === "__custom__" ? $("power-ol-model-custom").value.trim() : $("power-ol-model").value;
+      if (om) body.ollama_model = om;
+    }
+    if (_powerSel === "custom") {
+      var cu = $("power-cu-url").value.trim(); if (cu) body.custom_base_url = cu;
+      var cm = $("power-cu-model").value.trim(); if (cm) body.custom_model = cm;
+      var ck = $("power-cu-key").value.trim(); if (ck) body.custom_key = ck;
     }
     $("power-status").textContent = "saving…";
     api("/api/power", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) })
@@ -2017,7 +2088,16 @@
         guidedBeatCard({ type: "watching", file: (res.found || []).join(", ") || "no saves yet" });
         (res.adopted || []).forEach(guidedBeatCard);
       })
-      .catch(function (e) { $("guided-status").textContent = "Couldn't watch that folder: " + e.message; });
+      .catch(function (e) {
+        // The shared-site 403 tells people to run Ember locally — give them the
+        // actual door, not just the sentence.
+        if (/run Ember locally|shared site/i.test(e.message)) {
+          $("guided-status").innerHTML = e.message + " — " +
+            '<a href="' + GUIDE_URL + '" target="_blank" rel="noopener">📥 Get Ember — free, step-by-step guide</a>';
+        } else {
+          $("guided-status").textContent = "Couldn't watch that folder: " + e.message;
+        }
+      });
   }
   function guidedStop() {
     var p = localStorage.getItem("uv_guided_dir") || $("guided-path").value.trim();
@@ -2736,12 +2816,16 @@
       c.onclick = function () {
         _powerSel = c.dataset.source;
         $$(".power-card").forEach(function (x) { x.classList.toggle("sel", x === c); });
-        $("power-or").classList.toggle("hidden", _powerSel !== "openrouter");
+        showPowerFields(_powerSel);
       };
     });
     $("power-model").onchange = function () {
       $("power-model-custom").classList.toggle("hidden", this.value !== "__custom__");
     };
+    $("power-ol-model").onchange = function () {
+      $("power-ol-model-custom").classList.toggle("hidden", this.value !== "__custom__");
+    };
+    $("power-ol-detect").onclick = detectOllama;
     $("power-modal").addEventListener("click", function (e) { if (e.target === this) closePowerModal(); });
     refreshPowerChip();
     $("g-whatnow").onclick = guidedWhatNow;

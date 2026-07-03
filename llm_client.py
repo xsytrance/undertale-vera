@@ -26,6 +26,8 @@ ANTHROPIC_MODEL = os.environ.get("UNDERTALE_VERA_MODEL", "claude-opus-4-8")
 
 # Ollama (local) — same defaults as the sibling app fft-psx-vera, so a machine
 # already running that stack works with no extra configuration.
+# Import-time fallbacks only: the live values come from _ollama_host()/_ollama_model()
+# per call (GUI config wins over env) — tests should patch power_config or those.
 OLLAMA_HOST = os.environ.get("OLLAMA_HOST", "http://127.0.0.1:11434").rstrip("/")
 OLLAMA_MODEL = os.environ.get("OLLAMA_MODEL", "llama3.1:8b")
 
@@ -52,6 +54,47 @@ class LLMUnavailable(RuntimeError):
 
 # ── Ollama (local) ───────────────────────────────────────────────────────────
 
+def _ollama_host() -> str:
+    """The Ollama host, read per-call: GUI config → env → default."""
+    try:
+        import power_config
+        return power_config.ollama_host()
+    except Exception:
+        return OLLAMA_HOST
+
+
+def _ollama_model() -> str:
+    """The Ollama model, read per-call: GUI config → env → default."""
+    try:
+        import power_config
+        return power_config.ollama_model()
+    except Exception:
+        return OLLAMA_MODEL
+
+
+def list_ollama_models(host: str) -> list[str]:
+    """The model tags installed on an Ollama server (GET {host}/api/tags).
+
+    Powers the power picker's "Detect installed" button. Any failure — server
+    down, wrong host, non-Ollama endpoint — raises LLMUnavailable so the caller
+    reports honestly instead of 500ing.
+    """
+    try:
+        import httpx
+    except ImportError as e:  # pragma: no cover
+        raise LLMUnavailable("httpx not installed (needed for the Ollama backend)") from e
+    timeout = httpx.Timeout(connect=3.0, read=6.0, write=6.0, pool=3.0)
+    try:
+        with httpx.Client(timeout=timeout) as http:
+            resp = http.get(f"{host.rstrip('/')}/api/tags")
+            resp.raise_for_status()
+            data = resp.json()
+    except Exception as e:  # noqa: BLE001 - transport/HTTP/JSON → honest error
+        raise LLMUnavailable(f"Ollama not reachable at {host}: {e}") from e
+    models = (data or {}).get("models") or []
+    return [m["name"] for m in models if isinstance(m, dict) and m.get("name")]
+
+
 def _ollama_chat(payload: dict[str, Any]) -> dict[str, Any]:
     """POST one /api/chat request to Ollama and return parsed JSON.
 
@@ -66,7 +109,7 @@ def _ollama_chat(payload: dict[str, Any]) -> dict[str, Any]:
     # timeout (local models can be slow to generate).
     timeout = httpx.Timeout(connect=4.0, read=120.0, write=10.0, pool=4.0)
     with httpx.Client(timeout=timeout) as http:
-        resp = http.post(f"{OLLAMA_HOST}/api/chat", json=payload)
+        resp = http.post(f"{_ollama_host()}/api/chat", json=payload)
         resp.raise_for_status()
         return resp.json()
 
@@ -87,7 +130,7 @@ def _ollama_reply(
     messages.append({"role": "user", "content": user_message})
 
     payload = {
-        "model": model or OLLAMA_MODEL,
+        "model": model or _ollama_model(),
         "messages": messages,
         "stream": False,
         "options": {"temperature": 0.6, "top_p": 0.85, "num_predict": max_tokens},
@@ -97,7 +140,7 @@ def _ollama_reply(
     except LLMUnavailable:
         raise
     except Exception as e:  # noqa: BLE001 - connection/HTTP/missing-model → degrade
-        raise LLMUnavailable(f"Ollama unreachable at {OLLAMA_HOST}: {e}") from e
+        raise LLMUnavailable(f"Ollama unreachable at {_ollama_host()}: {e}") from e
 
     text = ((data or {}).get("message") or {}).get("content", "") or ""
     return {
@@ -231,6 +274,64 @@ def _openrouter_reply(
     }
 
 
+# ── Custom (any OpenAI-compatible server: vLLM, LM Studio, llama.cpp) ────────
+
+def _custom_chat(payload: dict[str, Any], base_url: str, key: Optional[str]) -> dict[str, Any]:
+    """POST one chat completion to an OpenAI-compatible server. Isolated for tests."""
+    try:
+        import httpx
+    except ImportError as e:  # pragma: no cover
+        raise LLMUnavailable("httpx not installed (needed for the custom backend)") from e
+    headers = {"Authorization": f"Bearer {key}"} if key else {}
+    timeout = httpx.Timeout(connect=6.0, read=120.0, write=10.0, pool=6.0)
+    with httpx.Client(timeout=timeout) as http:
+        resp = http.post(f"{base_url.rstrip('/')}/chat/completions", headers=headers, json=payload)
+        resp.raise_for_status()
+        return resp.json()
+
+
+def _custom_reply(
+    system_prompt: str,
+    user_message: str,
+    *,
+    history: Optional[list[dict[str, str]]],
+    model: Optional[str],
+    max_tokens: int,
+) -> dict[str, Any]:
+    import power_config
+    base_url = power_config.custom_base_url()
+    if not base_url:
+        raise LLMUnavailable("no custom backend URL configured")
+    use_model = model or power_config.custom_model()
+    if not use_model:
+        raise LLMUnavailable("no model configured for the custom backend")
+    messages: list[dict[str, str]] = [{"role": "system", "content": system_prompt}]
+    for turn in history or []:
+        role = turn.get("role")
+        if role in ("user", "assistant") and turn.get("content"):
+            messages.append({"role": role, "content": turn["content"]})
+    messages.append({"role": "user", "content": user_message})
+    payload = {
+        "model": use_model,
+        "messages": messages,
+        "max_tokens": max_tokens,
+        "temperature": 0.6,
+    }
+    try:
+        data = _custom_chat(payload, base_url, power_config.custom_key())
+    except LLMUnavailable:
+        raise
+    except Exception as e:  # noqa: BLE001 - auth/transport/wrong-endpoint → degrade
+        raise LLMUnavailable(f"custom backend request failed: {e}") from e
+    choices = (data or {}).get("choices") or []
+    text = (choices[0].get("message") or {}).get("content", "") if choices else ""
+    return {
+        "text": text or "",
+        "model": (data or {}).get("model", payload["model"]),
+        "stop_reason": choices[0].get("finish_reason") if choices else None,
+    }
+
+
 # ── public entry point ───────────────────────────────────────────────────────
 
 def generate_reply(
@@ -263,6 +364,11 @@ def generate_reply(
         )
     if _backend() == "openrouter":
         return _openrouter_reply(
+            system_prompt, user_message,
+            history=history, model=model, max_tokens=max_tokens,
+        )
+    if _backend() == "custom":
+        return _custom_reply(
             system_prompt, user_message,
             history=history, model=model, max_tokens=max_tokens,
         )

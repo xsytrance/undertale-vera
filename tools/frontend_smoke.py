@@ -125,19 +125,30 @@ def main():
         check("Couldn't watch" in pg.eval_on_selector("#guided-status", "e=>e.textContent"),
               "bad watch path rejected gracefully")
 
-        # ── Power picker: chip + modal + three rungs of the ladder ──────────
+        # ── Power picker: chip + modal + four rungs of the ladder ───────────
         check(pg.evaluate("()=>!!document.getElementById('power-btn')"), "power chip present")
         pg.eval_on_selector("#power-btn", "el=>el.click()")
         pg.wait_for_timeout(250)
         check(pg.evaluate("()=>!document.getElementById('power-modal').classList.contains('hidden')"),
               "power modal opens")
-        check(pg.evaluate("()=>document.querySelectorAll('.power-card').length===3"),
-              "three power cards render")
+        check(pg.evaluate("()=>document.querySelectorAll('.power-card').length===4"),
+              "four power cards render")
         pg.eval_on_selector(".power-card[data-source=openrouter]", "el=>el.click()")
         pg.wait_for_timeout(150)
         check(pg.evaluate("()=>!document.getElementById('power-or').classList.contains('hidden')"
                           "&&document.querySelectorAll('#power-model option').length>=4"),
               "openrouter card reveals key + model suggestions")
+        pg.eval_on_selector(".power-card[data-source=ollama]", "el=>el.click()")
+        pg.wait_for_timeout(150)
+        check(pg.evaluate("()=>!document.getElementById('power-ol').classList.contains('hidden')"
+                          "&&document.getElementById('power-or').classList.contains('hidden')"
+                          "&&!!document.getElementById('power-ol-detect')"),
+              "ollama card reveals host + detect, hides the others")
+        pg.eval_on_selector(".power-card[data-source=custom]", "el=>el.click()")
+        pg.wait_for_timeout(150)
+        check(pg.evaluate("()=>!document.getElementById('power-cu').classList.contains('hidden')"
+                          "&&document.getElementById('power-ol').classList.contains('hidden')"),
+              "custom card reveals base URL + model fields")
         pg.eval_on_selector("#power-cancel", "el=>el.click()")
         pg.wait_for_timeout(150)
         check(pg.evaluate("()=>document.getElementById('power-modal').classList.contains('hidden')"),
@@ -192,7 +203,7 @@ def main():
         check(pg.evaluate("()=>document.querySelectorAll('.cm-table').length===2"), "field-map tables render")
         pg.eval_on_selector("[data-view=howitworks]", "el=>el.click()")
         pg.wait_for_timeout(250)
-        check(pg.evaluate("()=>document.querySelectorAll('#view-howitworks .hiw-layer').length===5"), "how-it-works layers render")
+        check(pg.evaluate("()=>document.querySelectorAll('#view-howitworks .hiw-layer').length===6"), "how-it-works layers render")
 
         # ── Deltarune: the Dark World path ──────────────────────────────────
         pg.eval_on_selector("#add-save-btn", "el=>el.click()")

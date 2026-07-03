@@ -65,6 +65,7 @@ from backend.models import (
     Base, CharacterMemory, Conversation, JournalEntry, Project, ReportEntry, SaveSnapshot,
 )
 from character_config import get_character, list_characters, normalize_key
+import llm_client
 from llm_client import LLMUnavailable, generate_reply
 from prompt_builder import build_system_prompt, emphasis_note
 from save_parser import parse_undertale_save
@@ -636,6 +637,21 @@ class PowerRequest(BaseModel):
     source: str
     openrouter_key: Optional[str] = None
     openrouter_model: Optional[str] = None
+    ollama_host: Optional[str] = None
+    ollama_model: Optional[str] = None
+    custom_base_url: Optional[str] = None
+    custom_model: Optional[str] = None
+    custom_key: Optional[str] = None
+
+
+def _valid_http_url(u: str) -> bool:
+    """Only plain http(s) URLs may be dialed server-side (no file:, ftp:, etc.)."""
+    from urllib.parse import urlparse
+    try:
+        p = urlparse(u)
+    except ValueError:
+        return False
+    return p.scheme in ("http", "https") and bool(p.netloc)
 
 
 @app.get("/api/power")
@@ -659,10 +675,48 @@ def set_power(req: PowerRequest) -> dict[str, Any]:
         cfg["openrouter_key"] = req.openrouter_key.strip()
     if req.openrouter_model is not None and req.openrouter_model.strip():
         cfg["openrouter_model"] = req.openrouter_model.strip()
+    # GUI-configured hosts/models — only non-empty values overwrite saved ones,
+    # and blank fields leave env fallbacks live.
+    for field, wants_url in (("ollama_host", True), ("ollama_model", False),
+                             ("custom_base_url", True), ("custom_model", False),
+                             ("custom_key", False)):
+        val = (getattr(req, field) or "").strip()
+        if not val:
+            continue
+        if wants_url:
+            val = val.rstrip("/")
+            if not _valid_http_url(val):
+                raise HTTPException(status_code=400, detail=f"{field} must be an http(s) URL")
+        cfg[field] = val
     if src == "openrouter" and not (cfg.get("openrouter_key") or os.environ.get("OPENROUTER_API_KEY")):
         raise HTTPException(status_code=400, detail="openrouter needs a key")
+    if src == "custom" and not (cfg.get("custom_base_url") or os.environ.get("EMBER_CUSTOM_BASE_URL")):
+        raise HTTPException(status_code=400,
+                            detail="custom backend needs a base URL (e.g. http://127.0.0.1:8000/v1)")
     power_config.save(cfg)
     return power_config.public_state()
+
+
+class DetectRequest(BaseModel):
+    host: Optional[str] = None
+
+
+@app.post("/api/power/detect")
+def detect_ollama_models(req: DetectRequest) -> dict[str, Any]:
+    """List the models installed on an Ollama server, for the power picker.
+
+    Refused on shared deployments: this makes a server-side request to a
+    user-supplied host, which must never be steerable by visitors (SSRF).
+    """
+    if power_config.locked() or VISITOR_SCOPE:
+        raise HTTPException(status_code=403, detail="model detection is disabled on shared sites")
+    host = (req.host or "").strip().rstrip("/") or power_config.ollama_host()
+    if not _valid_http_url(host):
+        raise HTTPException(status_code=400, detail="host must be an http(s) URL")
+    try:
+        return {"ok": True, "models": llm_client.list_ollama_models(host)}
+    except LLMUnavailable as e:
+        return {"ok": False, "error": str(e)}
 
 
 @app.post("/api/power/test")

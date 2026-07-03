@@ -6,7 +6,10 @@ One app, a capability ladder:
                     deterministic response. Zero setup, honest, instant.
   🔑 "openrouter" — bring-your-own-key (OpenRouter's OpenAI-compatible API), with
                     curated free/cheap model suggestions.
-  🖥 "ollama"     — a local model server (the full-fat default).
+  🖥 "ollama"     — a local model server (the full-fat default). Host + model are
+                    GUI-configurable; the config wins over OLLAMA_HOST/OLLAMA_MODEL.
+  🔌 "custom"     — any OpenAI-compatible server (vLLM, LM Studio, llama.cpp):
+                    a base URL + model name, plus an optional key.
   ☁ "anthropic"  — Anthropic's Claude (needs ANTHROPIC_API_KEY in the env).
 
 The choice persists in a small gitignored JSON config next to the DB (chmod 600 —
@@ -24,7 +27,10 @@ from typing import Any, Optional
 
 CONFIG_PATH = os.environ.get("UNDERTALE_VERA_POWER_CONFIG", "./ember_power.json")
 
-SOURCES = ("none", "openrouter", "ollama", "anthropic")
+SOURCES = ("none", "openrouter", "ollama", "anthropic", "custom")
+
+OLLAMA_DEFAULT_HOST = "http://127.0.0.1:11434"
+OLLAMA_DEFAULT_MODEL = "llama3.1:8b"
 
 # Curated OpenRouter suggestions — honest notes, editable in the UI (any model id
 # works). Prices drift; these are safe, well-known picks rather than promises.
@@ -99,15 +105,44 @@ def openrouter_model() -> str:
     return load().get("openrouter_model") or OPENROUTER_SUGGESTIONS[0]["id"]
 
 
-def masked_key() -> Optional[str]:
-    k = openrouter_key()
+def ollama_host() -> str:
+    h = load().get("ollama_host") or os.environ.get("OLLAMA_HOST") or OLLAMA_DEFAULT_HOST
+    return h.strip().rstrip("/")
+
+
+def ollama_model() -> str:
+    return load().get("ollama_model") or os.environ.get("OLLAMA_MODEL") or OLLAMA_DEFAULT_MODEL
+
+
+def custom_base_url() -> Optional[str]:
+    u = load().get("custom_base_url") or os.environ.get("EMBER_CUSTOM_BASE_URL") or ""
+    return u.strip().rstrip("/") or None
+
+
+def custom_model() -> Optional[str]:
+    return load().get("custom_model") or os.environ.get("EMBER_CUSTOM_MODEL") or None
+
+
+def custom_key() -> Optional[str]:
+    return load().get("custom_key") or os.environ.get("EMBER_CUSTOM_API_KEY") or None
+
+
+def _mask(k: Optional[str]) -> Optional[str]:
     if not k:
         return None
     return (k[:7] + "…" + k[-4:]) if len(k) > 14 else "set"
 
 
+def masked_key() -> Optional[str]:
+    return _mask(openrouter_key())
+
+
+def masked_custom_key() -> Optional[str]:
+    return _mask(custom_key())
+
+
 def public_state() -> dict[str, Any]:
-    """What the UI may see — the key is never returned, only masked."""
+    """What the UI may see — keys are never returned, only masked."""
     return {
         "source": source(),
         "edition": edition(),
@@ -116,5 +151,10 @@ def public_state() -> dict[str, Any]:
         "configured": bool(load()),
         "openrouter_model": openrouter_model(),
         "openrouter_key": masked_key(),
+        "ollama_host": ollama_host(),
+        "ollama_model": ollama_model(),
+        "custom_base_url": custom_base_url(),
+        "custom_model": custom_model(),
+        "custom_key": masked_custom_key(),
         "suggestions": OPENROUTER_SUGGESTIONS,
     }

@@ -76,3 +76,134 @@ def test_openrouter_requires_key(tmp_path, monkeypatch):
     _cfg(tmp_path, monkeypatch)
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
     assert client.post("/api/power", json={"source": "openrouter"}).status_code == 400
+
+
+def test_ollama_config_round_trip(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)
+    r = client.post("/api/power", json={"source": "ollama",
+                                        "ollama_host": "http://gpu-box:11434/",
+                                        "ollama_model": "qwen3:14b"}).json()
+    assert r["ollama_host"] == "http://gpu-box:11434"   # trailing slash stripped
+    assert r["ollama_model"] == "qwen3:14b"
+    # config wins over env
+    monkeypatch.setenv("OLLAMA_HOST", "http://elsewhere:1")
+    monkeypatch.setenv("OLLAMA_MODEL", "other")
+    assert power_config.ollama_host() == "http://gpu-box:11434"
+    assert power_config.ollama_model() == "qwen3:14b"
+    # bad host scheme rejected
+    assert client.post("/api/power", json={"source": "ollama",
+                                           "ollama_host": "file:///etc/passwd"}).status_code == 400
+
+
+def test_ollama_env_fallback_unchanged(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)                          # fresh config: nothing saved
+    monkeypatch.setenv("OLLAMA_HOST", "http://box:11434")
+    monkeypatch.setenv("OLLAMA_MODEL", "llama3.2:3b")
+    assert power_config.ollama_host() == "http://box:11434"
+    assert power_config.ollama_model() == "llama3.2:3b"
+    monkeypatch.delenv("OLLAMA_HOST")
+    monkeypatch.delenv("OLLAMA_MODEL")
+    assert power_config.ollama_host() == power_config.OLLAMA_DEFAULT_HOST
+    assert power_config.ollama_model() == power_config.OLLAMA_DEFAULT_MODEL
+
+
+def test_ollama_model_from_config_reaches_payload(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)
+    power_config.save({"source": "ollama", "ollama_host": "http://gpu-box:11434",
+                       "ollama_model": "qwen3:14b"})
+    seen = {}
+
+    def fake_chat(payload):
+        seen.update(payload=payload)
+        return {"message": {"content": "hey."}, "model": payload["model"]}
+
+    monkeypatch.setattr(llm_client, "_ollama_chat", fake_chat)
+    r = llm_client.generate_reply("sys", "hello")
+    assert r["text"] == "hey."
+    assert seen["payload"]["model"] == "qwen3:14b"
+    assert llm_client._ollama_host() == "http://gpu-box:11434"
+
+
+def test_custom_backend(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)
+    power_config.save({"source": "custom", "custom_base_url": "http://127.0.0.1:8000/v1",
+                       "custom_model": "local-qwen", "custom_key": "sk-local-abcdefgh12345678"})
+    seen = {}
+
+    def fake_chat(payload, base_url, key):
+        seen.update(payload=payload, base_url=base_url, key=key)
+        return {"choices": [{"message": {"content": "hey."}, "finish_reason": "stop"}],
+                "model": payload["model"]}
+
+    monkeypatch.setattr(llm_client, "_custom_chat", fake_chat)
+    r = llm_client.generate_reply("sys prompt", "hello")
+    assert r["text"] == "hey." and r["model"] == "local-qwen"
+    assert seen["base_url"] == "http://127.0.0.1:8000/v1"
+    assert seen["key"] == "sk-local-abcdefgh12345678"
+    assert seen["payload"]["messages"][0] == {"role": "system", "content": "sys prompt"}
+
+
+def test_custom_requires_base_url(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)
+    monkeypatch.delenv("EMBER_CUSTOM_BASE_URL", raising=False)
+    assert client.post("/api/power", json={"source": "custom"}).status_code == 400
+    # and at generate time an unset URL degrades, never crashes
+    import pytest
+    power_config.save({"source": "custom"})
+    with pytest.raises(llm_client.LLMUnavailable):
+        llm_client.generate_reply("sys", "hi")
+
+
+def test_custom_key_masked(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)
+    r = client.post("/api/power", json={"source": "custom",
+                                        "custom_base_url": "http://127.0.0.1:8000/v1",
+                                        "custom_model": "local-qwen",
+                                        "custom_key": "sk-local-abcdefgh12345678"}).json()
+    assert "abcdefgh" not in json.dumps(r)               # never echoed raw
+    assert r["custom_key"].startswith("sk-loca")         # masked prefix only
+    g = client.get("/api/power").json()
+    assert g["custom_base_url"] == "http://127.0.0.1:8000/v1"
+    assert g["custom_model"] == "local-qwen"
+
+
+def test_custom_unreachable_degrades(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)
+    power_config.save({"source": "custom", "custom_base_url": "http://127.0.0.1:8000/v1",
+                       "custom_model": "local-qwen"})
+
+    def boom(payload, base_url, key):
+        raise ConnectionError("refused")
+
+    monkeypatch.setattr(llm_client, "_custom_chat", boom)
+    import pytest
+    with pytest.raises(llm_client.LLMUnavailable):
+        llm_client.generate_reply("sys", "hi")
+
+
+def test_detect_lists_models(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)
+    monkeypatch.setattr(llm_client, "list_ollama_models",
+                        lambda host: ["llama3.1:8b", "qwen3:14b"])
+    r = client.post("/api/power/detect", json={"host": "http://127.0.0.1:11434"}).json()
+    assert r == {"ok": True, "models": ["llama3.1:8b", "qwen3:14b"]}
+
+    def down(host):
+        raise llm_client.LLMUnavailable(f"Ollama not reachable at {host}: refused")
+
+    monkeypatch.setattr(llm_client, "list_ollama_models", down)
+    resp = client.post("/api/power/detect", json={})
+    assert resp.status_code == 200                       # honest body, never a 500
+    assert resp.json()["ok"] is False and "not reachable" in resp.json()["error"]
+
+
+def test_detect_gates(tmp_path, monkeypatch):
+    _cfg(tmp_path, monkeypatch)
+    monkeypatch.setenv("EMBER_POWER_LOCK", "1")
+    assert client.post("/api/power/detect", json={}).status_code == 403
+    monkeypatch.delenv("EMBER_POWER_LOCK")
+    monkeypatch.setattr(appmod, "VISITOR_SCOPE", True)
+    assert client.post("/api/power/detect", json={}).status_code == 403
+    monkeypatch.setattr(appmod, "VISITOR_SCOPE", False)
+    for bad in ("ftp://x", "file:///etc/passwd", "not a url"):
+        assert client.post("/api/power/detect", json={"host": bad}).status_code == 400

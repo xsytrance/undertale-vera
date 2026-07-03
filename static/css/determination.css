@@ -1386,7 +1386,10 @@ body.companion .g-party { gap: 6px; }
 .cm-hero-credit a { color: var(--ember); font-family: var(--font-display); }
 
 /* the power-source picker */
-.power-modal { max-width: 520px; }
+.power-modal { max-width: 640px; }
+.power-detect-row { display: flex; gap: 6px; align-items: stretch; }
+.power-detect-row select { flex: 1; min-width: 0; }
+.power-detect-row .modal-btn { flex: none; font-size: .72rem; padding: 6px 10px; }
 .power-cards { display: flex; gap: 10px; margin: 14px 0 6px; }
 .power-card { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 5px;
   padding: 14px 8px; cursor: pointer; text-align: center; color: var(--ink);
@@ -1396,6 +1399,7 @@ body.companion .g-party { gap: 6px; }
 .power-card .pc-sub { font-size: .66rem; color: var(--ink-dim); line-height: 1.35; }
 .power-card.sel { border-color: var(--ember); background: rgba(232,162,76,.08); }
 .power-or { display: flex; flex-direction: column; gap: 8px; margin: 10px 0; text-align: left; }
+.power-or.hidden { display: none; }
 .power-or label { display: flex; flex-direction: column; gap: 4px; font-size: .78rem; color: var(--ink-dim); }
 .power-or input, .power-or select { padding: 8px 10px; background: var(--obsidian); color: var(--ink);
   border: 1px solid var(--plate-frame); border-radius: 8px; font-size: .82rem; }

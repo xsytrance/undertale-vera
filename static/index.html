@@ -341,7 +341,9 @@
             has a <em>deterministic fallback</em> — a plain, honest response built from parsed facts. An app
             like this stays fully functional with zero model. Build the fallback first; the model is garnish.</li>
             <li><strong><a href="https://ollama.com" target="_blank" rel="noopener">Ollama</a></strong> — the easiest local LLM runner.
-            Install, then <code>ollama pull llama3.1:8b</code>, and you have a free model on your own machine (8GB+ RAM recommended).</li>
+            Install, then <code>ollama pull llama3.1:8b</code>, and you have a free model on your own machine (8GB+ RAM recommended).
+            The <a href="https://github.com/xsytrance/undertale-vera/blob/main/docs/GETTING_STARTED.md" target="_blank" rel="noopener">full walk-through</a>
+            starts from "open a terminal" and ends with Ember connected to it.</li>
             <li><strong>Where saves live</strong> — Undertale: <code>%LocalAppData%\UNDERTALE</code> (Windows),
             <code>~/Library/Application Support/com.tobyfox.undertale</code> (macOS), <code>~/.config/UNDERTALE</code> (Linux).
             Deltarune: the same but <code>DELTARUNE</code>. <em>Always copy your saves before experimenting.</em></li>
@@ -414,6 +416,26 @@
             </ul>
             <p>These patterns have a name and a family now — the introduction is one page over:
             <em>🌌 MultiVera</em>.</p>
+          </details>
+
+          <details class="hiw-layer"><summary>📥 Run Ember on your own machine ▾</summary>
+            <p>Ember is free and open — the whole app runs on your computer, where Guided Mode,
+            your own AI, and total privacy all unlock. The short version:</p>
+            <div class="cm-tablewrap"><pre class="hiw-pre">git clone https://github.com/xsytrance/undertale-vera
+cd undertale-vera
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+uvicorn undertale_vera_app:app --port 9092</pre></div>
+            <p>Then open <code>http://127.0.0.1:9092</code>. That's the whole install — with no AI
+            configured it runs in 🕯 Spark mode, fully working. Want real model voices? Three roads,
+            all picked from <strong>⚙ Settings → Power source</strong>: 🖥 <a href="https://ollama.com"
+            target="_blank" rel="noopener">Ollama</a> (free, local — the picker can <em>detect</em> your
+            installed models), 🔌 your own OpenAI-compatible server (vLLM, LM Studio, llama.cpp), or
+            🔑 an OpenRouter key.</p>
+            <p><strong>Never used a terminal?</strong> The
+            <a href="https://github.com/xsytrance/undertale-vera/blob/main/docs/GETTING_STARTED.md"
+               target="_blank" rel="noopener">step-by-step guide</a> assumes nothing — it starts at
+            "open a terminal" and ends with the Underground talking about your save.</p>
           </details>
         </div>
       </section>
@@ -559,12 +581,19 @@
 
           <details class="hiw-layer"><summary>Run this one yourself ▾</summary>
             <div class="cm-tablewrap"><pre class="hiw-pre">git clone https://github.com/xsytrance/undertale-vera
-cd undertale-vera && pip install -r requirements.txt
+cd undertale-vera
+python3 -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
 uvicorn undertale_vera_app:app --port 9092</pre></div>
             <p>Then open it, read a save, and pick your power source in the top bar: 🕯 <strong>Spark</strong>
             (no AI at all — works instantly), 🔑 <strong>bring your own key</strong> (OpenRouter, free-tier
-            models suggested), or 🖥 <strong>a local model</strong> (Ollama). The repo is public, the docs are
-            in <code>docs/</code>, and the soundtrack is CC&nbsp;BY 4.0 on <em>📚 The Commons</em>.</p>
+            models suggested), 🖥 <strong>a local model</strong> (Ollama — the picker detects what you have
+            installed), or 🔌 <strong>your own server</strong> (anything OpenAI-compatible: vLLM, LM Studio,
+            llama.cpp). The repo is public, the docs are in <code>docs/</code>, and the soundtrack is
+            CC&nbsp;BY 4.0 on <em>📚 The Commons</em>.</p>
+            <p><strong>Never used a terminal?</strong> The
+            <a href="https://github.com/xsytrance/undertale-vera/blob/main/docs/GETTING_STARTED.md"
+               target="_blank" rel="noopener">assume-nothing guide</a> walks every step, per OS.</p>
           </details>
 
           <p class="muted">This page is an introduction, not a manifesto — MultiVera is young, and the
@@ -930,6 +959,10 @@ seam.png          — a button-eye with visible stitching</pre></div>
           <b>🖥</b><span class="pc-title">I run local models</span>
           <span class="pc-sub">Ollama on your machine — private, free, full-fat.</span>
         </button>
+        <button class="power-card" data-source="custom">
+          <b>🔌</b><span class="pc-title">My own server</span>
+          <span class="pc-sub">any OpenAI-compatible endpoint — vLLM, LM Studio, llama.cpp.</span>
+        </button>
       </div>
       <div class="power-or hidden" id="power-or">
         <label>OpenRouter API key <input type="password" id="power-key" placeholder="sk-or-…" autocomplete="off" /></label>
@@ -937,6 +970,23 @@ seam.png          — a button-eye with visible stitching</pre></div>
           <select id="power-model"></select>
         </label>
         <input type="text" id="power-model-custom" class="hidden" placeholder="any OpenRouter model id…" />
+      </div>
+      <div class="power-or hidden" id="power-ol">
+        <label>Ollama host <span class="muted">(blank = this machine)</span>
+          <input type="text" id="power-ol-host" placeholder="http://127.0.0.1:11434" /></label>
+        <label>Model
+          <span class="power-detect-row">
+            <select id="power-ol-model"></select>
+            <button type="button" class="modal-btn ghost" id="power-ol-detect" title="Ask the Ollama server which models are installed">⌕ Detect installed</button>
+          </span>
+        </label>
+        <input type="text" id="power-ol-model-custom" class="hidden" placeholder="any Ollama model tag, e.g. llama3.1:8b…" />
+      </div>
+      <div class="power-or hidden" id="power-cu">
+        <label>Base URL <input type="text" id="power-cu-url" placeholder="http://127.0.0.1:8000/v1" /></label>
+        <label>Model name <input type="text" id="power-cu-model" placeholder="whatever your server calls it" /></label>
+        <label>API key <span class="muted">(only if your server wants one)</span>
+          <input type="password" id="power-cu-key" autocomplete="off" /></label>
       </div>
       <div class="modal-actions">
         <span class="muted power-status" id="power-status"></span>
