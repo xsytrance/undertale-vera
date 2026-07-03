@@ -97,7 +97,7 @@ Every grounding block returns `""` when empty, so the baseline prompt stays byte
 - `css/undertale.css` — the Undertale skin (override layer: black panels, white pixel
   borders, Pixelify/VT323 fonts, the `* ` dialogue marker).
 - `js/app.js` — the whole client: router, all views, chat, portraits, emblems, feel,
-  Easter eggs, the `AudioBus` master. (~1900 lines.)
+  Easter eggs, the `AudioBus` master. (~2900 lines.)
 - `js/music.js` — `MusicLayer`: the ambient bed (route + character themes, gesture-safe).
 - `js/voices.js` — `VoiceLayer`: per-character synthesized typing blips + UI sounds.
 - `js/soundtest.js` — `SoundTest`: the Sound Test room's WebAudio graph (jukebox + jam).
@@ -191,7 +191,7 @@ ComfyUI pixel pipeline, local MusicGen, the loop/normalize finishing pass — is
 documented in [docs/PIPELINES.md](PIPELINES.md).
 
 ## Testing & CI
-- `pytest -q` — backend suite (263+ tests; mocks the LLM, keyword-only RAG).
+- `pytest -q` — backend suite (300+ tests; mocks the LLM, keyword-only RAG).
 - `python -m tools.voice_eval --min 1.0` — adversarial two-bucket-wall gate.
 - `python -m tools.lore_eval --min 1.0` — lore recall gate.
 - `tools/frontend_smoke.py` — headless-browser smoke over the built UI (every view, chat,
