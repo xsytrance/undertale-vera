@@ -91,7 +91,7 @@ frontend smoke (`tools/frontend_smoke.py`). All are CI merge gates.
 ## Run
 ```bash
 pip install -r requirements.txt
-pytest -q                                   # 296 passing
+pytest -q                                   # the full suite, all green
 python3 -m uvicorn undertale_vera_app:app --port 9092
 python3 inspector.py --base http://127.0.0.1:9092
 SMOKE_BASE=http://127.0.0.1:9092 python tools/frontend_smoke.py   # UI smoke
