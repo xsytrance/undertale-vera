@@ -665,9 +665,9 @@ def get_power() -> dict[str, Any]:
 def set_power(req: PowerRequest) -> dict[str, Any]:
     """Choose the power source. Persists to a local, owner-only config file."""
     src = (req.source or "").strip().lower()
-    if power_config.locked():
+    if power_config.shared() or VISITOR_SCOPE:
         raise HTTPException(status_code=403,
-                            detail="this shared site's power source is fixed — run Ember yourself to choose your own")
+                            detail="this shared site's power source is fixed — clone the repo and run Ember yourself to choose your own")
     if src not in power_config.SOURCES:
         raise HTTPException(status_code=400, detail=f"source must be one of {power_config.SOURCES}")
     cfg = power_config.load()
@@ -709,7 +709,7 @@ def detect_ollama_models(req: DetectRequest) -> dict[str, Any]:
     Refused on shared deployments: this makes a server-side request to a
     user-supplied host, which must never be steerable by visitors (SSRF).
     """
-    if power_config.locked() or VISITOR_SCOPE:
+    if power_config.shared() or VISITOR_SCOPE:
         raise HTTPException(status_code=403, detail="model detection is disabled on shared sites")
     host = (req.host or "").strip().rstrip("/") or power_config.ollama_host()
     if not _valid_http_url(host):
