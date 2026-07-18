@@ -159,6 +159,7 @@
   };
   function showView(name) {
     if (state.view === "soundtest" && name !== "soundtest") leaveSoundTest();
+    if (state.view === "guided" && name !== "guided" && window.TTS) { TTS.setActive(false); TTS.stop(); }
     state.view = name;
     VIEWS.forEach(function (v) {
       var el = $("view-" + v); if (el) el.classList.toggle("active", v === name);
@@ -2072,6 +2073,9 @@
     var saved = localStorage.getItem("uv_guided_dir");
     if (saved && !$("guided-path").value) $("guided-path").value = saved;
     showView("guided");
+    wireTts();
+    if (window.TTS) { TTS.probe(); TTS.setActive(true); }   // detect server engine + start gamepad polling
+    renderTtsPanel();
   }
   function guidedSyncStatus(st) {
     var watching = (st.watching || []).length > 0;
@@ -2157,6 +2161,7 @@
           card.innerHTML = '<div class="g-beat-head">' + avatarMarkup(res.character, "g-chip-img") +
             "<b>" + escHtml(res.character) + "</b></div><div class='g-line'></div>";
           card.querySelector(".g-line").textContent = res.message;
+          ttsSpeak(res.message, res.character);
           feed.prepend(card);
           if (window.VoiceLayer && state.settings && state.settings.hud && state.settings.hud.blip) {
             window.VoiceLayer.blip(res.character);
@@ -2194,6 +2199,7 @@
         "<b>" + escHtml(res.character) + "</b> <span class='muted'>· the story of this session · " +
         res.visits + " saves</span></div><div class='g-line'></div><div class='report-actions'></div>";
       card.querySelector(".g-line").textContent = res.text;
+      ttsSpeak(res.text, res.character);
       var acts = card.querySelector(".report-actions");
       var jb = document.createElement("button"); jb.className = "btn tiny"; jb.textContent = "＋ Journal";
       jb.onclick = function () {
@@ -2273,6 +2279,8 @@
     };
     w.addEventListener("pagehide", back);
     w.addEventListener("unload", back);
+    // read-aloud keys should also work when the companion window has focus
+    try { doc.addEventListener("keydown", ttsHandleKey, true); } catch (e) {}
   }
 
   // guided quick-asks: Where am I? (local truth summary) · What now? (the guide)
@@ -2295,7 +2303,9 @@
       if (p.love != null) bits.push("LOVE " + p.love);
       if (p.room_name) bits.push(p.room_name);
     }
-    guidedBeatCard({ type: "note", file: bits.filter(Boolean).join("  ·  ") });
+    var summary = bits.filter(Boolean).join("  ·  ");
+    guidedBeatCard({ type: "note", file: summary });
+    ttsSpeak(summary, guidedSpeaker());
   }
   function guidedWhatNow() {
     if (!state.projectId) { guidedBeatCard({ type: "note", file: "no run adopted yet — watch a folder and save in-game." }); return; }
@@ -2312,8 +2322,114 @@
         "<b>" + escHtml(res.speaker || "the guide") + "</b> <span class='muted'>· " +
         escHtml(res.where || "") + " · " + escHtml(res.level) + "</span></div><div class='g-line'></div>";
       card.querySelector(".g-line").textContent = res.text;
+      ttsSpeak(res.text, res.speaker);
       feed.prepend(card);
     }).catch(function () {}).then(function () { btn.disabled = false; });
+  }
+
+  // ── Guided read-aloud (TTS): speak the party & hints; key + gamepad bound ───
+  // Presentation only — it voices text that is already grounded; the two-bucket
+  // wall is untouched. Off by default; lives only in Guided Mode.
+  var TTS_CMDS = [
+    { cmd: "repeat", label: "🔁 Repeat last line" },
+    { cmd: "stop", label: "🤫 Stop talking" },
+    { cmd: "toggle", label: "🔊 Toggle read-aloud" }
+  ];
+  var _ttsWired = false, _ttsPadCancel = null, _ttsCapturing = false;
+  function ttsSpeak(text, who) {
+    // never speak for a run the user has navigated away from; TTS.speak self-guards
+    // on the enabled toggle, so this is just a scope + presence check.
+    if (window.TTS && state.view === "guided") TTS.speak(text, who);
+  }
+  function ttsHandleKey(e) {
+    if (!window.TTS) return;
+    var tag = (e.target && e.target.tagName) || "";
+    if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || (e.target && e.target.isContentEditable)) return;
+    var cmd = TTS.keyCommand(e.key);
+    if (cmd) { e.preventDefault(); TTS.command(cmd); }
+  }
+  function renderTtsPanel() {
+    var wrap = $("guided-tts"); if (!wrap || !window.TTS) { if (wrap) wrap.classList.add("hidden"); return; }
+    var cfg = TTS.config();
+    if (!cfg.supported) { wrap.innerHTML = '<p class="muted">Read-aloud isn\'t available in this browser.</p>'; return; }
+    var server = cfg.engine === "server";
+    var eng = $("tts-engine");
+    if (eng) eng.textContent = server ? "· 🧠 Kokoro (local neural voice)" : "· browser voice";
+    $("tts-on").checked = cfg.enabled;
+    var vs = $("tts-voice");
+    if (vs) {
+      var cur = cfg.voice || "";
+      vs.innerHTML = '<option value="">' + (server ? "Auto — in-character voices" : "Auto (browser default)") + "</option>";
+      cfg.voices.forEach(function (v) {
+        var o = document.createElement("option"); o.value = v.voiceURI;
+        o.textContent = v.name + (v.lang ? " · " + v.lang : ""); vs.appendChild(o);
+      });
+      vs.value = cur;
+    }
+    $("tts-rate").value = cfg.rate; $("tts-pitch").value = cfg.pitch; $("tts-vol").value = cfg.vol;
+    // Kokoro has no pitch control — the slider is browser-engine only
+    var pitchEl = $("tts-pitch"); if (pitchEl) { pitchEl.disabled = server; pitchEl.title = server ? "Pitch applies to the browser voice only" : ""; }
+    var box = $("tts-binds"); if (!box) return;
+    box.innerHTML = "";
+    TTS_CMDS.forEach(function (c) {
+      var key = (cfg.keys[c.cmd] || "—"); key = key === "—" ? key : key.toUpperCase();
+      var pad = (cfg.pad[c.cmd] != null) ? ("btn " + cfg.pad[c.cmd]) : "—";
+      var row = document.createElement("div"); row.className = "tts-bind";
+      row.innerHTML = '<span class="tts-bind-lbl">' + c.label + "</span>" +
+        '<span class="muted">key</span> <kbd class="tts-key">' + escHtml(key) + "</kbd>" +
+        '<button class="btn tiny" data-setkey="' + c.cmd + '">set</button>' +
+        '<span class="muted">pad</span> <kbd class="tts-key">' + escHtml(pad) + "</kbd>" +
+        '<button class="btn tiny" data-setpad="' + c.cmd + '">set</button>';
+      box.appendChild(row);
+    });
+    $$("#tts-binds [data-setkey]").forEach(function (b) { b.onclick = function () { ttsCaptureKey(b.getAttribute("data-setkey"), b); }; });
+    $$("#tts-binds [data-setpad]").forEach(function (b) { b.onclick = function () { ttsCapturePad(b.getAttribute("data-setpad"), b); }; });
+  }
+  function ttsCaptureKey(cmd, btn) {
+    var t = btn.textContent; btn.textContent = "press…"; btn.disabled = true; _ttsCapturing = true;
+    function onKey(e) {
+      e.preventDefault(); e.stopPropagation();
+      document.removeEventListener("keydown", onKey, true);
+      btn.disabled = false; btn.textContent = t; _ttsCapturing = false;
+      TTS.setKey(cmd, e.key === "Escape" ? "" : e.key);
+      renderTtsPanel();
+    }
+    document.addEventListener("keydown", onKey, true);
+  }
+  function ttsCapturePad(cmd, btn) {
+    if (!(navigator.getGamepads)) { miniToast("No gamepad support in this browser."); return; }
+    if (_ttsPadCancel) { _ttsPadCancel(); _ttsPadCancel = null; }
+    var t = btn.textContent; btn.textContent = "press a button…"; btn.disabled = true;
+    var to = setTimeout(function () {
+      if (_ttsPadCancel) { _ttsPadCancel(); _ttsPadCancel = null; }
+      btn.disabled = false; btn.textContent = t;
+      miniToast("No button seen — wake the pad with any button first, then try again.");
+    }, 8000);
+    _ttsPadCancel = TTS.captureGamepad(function (idx) {
+      clearTimeout(to); _ttsPadCancel = null;
+      btn.disabled = false; btn.textContent = t;
+      TTS.setPad(cmd, idx); renderTtsPanel();
+    });
+  }
+  function wireTts() {
+    if (_ttsWired || !window.TTS) return; _ttsWired = true;
+    var on = $("tts-on"); if (!on) return;
+    on.onchange = function () { TTS.setEnabled(on.checked); if (on.checked) TTS.preview("Reading aloud is on — the party will speak as you play.", guidedSpeaker()); };
+    $("tts-preview").onclick = function () { TTS.preview("This is how the guide will sound beside you.", guidedSpeaker()); };
+    $("tts-controls-toggle").onclick = function () {
+      var c = $("tts-controls"); var open = c.classList.toggle("hidden");
+      this.setAttribute("aria-expanded", open ? "false" : "true");
+    };
+    $("tts-voice").onchange = function () { TTS.setVoice(this.value); TTS.preview("Voice set.", guidedSpeaker()); };
+    $("tts-rate").oninput = function () { TTS.setRate(this.value); };
+    $("tts-rate").onchange = function () { TTS.preview("This is the pace.", guidedSpeaker()); };
+    $("tts-pitch").oninput = function () { TTS.setPitch(this.value); };
+    $("tts-pitch").onchange = function () { TTS.preview("This is the pitch.", guidedSpeaker()); };
+    $("tts-vol").oninput = function () { TTS.setVol(this.value); };
+    // reflect engine/voice/toggle changes (probe result, key/pad rebinds) in the panel
+    TTS.onChange(function () { if (!_ttsCapturing && state.view === "guided") renderTtsPanel(); });
+    // keys bound to Repeat/Stop/Toggle fire while Guided is on-screen
+    document.addEventListener("keydown", function (e) { if (state.view === "guided") ttsHandleKey(e); });
   }
 
   // ── The Commons: the give-back page (music downloads render live) ──────────

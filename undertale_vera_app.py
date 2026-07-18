@@ -525,6 +525,45 @@ def guided_hint(project_id: int, req: GuidedHintRequest, db: Session = Depends(g
             "stage": hint["stage"], "text": text, "plain": hint["text"]}
 
 
+# ── Guided read-aloud (server-side neural TTS) ────────────────────────────────
+# Presentation only: it voices text the client already has on screen (grounded
+# reactions/hints/stories). Public deployments (lite/visitor/locked) never expose
+# the synth — it's a self-hosted convenience, and the browser engine is the
+# fallback everywhere else. See tts_service.py.
+import tts_service
+
+
+class TTSRequest(BaseModel):
+    text: str
+    voice: Optional[str] = None
+    character: Optional[str] = None
+    speed: float = 1.0
+
+
+@app.get("/api/tts/health")
+def tts_health() -> dict[str, Any]:
+    if power_config.shared():
+        return {"available": False, "engine": None, "voices": [],
+                "character_voices": {}, "default_voice": None, "shared": True}
+    return tts_service.health()
+
+
+@app.post("/api/tts")
+def tts_synthesize(req: TTSRequest) -> Any:
+    from fastapi.responses import Response
+    if power_config.shared():
+        raise HTTPException(status_code=403, detail="TTS is disabled on shared sites")
+    if not tts_service.available():
+        raise HTTPException(status_code=503, detail="TTS engine not installed")
+    voice = tts_service.voice_for(req.character, req.voice)
+    try:
+        wav = tts_service.synth(req.text, voice=voice, speed=req.speed)
+    except tts_service.TTSUnavailable as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    return Response(content=wav, media_type="audio/wav",
+                    headers={"Cache-Control": "no-store", "X-Ember-Voice": voice})
+
+
 class SessionStoryRequest(BaseModel):
     character: str
     since_visit: int = 1

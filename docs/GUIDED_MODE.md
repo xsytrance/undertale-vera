@@ -56,6 +56,31 @@ game writes a save → 2s poller sees the change → waits for the write to SETT
 - Party reactions and hints degrade to grounded deterministic text with no model —
   Guided Mode works offline.
 
+## Read-aloud (TTS) — Guided Mode only
+Guided Mode can **speak the party's replies and hints aloud** so you can keep your
+eyes on the game. It's **off by default** and lives *only* here — the rest of Ember
+keeps Undertale's no-voices silence. Toggle **🔊 Speak the party & hints**.
+
+- **Presentation only:** TTS reads text that is *already* grounded (reactions, hints,
+  session stories). It never invents or changes a word — the same wall as everywhere.
+- **Two engines, auto-selected** (frontend probes `/api/tts/health`):
+  - **Kokoro (local neural), preferred** — Ember synthesizes audio itself and plays it
+    in *any* browser/OS. This is what makes it audible on Linux (which has no built-in
+    browser voices). Each character gets its own Kokoro voice (Sans `am_onyx`, Toriel
+    `af_heart`, Asgore `bm_george`, …). Runs in a dedicated `.venv-tts` (python3.11),
+    CPU-only, ~1s per short line, no root. Install: `bash tools/setup_tts.sh`.
+    Public/shared deployments never expose the synth endpoint.
+  - **Browser Web Speech API, fallback** — used when the Kokoro engine isn't installed
+    (e.g. Windows, where built-in SAPI voices work out of the box). Per-character
+    rate/pitch colour instead of distinct voices.
+- **Auto-speak needs no input** — new beats read themselves as they land, so it works
+  while you play. **Repeat / Stop / Toggle** are bindable to a **keyboard key** *and* a
+  **gamepad button** (press-to-bind, right in the panel — no joy2key needed).
+- **The focus caveat (honest):** a browser only receives key/gamepad input while *its*
+  window is focused. Auto-speak is unaffected; to press a control mid-game, keep the
+  🪟 pop-out companion focused, or map a pad button → key at the OS level (joy2key /
+  AntiMicro). This is a browser limitation, not a bug.
+
 ## The demo: replay a recorded run
 A labelled save corpus plays back through the watcher like a movie:
 ```bash
@@ -89,6 +114,14 @@ off and coming back, dark dollars swinging, Jevil falling — with your party re
 
 ## Roadmap (the "make it a thing" arc)
 1. ✅ Watcher + beats + party reactions + hint ladder (Phases 1–3)
+1b. ✅ Read-aloud (TTS), Guided Mode only — local Kokoro neural voice (+ browser
+    fallback), per-character voices, key + gamepad bindable (see above)
 2. Always-on-top companion window (Tauri) + first-run setup polish
+   - Known rough edge: the party rail doesn't yet swap to the Deltarune cast when a
+     DR run is adopted (fine for Undertale; fix before the extraction phase).
 3. **Extraction**: the game-pack interface (parser · truth · registry · guide ·
    assets) so new games — FFT next — plug into the same Guided engine.
+4. **Far horizon — headset companion**: Guided Mode as a floating window on a
+   Meta Quest 3 (or similar) beside the player's main screen, so the party rides
+   along in a spatial panel while you play. Same read-only, file-based engine;
+   just a new surface for the companion.

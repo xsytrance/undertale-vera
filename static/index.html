@@ -282,6 +282,25 @@
             </label>
           </div>
         </div>
+        <div class="guided-tts" id="guided-tts">
+          <div class="rail-lbl">🔊 Read aloud <span class="muted">— Guided Mode only · the party's replies &amp; hints, spoken</span> <span class="tts-engine" id="tts-engine"></span></div>
+          <div class="g-row tts-row">
+            <label class="tts-switch"><input type="checkbox" id="tts-on" /> <span>Speak the party &amp; hints</span></label>
+            <button class="btn tiny" id="tts-preview">▶ Preview</button>
+            <button class="btn tiny" id="tts-controls-toggle" aria-expanded="false">⚙ Controls</button>
+          </div>
+          <div class="tts-controls hidden" id="tts-controls">
+            <div class="tts-fields">
+              <label class="tts-field">Voice <select id="tts-voice"></select></label>
+              <label class="tts-field">Rate <input type="range" id="tts-rate" min="0.5" max="2" step="0.05" /></label>
+              <label class="tts-field">Pitch <input type="range" id="tts-pitch" min="0" max="2" step="0.05" /></label>
+              <label class="tts-field">Volume <input type="range" id="tts-vol" min="0" max="1" step="0.05" /></label>
+            </div>
+            <div class="rail-lbl">Shortcuts <span class="muted">— press-to-bind a key <em>and</em> a gamepad button (Esc while setting a key clears it)</span></div>
+            <div class="tts-binds" id="tts-binds"></div>
+            <p class="muted tts-note">Playing fullscreen? A browser only hears keys/gamepad while it's focused — but new lines still read themselves aloud automatically. To press a control mid-game, keep the 🪟 pop-out companion focused, or map a pad button to this key at the OS level (joy2key / AntiMicro).</p>
+          </div>
+        </div>
         <div class="rail-lbl g-feed-lbl">The run so far</div>
         <div class="guided-feed" id="guided-feed">
           <p class="muted">No beats yet — the feed fills as you play and save.</p>
@@ -1103,6 +1122,7 @@ seam.png          — a button-eye with visible stitching</pre></div>
   <script src="/js/scene.js"></script>
   <script src="/js/voices.js"></script>
   <script src="/js/soundtest.js"></script>
+  <script src="/js/tts.js"></script>
   <script src="/js/app.js"></script>
 </body>
 </html>

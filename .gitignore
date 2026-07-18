@@ -2,6 +2,7 @@
 __pycache__/
 *.pyc
 .venv/
+.venv-tts/
 .pytest_cache/
 
 # ── RAG vector index (rebuildable from knowledge/collections/*.json) ─────────
@@ -46,6 +47,7 @@ logs/
 # ── LoRA weights + training data (regenerable; never commit) ─────────────────
 *.safetensors
 models/loras/
+models/tts/
 dataset/
 train_lora*.py
 

@@ -330,6 +330,9 @@ body.world-dark .view.active {
 .g-beat-head { color: var(--ember) !important; }
 .g-chip { color: #fff !important; border: 2px solid #fff !important; border-radius: 0 !important; }
 .g-chip.on { color: var(--ember) !important; border-color: var(--ember) !important; background: #000 !important; }
+.tts-controls { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+.tts-field select, .tts-key { background: #000 !important; border: 2px solid #fff !important; border-radius: 0 !important; }
+.tts-key { color: var(--ember) !important; }
 
 #con-map { border: 2px solid #fff !important; border-radius: 0 !important; }
 .con-tip { border: 2px solid #fff !important; border-radius: 0 !important; background: #000 !important; }

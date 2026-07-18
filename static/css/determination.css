@@ -1330,6 +1330,28 @@ body.world-dark .view.active {
 .g-beat.g-note { border-left-color: #8e7cc3; }
 @media (min-width: 1600px) { .guided-ask { max-width: 1000px; margin-left: auto; margin-right: auto; } }
 
+/* guided read-aloud (TTS) */
+.guided-tts { margin-bottom: 16px; max-width: 860px; }
+.tts-row { align-items: center; }
+.tts-switch { display: inline-flex; align-items: center; gap: 8px; font-size: .82rem; cursor: pointer; color: var(--ink); }
+.tts-switch input { accent-color: var(--ember); width: 16px; height: 16px; }
+.tts-controls { margin-top: 10px; padding: 12px 14px; border: 1px solid var(--plate-frame);
+  border-left: 3px solid var(--ember-soft); border-radius: 10px; background: rgba(21,19,28,.4); }
+.tts-fields { display: flex; flex-wrap: wrap; gap: 14px; margin-bottom: 12px; }
+.tts-field { display: inline-flex; align-items: center; gap: 8px; font-size: .76rem; color: var(--ink-dim); }
+.tts-field select, .tts-field input[type=range] { font-size: .76rem; }
+.tts-field select { max-width: 220px; padding: 5px 8px; background: var(--obsidian); color: var(--ink);
+  border: 1px solid var(--plate-frame); border-radius: 8px; }
+.tts-field input[type=range] { accent-color: var(--ember); width: 120px; }
+.tts-binds { display: flex; flex-direction: column; gap: 7px; margin: 8px 0 6px; }
+.tts-bind { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .78rem; }
+.tts-bind-lbl { flex: 0 0 150px; color: var(--ink); }
+.tts-key { display: inline-block; min-width: 40px; text-align: center; padding: 2px 8px;
+  font-family: var(--font-mono); font-size: .72rem; color: var(--ember);
+  background: var(--obsidian); border: 1px solid var(--plate-frame); border-radius: 5px; }
+.tts-note { font-size: .74rem; line-height: 1.5; margin: 8px 0 0; }
+@media (min-width: 1600px) { .guided-tts { max-width: 1000px; margin-left: auto; margin-right: auto; } }
+
 /* the Companion pop-out window */
 body.companion { overflow: auto; padding: 12px; background: var(--obsidian); }
 body.companion .scene-backdrop, body.companion .route-aura { display: none; }
