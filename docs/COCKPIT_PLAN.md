@@ -70,10 +70,14 @@ the theme.
 ## Phases
 1. **Bring-up** — install Hyprland; validate it boots on this GPU (or move to AMD
    port); get Undertale + Ember tiling side by side (unstyled). *This is the risk gate.*
-   **Status (2026-07-18):** config + orchestrator + installer ready in `cockpit/`
-   (`hyprland.conf` pinned to the NVIDIA card with the AMD fallback documented,
-   `cockpit-start.sh`, `install.sh`). Waiting on: `sudo apt install -y hyprland
-   hyprpaper`, then `cockpit/install.sh`, then a logout → "Hyprland" session test.
+   **Status (2026-07-18):** kit ready in `cockpit/` (`hyprland.conf` pinned to the
+   NVIDIA card with the AMD fallback documented, `cockpit-start.sh`, `install.sh`,
+   `undertale-cockpit.desktop`). Hyprland 0.53.3 installed; nested smoke test passed
+   (split + rules verified; Chrome's URL-derived Wayland class handled). The cockpit
+   is its own login session — `start-hyprland -- --config <repo path>` — so
+   `~/.config/hypr` stays untouched and future vera cockpits coexist as separate
+   login entries. Waiting on: the one sudo step `install.sh` prints, then a
+   logout → "Undertale Cockpit" test (the real NVIDIA/KMS gate).
 2. **Orchestrator** — one command launches game + Ember + auto-watch + read-aloud.
 3. **Theming** — backdrop frame, borders, fonts, soul motif.
 4. **1-monitor UX** — the 3 layout modes + controller/keyboard focus.

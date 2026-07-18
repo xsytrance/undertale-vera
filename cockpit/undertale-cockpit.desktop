@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Undertale Cockpit
+Comment=The Underground Cockpit — Undertale + Ember composed in one Hyprland session
+Exec=/usr/bin/start-hyprland -- --config /home/xsyprime/undertale-vera/cockpit/hyprland.conf
+Type=Application
+DesktopNames=Hyprland
+Keywords=undertale;ember;cockpit;
