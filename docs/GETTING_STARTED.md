@@ -228,6 +228,31 @@ owner-only file, and the app never displays it again unmasked.
 
 Ember only ever **reads** these files. It cannot change your save.
 
+Ember can usually find these for you — `GET /api/guided/discover` probes all of
+the above, including Proton prefixes, and reports only directories that actually
+hold a save.
+
+## Playing on a TV or a handheld
+
+Ember is drivable from a game controller, which matters because on a television
+there's no mouse or touchscreen at all. Plug in or pair a controller and it's
+picked up automatically:
+
+| Control | Does |
+|---|---|
+| D-pad / left stick | move between things |
+| Cross (✕) / A | select |
+| Circle (○) / B | back, close a menu, leave a text box |
+| Options / Menu | toggle **TV mode** |
+
+**TV mode** enlarges the type for reading across a room and insets the page, so
+nothing lands in the strip most televisions quietly crop off every edge. Turn it
+on with the Options button or by visiting `/?tv=1`; the choice sticks. If parts
+of Ember look cut off on a TV, this is the fix.
+
+It's off by default on purpose — a controller being connected doesn't mean
+you're on a television.
+
 ## Further up the ladder
 
 `docs/PIPELINES.md` is the advanced recipe book — the full local-everything

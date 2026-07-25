@@ -11,6 +11,7 @@ chroma.sqlite3
 
 # ── Runtime data (read-only spine never commits uploaded saves or the DB) ────
 undertale_vera.db
+undertale_vera_cockpit.db
 *.sqlite3
 data/uploads/
 saves/

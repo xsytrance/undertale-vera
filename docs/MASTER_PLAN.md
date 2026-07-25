@@ -7,6 +7,37 @@ Undertale* — real sprites, real fonts, real UI furniture — running on the so
 **The music is untouched.** `static/audio/` and the whole `MusicLayer` /
 `VoiceLayer` / `SoundTest` stack stay exactly as they are. That work stands.
 
+## Status
+
+| Phase | State |
+|---|---|
+| 0 · Skin switch + fence | **done** — `local_skin.py`, gitignored, 10 tests |
+| 1 · Extractor | **done** — 6550 images from 2583 sprites in ~2 s |
+| 2 · Slot mapping | **done** — 9 characters, 4 scenes, 3 UI |
+| 3 · `authentic.css` | **done** |
+| 4 · Handheld / TV / controller | **code done, unverified on hardware** |
+| 5 · Linux + Cockpit | **done** — loopback-only `ember-cockpit` on `:9093` |
+
+**Try it:**
+
+```bash
+python3 tools/extract_undertale_assets.py && python3 tools/map_local_skin.py
+UNDERTALE_VERA_SKIN=authentic python3 -m uvicorn undertale_vera_app:app --port 9092
+```
+
+**Known gaps, carried deliberately:**
+
+- `tools/rog_setup.ps1` has **never been executed** — no PowerShell on the dev
+  machine. First run on the Ally is a debugging session, not a formality.
+- The DualSense **button indices are from the standard spec, not observed**.
+  Navigation geometry is tested; the mapping is not. Most likely thing to need
+  a tweak, and a two-minute fix once visible.
+- **Fonts are pixel webfonts, not the game's.** The 20 extracted sheets are
+  bitmap atlases; converting them to real webfonts is a genuine sub-project.
+  Typography is pixel-*flavoured*, not authentic.
+- Playwright isn't installed locally, so the frontend smoke gate runs only in CI.
+- Deltarune isn't installed, so its 8 emblems keep the original crests.
+
 ---
 
 ## 0. Source of the art — decided

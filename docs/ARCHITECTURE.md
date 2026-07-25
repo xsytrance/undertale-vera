@@ -83,6 +83,12 @@ Every grounding block returns `""` when empty, so the baseline prompt stays byte
 **Assets, retrieval, email**
 - `avatar_resolver.py` — portrait/emblem URL resolution (photo > emblem > SVG > crest).
 - `scene_resolver.py` — route-reactive backdrop art resolution.
+- `local_skin.py` — the **authentic local skin** gate (`UNDERTALE_VERA_SKIN`).
+  Fails closed: anything but an explicit `authentic` keeps the committed look.
+  When on, the two resolvers above search `static/assets/local/` (gitignored,
+  extracted from the machine owner's own game install) before the committed art,
+  then fall back to it. See [`LOCAL_SKIN_MANIFEST.md`](LOCAL_SKIN_MANIFEST.md) —
+  that art is never committed, built, or deployed.
 - `rag_engine.py` / `knowledge_ingest.py` — world-lore retrieval (keyword fallback in CI).
 - `agentmail_client.py` — **email a report** via AgentMail (opt-in, env-gated, mockable).
 
@@ -190,8 +196,26 @@ progressively deeper layers — concepts and patterns only, no engine internals.
 ComfyUI pixel pipeline, local MusicGen, the loop/normalize finishing pass — is
 documented in [docs/PIPELINES.md](PIPELINES.md).
 
+## The authentic local skin + couch mode
+- `tools/extract_undertale_assets.py` — parses a GameMaker `data.win` (stdlib +
+  Pillow) into sprites/backgrounds/font sheets. `--list` inventories first.
+- `tools/map_local_skin.py` — fills the app's character/scene/UI slots from that
+  output. Both write only to gitignored `static/assets/local/`.
+- `tools/vendor_fonts.py` — self-hosts the web fonts (SIL OFL, so committable).
+  The app makes **zero external requests**; `tests/offline_assets_test.py` keeps
+  it that way, which the offline handheld build depends on.
+- `static/css/handheld.css` — touch targets (`pointer: coarse`) and **TV mode**
+  (10-foot type + overscan inset). Opt-in via `?tv=1`; never automatic.
+- `static/js/gamepad.js` — spatial controller navigation. Docked to a TV there is
+  no pointer at all, so this is the only input path, not an extra. Geometry is
+  pinned by `node tools/gamepad_nav_test.js`.
+- `tools/rog_setup.ps1` — one-shot Windows handheld setup (untested on hardware).
+- `cockpit/ember-cockpit.service` — the Cockpit's own **loopback-only** instance,
+  separate from tailnet-facing `ember-dev`, so the skin's art stays on the box.
+
 ## Testing & CI
 - `pytest -q` — backend suite (300+ tests; mocks the LLM, keyword-only RAG).
+- `node tools/gamepad_nav_test.js` — controller navigation geometry (10 cases).
 - `python -m tools.voice_eval --min 1.0` — adversarial two-bucket-wall gate.
 - `python -m tools.lore_eval --min 1.0` — lore recall gate.
 - `tools/frontend_smoke.py` — headless-browser smoke over the built UI (every view, chat,
