@@ -4,10 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ember · The Save Remembers</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;700&family=Crimson+Text:ital@0;1&family=Space+Mono&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400;500;700&family=VT323&display=swap" rel="stylesheet" />
-  <link href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+  <!-- Self-hosted fonts (tools/vendor_fonts.py). The app makes NO external
+       requests: required for the offline handheld build, and it stops every
+       page load pinging a CDN. All families are SIL OFL — static/fonts/OFL.txt. -->
+  <link rel="stylesheet" href="/css/fonts.css" />
   <script>
     /* vision settings apply before first paint so nothing flashes */
     try { JSON.parse(localStorage.getItem("uv_a11y") || "[]")
@@ -16,6 +16,9 @@
   <link rel="stylesheet" href="/css/determination.css" />
   <!-- Pass 2: Undertale game skin (override layer; loaded after the base theme) -->
   <link rel="stylesheet" href="/css/undertale.css" />
+  <!-- Couch ergonomics: touch targets, gamepad focus, and the 10-foot TV mode.
+       Capability-scoped, so it costs a desktop mouse user nothing. -->
+  <link rel="stylesheet" href="/css/handheld.css" />
 </head>
 <body>
   <!-- route-reactive backdrop: CSS gradient tint always; generated scene art fades
@@ -532,9 +535,12 @@ uvicorn undertale_vera_app:app --port 9092</pre></div>
               <a href="https://www.anthropic.com" target="_blank" rel="noopener">Anthropic's Claude</a>
               (an optional backend — and a co-builder of this project) ·
               <a href="https://suno.com" target="_blank" rel="noopener">Suno</a> (the instrument behind the soundtrack).</li>
-            <li><strong>The typefaces</strong> — Pixelify Sans, VT323, Cinzel, Crimson Text, and Space Mono,
-              served via <a href="https://fonts.google.com" target="_blank" rel="noopener">Google Fonts</a> —
-              thank you to their designers.</li>
+            <li><strong>The typefaces</strong> — Pixelify Sans, VT323, Cinzel, Crimson Text, Space Mono,
+              and Atkinson Hyperlegible, from
+              <a href="https://fonts.google.com" target="_blank" rel="noopener">Google Fonts</a> and
+              redistributed here under the SIL Open Font License — thank you to their designers.
+              They are bundled with the app rather than fetched from a CDN, so nothing you do here
+              is visible to a third party.</li>
           </ul>
           <div class="cm-callout">
             <strong>Did we build on your work?</strong> If any of this stands on something you made —
@@ -1117,6 +1123,7 @@ seam.png          — a button-eye with visible stitching</pre></div>
   <!-- proactive "they reached out" toast -->
   <div id="reach-toast" class="reach-toast hidden" role="button" aria-live="polite"></div>
 
+  <script src="/js/gamepad.js"></script>
   <script src="/js/emblems.js"></script>
   <script src="/js/music.js"></script>
   <script src="/js/scene.js"></script>
