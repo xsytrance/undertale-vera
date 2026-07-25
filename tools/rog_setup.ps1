@@ -181,6 +181,20 @@ if (-not (Get-Process ollama -ErrorAction SilentlyContinue)) {
 `$env:UNDERTALE_VERA_BACKEND = "ollama"
 `$env:OLLAMA_MODEL = "$Model"
 
+# ── performance ──────────────────────────────────────────────────────────
+# KEEP_ALIVE is the single biggest win in felt speed. By default Ollama
+# evicts an idle model after ~5 minutes, so the next reply pays several
+# seconds re-reading gigabytes from disk. Play is bursty — a beat fires, a
+# character answers, then nothing for a while — which is exactly the pattern
+# that keeps hitting a cold model. -1 pins it in RAM for the session; on
+# 24 GB an 8B model is a small price for never paying that stall again.
+`$env:OLLAMA_KEEP_ALIVE = "-1"
+# Cheaper attention: less memory per token and faster long contexts.
+`$env:OLLAMA_FLASH_ATTENTION = "1"
+# One player, one conversation. Parallel slots would divide the context
+# window between requests that never arrive.
+`$env:OLLAMA_NUM_PARALLEL = "1"
+
 Start-Process -FilePath `$py ``
     -ArgumentList "-m","uvicorn","undertale_vera_app:app","--host","127.0.0.1","--port","`$port" ``
     -WorkingDirectory `$repo -WindowStyle Hidden
@@ -195,9 +209,11 @@ for (`$i = 0; `$i -lt 40; `$i++) {
     } catch { }
 }
 
-# app mode = no tabs, no address bar: it reads as an application, not a browser.
-# --start-fullscreen matters on a TV, where browser chrome is wasted space and
-# there's no pointer to dismiss it with.
+# If Ember has been INSTALLED as an app (Edge > ... > Apps > Install), Windows
+# owns the window and this launcher only needs the server. Otherwise fall back
+# to app mode, which looks the same but leaves no Start Menu identity behind.
+# --start-fullscreen matters on a TV: browser chrome is wasted space there, and
+# there is no pointer to dismiss it with.
 Start-Process "msedge.exe" -ArgumentList "--app=http://127.0.0.1:`$port$tvQuery","--start-fullscreen"
 "@ | Set-Content -Path $start -Encoding UTF8
 Ok "wrote start-ember.ps1"
@@ -222,6 +238,18 @@ Write-Host @"
 
   Start it:   .\start-ember.ps1      (or the 'Ember' Start Menu entry)
   Then:       http://127.0.0.1:$Port
+
+  ── Make it a real app (do this once) ──────────────────────────────────────
+
+  In the Ember window: ... menu > Apps > "Install this site as an app".
+
+  That gives a genuine Windows app — its own icon, its own Start Menu and
+  taskbar entry, its own window with no browser chrome. It is NOT a wrapped
+  browser copy: it reuses the WebView engine Windows already ships, so it adds
+  no runtime and no memory beyond the page itself. An Electron-style bundle
+  would ship a second copy of Chromium and be strictly slower.
+
+  Pin it to the taskbar, or add it as a non-Steam game for the Xbox library.
 
   Guided Mode: open the app and it will offer the save folder it found on this
   device (%LOCALAPPDATA%\UNDERTALE). Point it there and it reacts as he plays.

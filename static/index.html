@@ -4,6 +4,13 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Ember · The Save Remembers</title>
+  <!-- Installable-app metadata. Edge/Chrome offer "Install this app", which
+       gives a real windowed app with its own icon and Start Menu entry —
+       no browser chrome, and no Electron-style runtime bundled alongside. -->
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#0c0b10" />
+  <link rel="icon" href="/icons/icon-192.png" sizes="192x192" />
+  <link rel="apple-touch-icon" href="/icons/icon-192.png" />
   <!-- Self-hosted fonts (tools/vendor_fonts.py). The app makes NO external
        requests: required for the offline handheld build, and it stops every
        page load pinging a CDN. All families are SIL OFL — static/fonts/OFL.txt. -->

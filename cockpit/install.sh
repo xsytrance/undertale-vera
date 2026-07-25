@@ -52,13 +52,19 @@ if [ ! -d "$HERE/../static/assets/local/emblems" ]; then
     echo
 fi
 
+# Render the session entry. .desktop Exec= cannot expand $HOME, so the absolute
+# path is baked in here rather than committed — that keeps machine-specific
+# paths out of the repo (the leak-guard CI job forbids them).
+RENDERED="$HERE/.undertale-cockpit.desktop"
+sed "s|@COCKPIT_DIR@|$HERE|g" "$HERE/undertale-cockpit.desktop.in" > "$RENDERED"
+
 if [ -f "$SESSION_DIR/undertale-cockpit.desktop" ] \
-   && cmp -s "$HERE/undertale-cockpit.desktop" "$SESSION_DIR/undertale-cockpit.desktop"; then
+   && cmp -s "$RENDERED" "$SESSION_DIR/undertale-cockpit.desktop"; then
     echo "Session entry already installed and current."
 else
     echo "Config OK. One step needs root — run:"
     echo
-    echo "  sudo install -m 644 $HERE/undertale-cockpit.desktop $SESSION_DIR/"
+    echo "  sudo install -m 644 $RENDERED $SESSION_DIR/undertale-cockpit.desktop"
     echo
 fi
 echo "Then log out and pick 'Undertale Cockpit' at the login screen."

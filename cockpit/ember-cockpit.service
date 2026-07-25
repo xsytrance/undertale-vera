@@ -12,15 +12,15 @@ Description=Ember — Underground Cockpit instance (loopback only, authentic ski
 After=network.target
 
 [Service]
-WorkingDirectory=/home/xsyprime/undertale-vera
+WorkingDirectory=%h/undertale-vera
 Environment=UNDERTALE_VERA_SKIN=authentic
 Environment=UNDERTALE_VERA_BACKEND=ollama
 Environment=OLLAMA_HOST=http://127.0.0.1:11434
 Environment=OLLAMA_MODEL=llama3.1:8b
 Environment=PYTHONUNBUFFERED=1
 # Its own DB so cockpit play doesn't entangle with the dev instance's history.
-Environment=UNDERTALE_VERA_DB=sqlite:////home/xsyprime/undertale-vera/undertale_vera_cockpit.db
-ExecStart=/home/xsyprime/undertale-vera/.venv/bin/python -u -m uvicorn \
+Environment=UNDERTALE_VERA_DB=sqlite:///%h/undertale-vera/undertale_vera_cockpit.db
+ExecStart=%h/undertale-vera/.venv/bin/python -u -m uvicorn \
     undertale_vera_app:app --host 127.0.0.1 --port 9093
 Restart=on-failure
 RestartSec=3

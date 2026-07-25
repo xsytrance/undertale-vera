@@ -210,6 +210,12 @@ documented in [docs/PIPELINES.md](PIPELINES.md).
   no pointer at all, so this is the only input path, not an extra. Geometry is
   pinned by `node tools/gamepad_nav_test.js`.
 - `tools/rog_setup.ps1` — one-shot Windows handheld setup (untested on hardware).
+- `static/manifest.webmanifest` + `tools/make_app_icons.py` — Ember installs as a
+  real Windows/Android app (own icon, Start Menu entry, no browser chrome) using
+  the WebView the OS already ships, so no runtime is bundled. Icons are drawn
+  from our own ember-gem geometry, never from extracted art. Performance
+  guidance lives in [`WINDOWS_APP.md`](WINDOWS_APP.md) — the model dominates,
+  not the shell.
 - `cockpit/ember-cockpit.service` — the Cockpit's own **loopback-only** instance,
   separate from tailnet-facing `ember-dev`, so the skin's art stays on the box.
 

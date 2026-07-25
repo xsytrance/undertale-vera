@@ -1,0 +1,10 @@
+# Template. install.sh renders @COCKPIT_DIR@ and installs the result.
+# .desktop Exec= cannot expand $HOME, so the path must be baked in at
+# install time rather than committed — the repo stays path-free.
+[Desktop Entry]
+Name=Undertale Cockpit
+Comment=The Underground Cockpit — Undertale + Ember composed in one Hyprland session
+Exec=/usr/bin/start-hyprland -- --config @COCKPIT_DIR@/hyprland.conf
+Type=Application
+DesktopNames=Hyprland
+Keywords=undertale;ember;cockpit;

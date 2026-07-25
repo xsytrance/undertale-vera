@@ -46,7 +46,7 @@ Assets are **extracted from your own installed copy of the game**, not scraped
 from fan wikis:
 
 ```
-/home/xsyprime/.local/share/Steam/steamapps/common/Undertale/data.win   (62.9 MB)
+~/.local/share/Steam/steamapps/common/Undertale/data.win   (62.9 MB)
 ```
 
 Verified chunk table (standard GameMaker `FORM`/IFF):
