@@ -44,6 +44,59 @@ def discover_saves(directory: str) -> list[str]:
     return out
 
 
+#: Where each platform's build keeps its saves. Ordered; all are probed.
+#: Windows entries matter for the handheld build (the ROG Ally runs Windows and
+#: keeps saves under %LOCALAPPDATA%, nowhere near the Steam install). The Proton
+#: entries cover playing the Windows build on Linux, where the save lands inside
+#: the compatdata prefix rather than ~/.config.
+_SAVE_DIR_CANDIDATES = (
+    # Windows (native + handheld)
+    r"%LOCALAPPDATA%\UNDERTALE",
+    r"%LOCALAPPDATA%\DELTARUNE",
+    # Linux native
+    "~/.config/UNDERTALE",
+    "~/.config/DELTARUNE",
+    "~/snap/steam/common/.config/UNDERTALE",
+    "~/snap/steam/common/.config/DELTARUNE",
+    # Linux + Proton (391540 = UNDERTALE, 1671210 = DELTARUNE)
+    "~/.local/share/Steam/steamapps/compatdata/391540/pfx/drive_c/users/"
+    "steamuser/AppData/Local/UNDERTALE",
+    "~/.local/share/Steam/steamapps/compatdata/1671210/pfx/drive_c/users/"
+    "steamuser/AppData/Local/DELTARUNE",
+    "~/.steam/steam/steamapps/compatdata/391540/pfx/drive_c/users/"
+    "steamuser/AppData/Local/UNDERTALE",
+)
+
+
+def default_save_dirs() -> list[str]:
+    """Save directories that exist on this machine and hold a watchable save.
+
+    Read-only probe used to pre-fill Guided Mode instead of making someone type
+    a path they'd have to go hunting for. Returns only directories that actually
+    contain a save file, so a hit is always usable. Never raises.
+    """
+    out: list[str] = []
+    seen: set[str] = set()
+    for raw in _SAVE_DIR_CANDIDATES:
+        path = os.path.expanduser(os.path.expandvars(raw))
+        # unexpanded %VAR% means the variable is unset — skip, don't stat it
+        if "%" in path or "~" in path:
+            continue
+        try:
+            if not (os.path.isdir(path) and discover_saves(path)):
+                continue
+            # ~/.steam/steam is normally a symlink to ~/.local/share/Steam, so
+            # several candidates can resolve to one directory — report it once.
+            key = os.path.realpath(path)
+            if key in seen:
+                continue
+            seen.add(key)
+            out.append(path)
+        except OSError:
+            continue
+    return out
+
+
 def sibling_ini(save_path: str) -> Optional[str]:
     """The corroborating ini beside a save file (undertale.ini / dr.ini), if any."""
     d = os.path.dirname(save_path)

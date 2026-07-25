@@ -1,0 +1,189 @@
+/* ════════════════════════════════════════════════════════════════════════
+   handheld.css — couch ergonomics: touch, gamepad, and the 10-foot UI.
+
+   Covers two ways the app gets played away from a desk:
+     · handheld — 7" touchscreen (ROG Xbox Ally)
+     · docked   — HDMI to a TV, driven entirely by a controller
+
+   Those need different things. Touch needs big targets; a TV needs big TYPE
+   and protection from overscan, and has no pointer at all — focus is the only
+   cue for where you are. Both are covered below, gated separately.
+
+   Loaded ALWAYS and scoped to capability queries rather than a device, so it
+   helps every touch user and costs mouse users nothing:
+
+     @media (pointer: coarse)  → the primary input can't hit small targets
+     @media (hover: none)      → :hover will NEVER fire; anything hidden behind
+                                 it is unreachable, not merely subtle
+
+   Two problems it fixes:
+     1. The round top-bar controls are 34px. The floor for a reliable finger
+        target is ~44px; below that, misses become common — worse on a 7"
+        panel at 1080p, where a CSS pixel is physically tiny.
+     2. Two rules reveal controls only on :hover. On a touchscreen those are
+        invisible forever.
+
+   Loaded AFTER determination.css/undertale.css and before authentic.css, so
+   the skin still gets the last word on colour.
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* the smallest square a finger hits reliably */
+  --touch-min: 44px;
+}
+
+/* ── touch targets ───────────────────────────────────────────────────────── */
+@media (pointer: coarse) {
+
+  .topbar-audio,
+  .topbar-gear {
+    width: var(--touch-min);
+    height: var(--touch-min);
+    font-size: 1.25rem;
+  }
+
+  .btn,
+  .modal-btn,
+  .save-pill,
+  .topbar-modes {
+    min-height: var(--touch-min);
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .modes-item {
+    min-height: var(--touch-min);
+    padding: 12px 14px;
+    font-size: 1rem;
+  }
+
+  /* chips are informational, but several are tappable filters */
+  .chip {
+    padding: 6px 12px;
+    font-size: 0.76rem;
+  }
+
+  /* the composer is the single most-used control — give it real height */
+  .composer #chat-input {
+    min-height: var(--touch-min);
+    font-size: 16px;   /* < 16px makes iOS/Android zoom on focus */
+  }
+  .composer .btn { min-width: var(--touch-min); }
+
+  /* card faces and chips used as buttons */
+  .ce-face,
+  .g-chip,
+  .st-card,
+  .save-card,
+  .char-card {
+    min-height: var(--touch-min);
+  }
+
+  /* range inputs are hard to grab at default thickness */
+  .audio-slider input[type=range] { height: var(--touch-min); }
+
+  /* stop the pixel-shift feedback: on touch it reads as a glitch, and the
+     press is already confirmed by the ripple of the state change */
+  .btn:active,
+  .st-card:active,
+  .save-card:active,
+  .reach-cta:active { transform: none; }
+}
+
+/* ── anything gated behind :hover must be visible when hover cannot occur ── */
+@media (hover: none) {
+  .save-card .save-sigil { opacity: 0.8; }
+  .char-card .pbadge     { opacity: 1; }
+
+  /* hover decoration is dead weight here; keep borders honest instead */
+  .topbar-gear:hover { transform: none; }
+}
+
+/* ── gamepad / keyboard focus ─────────────────────────────────────────────
+   Driving the UI with a D-pad means focus is the ONLY cue for where you are.
+   The default outline vanishes against the obsidian field, so make it loud.
+   :focus-visible keeps it off for mouse users. */
+:focus-visible {
+  outline: 3px solid var(--ember, #e8a24c);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* the gamepad layer marks the element it moved to, so focus is unmistakable
+   even on elements that paint their own background */
+.gp-focus {
+  outline: 3px solid var(--ember, #e8a24c) !important;
+  outline-offset: 2px;
+  box-shadow: 0 0 18px rgba(232, 162, 76, 0.45) !important;
+  scroll-margin: 80px;   /* don't let focus land flush against a screen edge */
+}
+
+/* ── small / short viewports ──────────────────────────────────────────────
+   Held in landscape, the 7" panel is short. Reclaim vertical space rather
+   than letting chrome crowd out the conversation. */
+@media (max-height: 560px) {
+  .topbar { padding: 4px 10px; }
+  .rail { padding: 8px; }
+  .view { padding-top: 6px; }
+}
+
+/* ── TV mode: the 10-foot UI ──────────────────────────────────────────────
+   Docked to a TV over HDMI and driven with a controller. Two things change
+   versus a handheld, and neither is about touch:
+
+     1. VIEWING DISTANCE. Text sized for a screen 40 cm away is unreadable at
+        3 m. Everything scales up, driven off one root font-size so the whole
+        type scale in determination.css moves together.
+     2. OVERSCAN. Many TVs still crop ~3-5% of every edge, and anything in
+        that band is simply gone. So the app insets itself.
+
+   Opt-in — `?tv=1`, or the toggle in Settings (persisted). Never automatic:
+   a gamepad connecting does NOT mean the display is a television, and
+   guessing wrong makes a desktop look absurd. */
+:root.tv-mode {
+  font-size: 20px;              /* base 16 → 20; the whole scale follows */
+}
+
+:root.tv-mode body {
+  /* overscan inset. Generous on purpose: losing a little screen beats losing
+     the top-bar entirely on a set that crops hard. */
+  padding: 3.5vh 3.5vw;
+  box-sizing: border-box;
+}
+
+:root.tv-mode .topbar-audio,
+:root.tv-mode .topbar-gear {
+  width: 52px;
+  height: 52px;
+  font-size: 1.4rem;
+}
+
+:root.tv-mode .btn,
+:root.tv-mode .modal-btn,
+:root.tv-mode .modes-item {
+  min-height: 52px;
+}
+
+/* thin hairlines disappear across a room — thicken the structure */
+:root.tv-mode .rail,
+:root.tv-mode .topbar,
+:root.tv-mode .char-card,
+:root.tv-mode .bubble {
+  border-width: 2px;
+}
+
+/* and the focus ring has to survive the same distance */
+:root.tv-mode .gp-focus {
+  outline-width: 4px !important;
+  outline-offset: 3px;
+}
+
+/* ── safe areas ───────────────────────────────────────────────────────────
+   Kiosk/app-mode windows can sit under rounded corners or system bars. */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: max(0px, env(safe-area-inset-left));
+    padding-right: max(0px, env(safe-area-inset-right));
+    padding-bottom: max(0px, env(safe-area-inset-bottom));
+  }
+}
