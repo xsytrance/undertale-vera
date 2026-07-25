@@ -39,6 +39,7 @@ import constellation as constellation_mod
 import deltarune_parser
 import guided
 import guide_kb
+import local_skin
 import power_config
 import session_story
 import spark
@@ -402,6 +403,28 @@ def guided_status() -> dict[str, Any]:
         "watching": guided_state.dirs,
         "files": [{"file": os.path.basename(p), "project_id": v.get("project_id")}
                   for p, v in guided_state.files.items()],
+    }
+
+
+@app.get("/api/guided/discover")
+def guided_discover() -> dict[str, Any]:
+    """Save directories found on this machine, ready to watch.
+
+    Read-only probe (see guided.default_save_dirs) so nobody has to hunt for a
+    path buried in a Proton prefix or under %LOCALAPPDATA%. Returns only
+    directories that actually hold a save, and never reports the save contents —
+    just where they are, and which are already being watched.
+    """
+    found = guided.default_save_dirs()
+    return {
+        "found": [
+            {
+                "path": p,
+                "saves": [os.path.basename(s) for s in guided.discover_saves(p)],
+                "watching": p in guided_state.dirs,
+            }
+            for p in found
+        ],
     }
 
 
@@ -785,7 +808,9 @@ def get_workshop() -> dict[str, Any]:
 
 @app.get("/api/health")
 def health() -> dict[str, Any]:
-    return {"status": "ok", "app": "undertale-vera", "spine": 0}
+    out: dict[str, Any] = {"status": "ok", "app": "undertale-vera", "spine": 0}
+    out.update(local_skin.state())
+    return out
 
 
 # ── save upload + truth ──────────────────────────────────────────────────────
@@ -1827,8 +1852,15 @@ def _stamped_index(idx: str) -> HTMLResponse:
             return m.group(0)
         return f'{m.group(1)}="{m.group(2)}?v={v}"'
 
-    return HTMLResponse(_ASSET_REF.sub(stamp, html),
-                        headers={"Cache-Control": "no-cache"})
+    html = _ASSET_REF.sub(stamp, html)
+
+    # The authentic local skin layers on at serve time only — the committed
+    # index.html always describes the original look (see local_skin.py).
+    extra = local_skin.head_markup()
+    if extra and "</head>" in html:
+        html = html.replace("</head>", f"  {extra}\n</head>", 1)
+
+    return HTMLResponse(html, headers={"Cache-Control": "no-cache"})
 
 
 @app.get("/")
