@@ -18,6 +18,8 @@ from __future__ import annotations
 import os
 from typing import Optional
 
+import local_skin
+
 SCENE_DIR = os.environ.get(
     "UNDERTALE_VERA_SCENE_DIR",
     os.path.join(os.path.dirname(__file__), "static", "assets", "scenes"),
@@ -40,12 +42,16 @@ def resolve_scene(route: Optional[str], *, scene_dir: str = SCENE_DIR) -> str:
     frontend to keep its CSS gradient fallback.
     """
     key = _norm_route(route)
-    candidate = os.path.join(scene_dir, f"{key}.png")
-    try:
-        if os.path.isfile(candidate) and os.path.getsize(candidate) > 100:
-            return f"{SCENE_URL_BASE}/{key}.png"
-    except OSError:
-        pass
+    local_root = local_skin.local_dir("scenes")
+    for dirpath in local_skin.asset_search_path("scenes", scene_dir):
+        candidate = os.path.join(dirpath, f"{key}.png")
+        try:
+            if os.path.isfile(candidate) and os.path.getsize(candidate) > 100:
+                base = (f"{local_skin.LOCAL_URL_BASE}/scenes"
+                        if dirpath == local_root else SCENE_URL_BASE)
+                return f"{base}/{key}.png"
+        except OSError:
+            pass
     return ""
 
 

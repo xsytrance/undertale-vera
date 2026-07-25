@@ -84,7 +84,26 @@ the theme.
 5. **2-monitor extras** — auto-detect 2nd output, spread + bonus panels.
 6. **One-click launcher** — `.desktop` + login session entry + docs.
 
+## The cockpit runs its own Ember (`:9093`), not `ember-dev`
+
+`ember-dev` binds `0.0.0.0:9092` — reachable by anything on the tailnet. The
+cockpit defaults to the **authentic local skin**, which serves art extracted
+from this machine's own game install, and that art must never be served from a
+shared surface (see [`LOCAL_SKIN_MANIFEST.md`](LOCAL_SKIN_MANIFEST.md)). Turning
+the skin on for `ember-dev` would have quietly published it tailnet-wide.
+
+So `cockpit/ember-cockpit.service` runs a separate instance on **`127.0.0.1:9093`**
+with its own DB, and `ember-dev` is left alone. The loopback bind is the whole
+point of that unit — widening it to `0.0.0.0` undoes the containment.
+
+Verified: unit active, `/api/health` reports `authentic`, `ss` shows
+`127.0.0.1:9093`, and a request to the tailnet address is refused. The public
+tunnel (`:9095`/`:9096`) is untouched and still serves the original art.
+
+Theming (item 3) is largely delivered by the skin itself; the controller half of
+item 4 is covered by `static/js/gamepad.js` + TV mode.
+
 ## Open risks
 - NVIDIA + wlroots bring-up (mitigated above).
-- Kiosk browser choice for `:9092` (chromium `--app` vs Firefox kiosk vs GNOME Web).
+- Kiosk browser choice for `:9093` (chromium `--app` vs Firefox kiosk vs GNOME Web).
 - Steam launching cleanly under Hyprland (well-trodden; expected fine).

@@ -1,0 +1,11 @@
+The fonts in this directory are redistributed under the SIL Open
+Font License 1.1, which permits bundling and redistribution.
+
+Families: Cinzel, Crimson Text, Space Mono, Pixelify Sans, VT323,
+Atkinson Hyperlegible.
+
+Full licence text: https://scripts.sil.org/OFL
+Sources: https://fonts.google.com/
+
+Vendored by tools/vendor_fonts.py so the app makes no external
+requests at runtime.
