@@ -1,0 +1,98 @@
+/* ════════════════════════════════════════════════════════════════════════
+   authentic.css — the PRIVATE local skin.
+
+   Loaded ONLY when UNDERTALE_VERA_SKIN=authentic (see local_skin.py), on top of
+   determination.css + undertale.css. Neither of those is modified: with this
+   file absent, or the env var unset, the app renders exactly as it always has.
+
+   The art it references lives in /assets/local/**, produced by
+     tools/extract_undertale_assets.py  →  tools/map_local_skin.py
+   from the machine owner's OWN game install. That directory is gitignored.
+   This stylesheet is committed; the art it points at never is, and every rule
+   below degrades to the committed look when a file is missing.
+
+   Design note: the game's UI is white line-art on flat black, with a hard
+   pixel grid and no antialiasing. So this layer mostly REMOVES things — the
+   brass frames, the warm glows, the rounded corners, the gradients that
+   determination.css uses — rather than adding.
+   ════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  --auth-box: #ffffff;      /* the box stroke */
+  --auth-field: #000000;    /* the field behind it */
+}
+
+/* ── the SOUL ────────────────────────────────────────────────────────────────
+   determination.css draws a faceted ember lozenge via clip-path, deliberately
+   NOT a heart. Here we use the real SOUL sprite instead. The clip-path and the
+   gradient both have to be unset or they'd cut into the image. */
+.soul-sigil {
+  clip-path: none !important;
+  background: url("/assets/local/ui/soul.png") center / contain no-repeat !important;
+  box-shadow: none !important;
+  image-rendering: pixelated;
+}
+.soul-sigil.determined {
+  background-image: url("/assets/local/ui/soul.png") !important;
+  filter: drop-shadow(0 0 6px rgba(255, 0, 0, 0.55));
+}
+.soul-sigil.dark-world {
+  filter: hue-rotate(210deg) saturate(1.4);
+}
+
+/* ── portraits & emblems ─────────────────────────────────────────────────────
+   The extracted portraits are white line-art with the black dialogue plate
+   keyed out (see tools/map_local_skin.py), so they want a flat black field and
+   a hard white border — not the brass relic frame. */
+.relic-portrait,
+.bubble-avatar,
+.emblem-img,
+.ce-face-img,
+.g-chip-img,
+.st-card-art {
+  image-rendering: pixelated;
+  border-radius: 0 !important;
+  background: var(--auth-field) !important;
+  border: 2px solid var(--auth-box) !important;
+  box-shadow: none !important;
+  object-fit: contain !important;
+}
+
+/* the crest that stands in before art loads — keep it square and flat too */
+.relic-portrait.empty::after,
+.bubble-avatar.empty::after {
+  border-radius: 0 !important;
+  box-shadow: none !important;
+}
+
+/* ── boxes ───────────────────────────────────────────────────────────────────
+   The dialogue vessel and the card surfaces become the flat black plate with a
+   hard white stroke. */
+.dialogue-vessel,
+.char-card,
+.bubble {
+  border-radius: 0 !important;
+  background: var(--auth-field) !important;
+  border: 2px solid var(--auth-box) !important;
+  box-shadow: none !important;
+}
+
+/* ── scene backdrops ─────────────────────────────────────────────────────────
+   Room backdrops are low-resolution tile art; let them scale on the pixel grid
+   rather than smoothing into mush. */
+.scene-backdrop,
+#scene-backdrop {
+  image-rendering: pixelated;
+}
+
+/* ── motion ──────────────────────────────────────────────────────────────────
+   The pixel grid makes sub-pixel transforms shimmer. Snap them off. */
+.relic-portrait,
+.bubble-avatar,
+.soul-sigil {
+  transition: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .soul-sigil { filter: none !important; }
+}
