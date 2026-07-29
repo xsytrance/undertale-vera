@@ -100,15 +100,23 @@ frontend smoke (`tools/frontend_smoke.py`). All are CI merge gates.
 pip install -r requirements.txt
 pytest -q                                   # the full suite, all green
 python3 -m uvicorn undertale_vera_app:app --port 9092
-python3 inspector.py --base http://127.0.0.1:9092
 SMOKE_BASE=http://127.0.0.1:9092 python tools/frontend_smoke.py   # UI smoke
+```
+
+Eyes on the running UI — screenshots plus what a careful reviewer would flag
+(overflow, clipped text, contrast, tap targets, console errors) across every
+view and viewport. Optional; not a CI gate:
+
+```bash
+pip install -r requirements-qa.txt          # the Eye of Thundera
+thundera look                               # reads ./thundera.toml
 ```
 
 ## Pipeline
 ```
 save files → parser → SaveTruth (+ ROUTE) → storage
           → prompt builder (two-bucket wall) → grounded chat
-          → automated truth verification (Inspector)
+          → automated truth verification (pytest + voice_eval + frontend smoke)
 ```
 
 See `docs/` for the port plan, save format, art direction, buildlog, and roadmap.

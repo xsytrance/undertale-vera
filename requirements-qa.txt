@@ -1,0 +1,21 @@
+# Optional QA deps — the Eye of Thundera, undertale-vera's UI inspection sweep.
+# The app and the pytest suite do NOT need these; nothing in CI installs them.
+#
+#   pip install -r requirements-qa.txt
+#   thundera look                 # reads ./thundera.toml
+#
+# The Eye is the shared engine behind what used to be this repo's vendored
+# `inspector.py`. It lives in its own repo so every vera gets the same eyes:
+#   github.com/xsytrance/eyeofthundera
+#
+# The repo is private and not on PyPI, so install it from git (needs access to
+# the org) or from a local clone, whichever you have:
+eye-of-thundera[all] @ git+https://github.com/xsytrance/eyeofthundera.git
+#   pip install -e '/path/to/eye-of-thundera[all]'          # local clone
+
+# The [all] extra pulls Playwright (screenshots plus the layout / contrast /
+# tap-target checks) and Pillow (the montage grids). Without them the sweep
+# degrades to status codes only (`thundera look --engine http`) rather than
+# refusing to run — the same "works on a bare box" guarantee the old inspector
+# had. After installing, fetch the browser once:
+#   playwright install chromium

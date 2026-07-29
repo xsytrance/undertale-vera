@@ -19,7 +19,7 @@ parser truth from FREE character personality/memory.
 - Branch: `main`.
 - Backend modules at repo root: `undertale_vera_app.py`, `save_parser.py`,
   `route_detection.py`, `save_truth.py`, `prompt_builder.py`, `living_memory.py`,
-  `ledger.py`, `judgment.py`, `llm_client.py`, `inspector.py`; plus
+  `ledger.py`, `judgment.py`, `llm_client.py`; plus
   `backend/models.py`, `static/` (UI), `tests/`, `docs/` (see the git history for
   the full feature map).
 
@@ -74,16 +74,48 @@ later save (return visit)"** with a *different* fixture → the **"WHAT THE SAVE
 REMEMBERS"** box shows the delta (e.g. *Pacifist → Genocide*). The "Your saves" shelf
 switches between saves; transcripts persist across reload.
 
-## Tier 4 — Inspector (deterministic QA sweep)
+## Tier 4 — the Eye of Thundera (deterministic QA sweep)
 ```bash
-python3 inspector.py --base http://127.0.0.1:9092      # exit 0 = pass
+pip install -r requirements-qa.txt                     # once
+thundera look                                          # exit 0 = pass
+thundera look --engine http                            # no browser needed
 ```
-The HTTP engine always runs (status codes + asset existence). If Playwright is
-installed it also captures console errors + screenshots. In restricted/headless
-environments where the browser binary isn't auto-discoverable, set
-`UNDERTALE_VERA_CHROMIUM=/path/to/chrome`. External-CDN (Google Fonts) console
-failures are already filtered — the CSS ships serif fallbacks, so they are not
-defects.
+This replaced the vendored `inspector.py` — the engine now lives in a package
+shared by every vera ([`eyeofthundera`](https://github.com/xsytrance/eyeofthundera)),
+and `thundera.toml` at the repo root is the only undertale-vera-specific part.
+It is discovered by walking up from the cwd, so `thundera look` works anywhere
+in the tree.
+
+Two engines. The browser engine (Playwright) screenshots every view at 390px
+and 1280px and reports what a careful reviewer would notice — console errors,
+failed requests, overflow, clipped text, misalignment, cramped tap targets,
+failing contrast. `--engine http` degrades to status codes only, so the sweep
+still runs on a box with no browser. Google Fonts is filtered as external-CDN
+noise (the CSS ships serif fallbacks); so is the smoke's deliberate bad
+`/api/guided/watch` post.
+
+The four `/api/*` surfaces are carried over from the old inspector. Its
+hand-maintained `REQUIRED_ASSETS` list is not: the browser engine records every
+request the real page makes, so a missing `app.js` or stylesheet now shows up
+as a `network` finding on the `chat` surface instead.
+
+**Not a CI gate, and it is not a substitute for `tools/frontend_smoke.py`** —
+the Eye judges how a page *looks*, the smoke asserts what the app *does*
+(a save uploads, chat replies, the roster reseats, an egg fires). Different
+questions; keep both.
+
+Run output (screenshots, `findings.json`, montages) lands in gitignored
+`.thundera/runs/<timestamp>/`. Where the browser binary isn't auto-discoverable
+use `--browser /path/to/chrome` (this is what `UNDERTALE_VERA_CHROMIUM` used to
+do for the old inspector).
+
+An absolute count is nearly useless here — the UI carries a tail of accepted
+mobile warnings. The delta is the number worth reading:
+
+```bash
+thundera look --update-baseline            # accept today's state
+thundera look --baseline .thundera/baseline.json --fail-on-new
+```
 
 ## Acceptance checklist (the invariants that matter)
 - [ ] `pytest -q` → all passing, 0 failures.

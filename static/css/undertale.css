@@ -65,7 +65,12 @@ h1, h2, h3, .display, .brand-name, .dialogue-name, .rail-lbl, .cv-head, .entry-h
   color: #000 !important;
 }
 .navitem.sel, .bottom-nav .bn.sel { border-color: #fff !important; }
-.navitem:hover { background: #1a1a1a !important; }
+/* :not(.sel) — the selected item is already inverted to black-on-white above,
+   and this rule (later, equal specificity, also !important) used to win over it
+   on hover, leaving black text on #1a1a1a at 1.2:1. Since the pointer normally
+   rests on the item you just clicked, the current view's label was unreadable
+   most of the time. Found by the Eye of Thundera. */
+.navitem:not(.sel):hover { background: #1a1a1a !important; }
 
 /* dialogue: white text, yellow speaker name, the iconic "* " marker */
 .bubble { color: #fff !important; }

@@ -1157,6 +1157,34 @@ body { margin: 0; overflow: hidden; }   /* the stage scrolls, not the page */
   .composer { gap: 8px; margin-top: 10px; }
   .composer #chat-input { padding: 12px 14px; }
   .composer .btn { padding: 12px 16px; }
+
+  /* ── touch targets ────────────────────────────────────────────────────────
+     Found by the Eye of Thundera: 42 tap-target warnings at 390px, nearly all
+     of them controls sitting at 27–28px tall — under the 32px floor at which a
+     control counts as cramped for a fingertip. 36px, not 32, so a later font
+     or padding tweak doesn't quietly put them back under it.
+
+     Mobile-only on purpose: this is a pointer-precision problem, not a layout
+     one, and the desktop console is built around the tighter 28px chrome. */
+  .btn, .st-mode, .save-pill, .topbar-modes { min-height: 36px; }
+  /* single-glyph transport buttons are narrow as well as short */
+  .st-transport .btn { min-width: 36px; }
+
+  /* the ↻ on the quote and lore cards was the worst offender at 23×19.2px.
+     It is absolutely positioned, so growing it costs no layout: centre the
+     glyph in a 36px box and pull it up/right into the blank corner beside the
+     card's label rather than down over the text it belongs to. */
+  .quote-refresh {
+    top: -11px; right: -7px; width: 36px; height: 36px; padding: 0;
+    display: inline-flex; align-items: center; justify-content: center;
+  }
+
+  /* #credits-support sits inline inside a sentence ("— tip jar ♥ —"), so a
+     36px box would gap the prose. Padding lifts it clear of the floor while it
+     stays on the line. `button.linklike`, not `.linklike`: the base rule sets
+     `padding: 0` further down the file and would otherwise win on order — the
+     same trap as the nav hover bug above. */
+  button.linklike { padding: 7px 4px; }
 }
 
 /* ── "Read a save" guidance — which 2 files, and where they live ──────────── */

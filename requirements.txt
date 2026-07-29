@@ -14,6 +14,5 @@ httpx>=0.27             # HTTP client for the default Ollama chat backend
 # to use Claude instead (default model claude-opus-4-8; needs ANTHROPIC_API_KEY).
 anthropic>=0.40
 
-# Optional, used by the Inspector's Playwright engine (falls back to HTTP-only
-# checks when absent, so it is not strictly required to run the sweep):
-# playwright>=1.40
+# The UI QA sweep (the Eye of Thundera) and its Playwright dependency live in
+# requirements-qa.txt — optional, and not installed by CI.

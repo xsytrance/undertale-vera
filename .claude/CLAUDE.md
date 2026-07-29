@@ -48,8 +48,11 @@ for secrets and the audio memory for the loop/normalize recipe.
 - `guided.py` / `guide_kb.py` — **Guided Mode**: the read-only save watcher (SSE
   beats, delta-aware party reactions) + the spoiler-tiered hint KB. See
   [`docs/GUIDED_MODE.md`](../docs/GUIDED_MODE.md).
-- `inspector.py` — QA harness (Playwright or HTTP-only sweep).
-- `tools/frontend_smoke.py` — headless-browser UI smoke (a CI merge gate).
+- `thundera.toml` — config for the **Eye of Thundera**, the shared UI-inspection
+  engine ([`eyeofthundera`](https://github.com/xsytrance/eyeofthundera)) that replaced
+  the vendored `inspector.py`. Optional dep: `requirements-qa.txt`. Not a CI gate.
+- `tools/frontend_smoke.py` — headless-browser UI smoke (a CI merge gate). Distinct
+  from the Eye: the smoke asserts what the app *does*, the Eye judges how it *looks*.
 - `tests/` — Pytest suite. **Always run `pytest -q` before committing.**
 
 ## Core Rules & Guardrails
@@ -68,7 +71,8 @@ for secrets and the audio memory for the loop/normalize recipe.
 - `pytest -q` — full test suite (mock the LLM; never require a live model in CI).
 - `SMOKE_BASE=http://127.0.0.1:9092 python tools/frontend_smoke.py` — headless UI smoke
   (also a CI merge gate; point `SMOKE_CHROMIUM` at a browser locally if needed).
-- `python3 inspector.py --base http://127.0.0.1:9092` — QA sweep.
+- `thundera look` — the Eye of Thundera QA sweep (reads `thundera.toml`; add
+  `--engine http` on a box with no browser). Needs `requirements-qa.txt`.
 - CI (`.github/workflows/ci.yml`): **`syntax + pytest`** and **`frontend smoke`** — both green to merge.
 
 ## Development Workflow
